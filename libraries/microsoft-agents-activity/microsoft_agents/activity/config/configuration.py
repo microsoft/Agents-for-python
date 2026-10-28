@@ -16,6 +16,7 @@ from typing_extensions import Self
 
 from ._configuration_protocol import _ConfigurationProtocol
 from ._constants import _PATH_SEPARATOR
+from ._resolve import _resolve
 from ._coercion import (
     _handle_bool,
     _handle_int,
@@ -31,7 +32,6 @@ from ._utils import (
     _collect,
     _collect_with_paths,
     _is_missing,
-    _resolve,
     _resolve_keys_arg,
 )
 
@@ -199,71 +199,6 @@ class Configuration(dict, _ConfigurationProtocol):
             Configuration.from_mapping(v, _base_path=self._resolve_path(base_path))
             for base_path, v in map.items()
         ]
-
-    # @overload
-    # def get_typed(
-    #     self,
-    #     _type: type[T],
-    #     *_keys: str | list[str],
-    #     factory: Callable[[Mapping], T] | None = None,
-    #     default: T | _MissingType = _MISSING,
-    # ) -> T: ...
-    # @overload
-    # def get_typed(
-    #     self,
-    #     _type: type[T],
-    #     *_keys: str | list[str],
-    #     factory: Callable[[Mapping], T],
-    #     default: None,
-    # ) -> T | None: ...
-    # @overload
-    # def get_typed(
-    #     self,
-    #     _type: type[_ConfigurationProtocolT],
-    #     *_keys: str | list[str],
-    #     factory: None = None,
-    #     default: _ConfigurationProtocolT | _MissingType,
-    # ) -> _ConfigurationProtocolT: ...
-    # @overload
-    # def get_typed(
-    #     self,
-    #     _type: type[_ConfigurationProtocolT],
-    #     *_keys: str | list[str],
-    #     factory: None = None,
-    #     default: _ConfigurationProtocolT | None | _MissingType = _MISSING,
-    # ) -> _ConfigurationProtocolT | None: ...
-    # def get_typed(
-    #     self,
-    #     _type: type[T],
-    #     *_keys: str | list[str],
-    #     factory: Callable[[Mapping], T] | None = None,
-    #     default: T | None | _MissingType = _MISSING,
-    # ) -> T | None:
-    #     """Retrieve a typed value from the configuration, converting it to the specified class if necessary.
-
-    #     :param _type: The expected type of the section.
-    #     :param key: The key of the section to retrieve. If None, uses the type name as the key.
-    #     :param factory: The factory to convert the section with, if necessary.
-    #     :param default: The default value to return if the section is not found.
-    #     :return: The retrieved section as an instance of the specified type, or the default value if not found.
-    #     :raises TypeError: If the return type of the class is not a subclass of the expected type.
-    #     """
-    #     keys = _resolve_keys_arg(*_keys) if _keys else [_type.__name__]
-    #     val = self._get(*keys, default=default)
-
-    #     if not isinstance(val, Mapping):
-    #         raise TypeError(
-    #             f"Section {keys[0]} is not a mapping. This may be supported in the future."
-    #         )
-
-    #     if not factory:
-    #         if isinstance(_type, _ConfigurationProtocol):
-    #             return _type.from_mapping(val)
-    #         raise ValueError(
-    #             f"Type {_type} is not a subclass of _ConfigurationProtocol and no factory was provided"
-    #         )
-
-    #     return factory(val)
 
     @overload
     def get_bool(

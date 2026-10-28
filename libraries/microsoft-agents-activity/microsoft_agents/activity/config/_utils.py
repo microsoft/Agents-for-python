@@ -171,7 +171,7 @@ def _try_set(
                 current = current[part]
         else:
             raise TypeError(
-                f"Cannot set value for key path {key} in non-mutable mapping object"
+                f"Cannot set value for key path {key} in non-mutable mapping or list object"
             )
 
     if isinstance(current, MutableMapping):
@@ -193,45 +193,6 @@ def _set(mapping: MutableMapping, key: str, value: Any) -> None:
     _try_set(mapping, key, value, overwrite=True)
 
 
-def _traverse(
-    mapping: Mapping,
-    func: Callable[[Any, list[str]], bool | None],
-    path: list[str] | None = None,
-) -> None:
-    """Traverse a nested mapping and apply a function to each key-value pair.
-
-    The function should return False to skip traversing into a nested mapping.
-
-    :param mapping: The mapping to traverse.
-    :param func: The function to apply to each key-value pair.
-    :param path: The current path in the nested mapping.
-    """
-    if path is None:
-        path = []
-    for key, value in mapping.items():
-        path.append(key)
-        if func(value, path) is not False and isinstance(value, Mapping):
-            _traverse(value, func, path)
-        path.pop()
-
-
-def _traverse_leaves(
-    mapping: Mapping, func: Callable[[Any, list[str]], bool | None]
-) -> None:
-    """Traverse a nested mapping and apply a function to each leaf key-value pair.
-
-    :param mapping: The mapping to traverse.
-    :param func: The function to apply to each leaf key-value pair.
-    """
-
-    def _leaf_func(value: Any, path: list[str]) -> None:
-        if isinstance(value, Mapping) and len(value) > 0:
-            return
-        func(value, path)
-
-    _traverse(mapping, _leaf_func)
-
-
 def _parse_env_var_name(name: str) -> str:
     """Replace environment-variable ``__`` separators with ``::``.
 
@@ -239,101 +200,6 @@ def _parse_env_var_name(name: str) -> str:
     :return: The ``::``-separated key path, preserving case.
     """
     return name.replace("__", _PATH_SEPARATOR)
-
-
-def _convert_lists_helper(current: Any) -> None:
-
-    if isinstance(current, Mapping):
-        if all(key.isnumeric() for key in current.keys()):
-            keys_to_convert = sorted(list(current.keys()))
-            for key in keys_to_convert:
-                value = current[key]
-
-
-def _convert_list_helper(base: Any, key: str) -> None:
-
-    current = base[key]
-
-    if isinstance(current, Mapping):
-        if not current:
-            return
-
-        if all(isinstance(key, int) for key in current.keys()):
-            keys_to_convert = sorted(list(current.keys()))
-            base[key] = [current[key] for key in keys_to_convert]
-
-        elif all(isinstance(key, str) and key.isnumeric() for key in current.keys()):
-            keys_to_convert = sorted([int(k) for k in current.keys()])
-            base[key] = [current[str(key)] for key in keys_to_convert]
-
-
-def _convert_lists(base: Any) -> None:
-
-    if isinstance(base, MutableMapping):
-        for current_key, current in base.items():
-            if isinstance(current, Mapping):
-                _convert_list_helper(base, current_key)
-                _convert_lists(base[current_key])
-            elif isinstance(current, list):
-                _convert_lists(current)
-    elif isinstance(base, list):
-        for i, item in enumerate(base):
-            if isinstance(item, Mapping):
-                _convert_list_helper(base, i)
-                _convert_lists(base[i])
-            elif isinstance(item, list):
-                _convert_lists(item)
-
-
-def _resolve(
-    primary: Mapping,
-    defaults: Mapping,
-    *,
-    path_transformer: Callable[[str], str] | None = None,
-) -> dict:
-    """Resolve a mapping by merging it with a defaults mapping.
-
-    :param primary: The primary mapping to resolve.
-    :param defaults: The defaults mapping What to merge with.
-    :param path_transformer: Transform paths before merging. By default, replace
-        environment-variable ``__`` separators with ``::``, preserving case.
-    :return: The resolved mapping.
-    """
-
-    if not path_transformer:
-        path_transformer = _parse_env_var_name
-
-    flat = {}
-
-    def _populate(val: Any, path: list[str]):
-        path_str = path_transformer(_path(*path))
-        if isinstance(val, Mapping) and len(val) == 0:
-            flat[path_str] = {}
-        elif isinstance(val, Mapping):
-            flat[path_str] = dict(val)
-        elif isinstance(val, list) and len(val) == 0:
-            pass  # skip empty lists
-        elif isinstance(val, list):
-            flat[path_str] = list(val)
-        else:
-            flat[path_str] = val
-
-    _traverse_leaves(defaults, _populate)
-    _traverse_leaves(primary, _populate)  # defaults get overriden
-
-    resolved = {}
-    for path_str, value in flat.items():
-        if (
-            isinstance(value, Mapping)
-            and len(value) == 0
-            and isinstance(_get(resolved, path_str), Mapping)
-        ):
-            continue  # avoid overwriting existing mappings with empty leaf mappings
-        if not _try_set(resolved, path_str, value):
-            raise ValueError(f"Failed to set path {path_str} in resolved mapping.")
-
-    _convert_lists(resolved)
-    return resolved
 
 
 @functools.lru_cache(maxsize=10)

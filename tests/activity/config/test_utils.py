@@ -6,16 +6,14 @@ from types import MappingProxyType
 
 import pytest
 
+from microsoft_agents.activity.config._resolve import _resolve
 from microsoft_agents.activity.config._utils import (
     _MISSING,
     _get,
     _is_missing,
     _parse_env_var_name,
     _path,
-    _resolve,
     _set,
-    _traverse,
-    _traverse_leaves,
     _try_set,
     _collect,
     _xpath,
@@ -105,57 +103,6 @@ def test_set_overwrites_existing_leaf_and_preserves_siblings():
     assert mapping == {"A": {"B": "new", "C": "keep"}}
 
 
-def test_traverse_visits_parents_and_leaves():
-    visited = []
-
-    def visit(value, path):
-        visited.append((tuple(path), value))
-
-    _traverse({"A": {"B": 1}, "C": 2}, visit)
-
-    assert visited == [(("A",), {"B": 1}), (("A", "B"), 1), (("C",), 2)]
-
-
-def test_traverse_can_skip_subtree_without_skipping_siblings():
-    visited = []
-
-    def visit(value, path):
-        visited.append(tuple(path))
-        return False if path == ["A"] else None
-
-    _traverse({"A": {"B": 1}, "C": {"D": 2}}, visit)
-
-    assert visited == [("A",), ("C",), ("C", "D")]
-
-
-def test_traverse_preserves_supplied_path():
-    path = ["Root"]
-    visited = []
-
-    _traverse({"A": {"B": 1}}, lambda value, parts: visited.append(tuple(parts)), path)
-
-    assert visited == [("Root", "A"), ("Root", "A", "B")]
-    assert path == ["Root"]
-
-
-def test_traverse_leaves_treats_lists_as_values():
-    visited = []
-    mapping = {"A": {"B": 1}, "C": [{"D": 2}], "E": None}
-
-    _traverse_leaves(mapping, lambda value, path: visited.append((tuple(path), value)))
-
-    assert visited == [(("A", "B"), 1), (("C",), [{"D": 2}]), (("E",), None)]
-
-
-def test_traverse_leaves_includes_empty_mappings():
-    visited = []
-    mapping = {"A": {}, "B": {"C": MappingProxyType({})}, "D": 1}
-
-    _traverse_leaves(mapping, lambda value, path: visited.append((tuple(path), value)))
-
-    assert visited == [(("A",), {}), (("B", "C"), {}), (("D",), 1)]
-
-
 @pytest.mark.parametrize(
     "primary",
     [
@@ -176,27 +123,29 @@ def test_resolve_preserves_explicit_primary_values_without_coercion(value):
 
 
 @pytest.mark.parametrize("source", ["primary", "defaults"])
-def test_resolve_omits_empty_lists_from_either_source(source):
+def test_resolve_preserves_empty_lists_from_either_source(source):
     mapping = {"Empty": [], "Nested": {"Empty": []}, "Keep": "value"}
     primary, defaults = (mapping, {}) if source == "primary" else ({}, mapping)
     original = deepcopy(mapping)
 
-    assert _resolve(primary, defaults) == {"Keep": "value"}
+    result = _resolve(primary, defaults)
+
+    assert result == mapping
+    assert result["Empty"] is not mapping["Empty"]
+    assert result["Nested"]["Empty"] is not mapping["Nested"]["Empty"]
     assert mapping == original
 
 
 @pytest.mark.parametrize("empty_is_primary", [True, False])
-@pytest.mark.parametrize("value", ["fallback", ["read"], {"Child": {}}])
-def test_resolve_empty_lists_preserve_values_from_the_other_source(
-    empty_is_primary, value
-):
+@pytest.mark.parametrize("value", ["fallback", ["read"]])
+def test_resolve_empty_lists_follow_primary_precedence(empty_is_primary, value):
     empty = {"A": []}
     populated = {"A": value}
     primary, defaults = (empty, populated) if empty_is_primary else (populated, empty)
     original_primary = deepcopy(primary)
     original_defaults = deepcopy(defaults)
 
-    assert _resolve(primary, defaults) == populated
+    assert _resolve(primary, defaults) == primary
     assert primary == original_primary
     assert defaults == original_defaults
 
@@ -327,7 +276,7 @@ def test_resolve_accepts_empty_parent_and_child_paths_in_either_order(
 
 
 @pytest.mark.parametrize("empty_is_primary", [True, False])
-@pytest.mark.parametrize("scalar", [None, False, 0, "", "scalar"])
+@pytest.mark.parametrize("scalar", [None, False, 0, "", "scalar", []])
 def test_resolve_rejects_non_mapping_parent_of_empty_section(empty_is_primary, scalar):
     empty = {"A": {"B": {}}}
     non_mapping = {"A": scalar}

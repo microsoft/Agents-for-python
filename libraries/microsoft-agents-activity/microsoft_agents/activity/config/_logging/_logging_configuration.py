@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Mapping
 
 from microsoft_agents.activity.errors import configuration_errors
 
@@ -43,7 +44,7 @@ class _LoggingConfiguration(_Configurable):
     def _from_configuration(cls, config: Configuration) -> _LoggingConfiguration:
 
         raw_log_levels = config.get(_xpath("log_level"), default={})
-        if not isinstance(raw_log_levels, dict):
+        if not isinstance(raw_log_levels, Mapping):
             raise ValueError(
                 configuration_errors.InvalidLoggingConfiguration.format(
                     "log_levels", raw_log_levels

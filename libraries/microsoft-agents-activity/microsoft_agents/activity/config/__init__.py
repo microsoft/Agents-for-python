@@ -4,6 +4,7 @@
 from ._load_configuration import load_configuration_from_env
 from .configuration import Configuration, _Configurable
 from ._configuration_protocol import _ConfigurationProtocol, _DictConfigurable
+from ._resolve import _resolve
 from ._utils import (
     _MissingType,
     _MISSING,
@@ -11,7 +12,6 @@ from ._utils import (
     _is_missing,
     _path as path,
     _xpath as xpath,
-    _resolve,
     _set,
     _try_set,
 )
