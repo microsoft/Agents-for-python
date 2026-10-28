@@ -57,6 +57,16 @@ class TestCoerceBool:
         assert coerce_bool("maybe", default=True) is True
         assert coerce_bool("maybe", default=False) is False
 
+    @pytest.mark.parametrize("value, expected", [("true", True), ("false", False)])
+    def test_recognized_value_overrides_default(self, value, expected):
+        assert coerce_bool(value, default=not expected) is expected
+
+    def test_unrecognized_with_none_default_reports_name_without_value(self):
+        with pytest.raises(ValueError) as error:
+            coerce_bool("synthetic-secret", default=None, name="Settings::Enabled")
+
+        assert str(error.value) == "Invalid boolean for Settings::Enabled"
+
 
 class TestCoerceInt:
     def test_none_returns_default(self):

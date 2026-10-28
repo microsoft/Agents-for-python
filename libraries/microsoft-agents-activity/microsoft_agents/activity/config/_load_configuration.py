@@ -3,7 +3,7 @@
 
 from typing import Any, Mapping
 
-from ._configure_logging import _configure_logging
+from ._logging import _configure_logging
 
 
 def load_configuration_from_env(env_vars: Mapping[str, Any]) -> dict:
