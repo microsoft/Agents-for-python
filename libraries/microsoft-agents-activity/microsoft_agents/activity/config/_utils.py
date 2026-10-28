@@ -461,14 +461,17 @@ def _xpath(
 
     n = len(path_parts)
 
-    sets = [ _xcase(
-        part,
-        upper_snake=upper_snake,
-        lower_snake=lower_snake,
-        camel=camel,
-        pascal=pascal,
-        all_caps=all_caps
-    ) for part in path_parts ]
+    sets = [
+        _xcase(
+            part,
+            upper_snake=upper_snake,
+            lower_snake=lower_snake,
+            camel=camel,
+            pascal=pascal,
+            all_caps=all_caps,
+        )
+        for part in path_parts
+    ]
 
     paths = set()
     for i in range(n):
