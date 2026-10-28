@@ -309,8 +309,12 @@ def _resolve(
         path_str = path_transformer(_path(*path))
         if isinstance(val, Mapping) and len(val) == 0:
             flat[path_str] = {}
+        elif isinstance(val, Mapping):
+            flat[path_str] = dict(val)
         elif isinstance(val, list) and len(val) == 0:
             pass  # skip empty lists
+        elif isinstance(val, list):
+            flat[path_str] = list(val)
         else:
             flat[path_str] = val
 
@@ -452,17 +456,25 @@ def _xpath(
     :return: A list of name variants.
     """
 
-    path = _path(*path_parts)
+    if not path_parts:
+        return []
 
-    res = _xcase(
-        path,
+    n = len(path_parts)
+
+    sets = [ _xcase(
+        part,
         upper_snake=upper_snake,
         lower_snake=lower_snake,
         camel=camel,
         pascal=pascal,
-        all_caps=all_caps,
-    )
-    return sorted(res)
+        all_caps=all_caps
+    ) for part in path_parts ]
+
+    paths = set()
+    for i in range(n):
+        paths.add(_path(*[s[i] for s in sets]))
+
+    return sorted(list(paths))
 
 
 def str_in(base: str, *sub: str) -> bool:
