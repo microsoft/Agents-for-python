@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import logging
+from typing import Mapping
 
 from ..configuration import Configuration
 from ._logging_configuration import _LoggingConfiguration
@@ -9,14 +10,14 @@ from ._color_formatter import ColorFormatter
 from ._constants import _DEFAULT_NAMESPACE
 
 
-def _configure_logging(_config: dict | Configuration | _LoggingConfiguration):
+def _configure_logging(_config: Mapping | Configuration | _LoggingConfiguration):
     """Configures logging based on the provided logging configuration dictionary.
 
     :param config: A Configuration object or _LoggingConfiguration instance containing logging configuration.
     :raises ValueError: If an invalid log level is provided in the configuration.
     """
 
-    if isinstance(_config, dict):
+    if isinstance(_config, Mapping):
         config = _LoggingConfiguration.from_mapping(_config)
     else:
         config = _LoggingConfiguration.from_configuration(_config)

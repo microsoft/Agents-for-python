@@ -387,7 +387,7 @@ def _xcase_helper(
 
     if camel or pascal or all_caps:
         camel_case = _snake_to_camel(snake_case_name)
-        if camel_case: # a little silly, but "_" becomes "" in the above call.
+        if camel_case:  # a little silly, but "_" becomes "" in the above call.
             if camel:
                 variants.add(camel_case)
             if pascal:
