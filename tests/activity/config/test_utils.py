@@ -382,3 +382,58 @@ def test_xpath_joins_path_components():
         "AGENT_APPLICATION::USER_AUTHORIZATION",
         "agent_application::user_authorization",
     ]
+
+
+def test_xpath_three_components_deduplicates_equivalent_styles():
+    assert _xpath("a", "b", "c") == ["A::B::C", "a::b::c"]
+
+
+@pytest.mark.parametrize(
+    "style, expected",
+    [
+        ("upper_snake", "AGENT_APPLICATION::USER_AUTHORIZATION::CLIENT_ID"),
+        ("lower_snake", "agent_application::user_authorization::client_id"),
+        ("camel", "agentApplication::userAuthorization::clientId"),
+        ("pascal", "AgentApplication::UserAuthorization::ClientId"),
+        ("all_caps", "AGENTAPPLICATION::USERAUTHORIZATION::CLIENTID"),
+    ],
+)
+def test_xpath_applies_only_the_enabled_style_to_every_component(style, expected):
+    options = {
+        "upper_snake": False,
+        "lower_snake": False,
+        "all_caps": False,
+        style: True,
+    }
+
+    assert _xpath(
+        "agent_application", "user_authorization", "client_id", **options
+    ) == [expected]
+
+
+@pytest.mark.parametrize(
+    "parts",
+    [
+        ("agent_application", "user_authorization"),
+        ("agent_application::user_authorization",),
+    ],
+)
+def test_xpath_sorts_complete_paths_without_mixing_enabled_styles(parts):
+    assert _xpath(*parts, camel=True, pascal=True) == [
+        "AGENTAPPLICATION::USERAUTHORIZATION",
+        "AGENT_APPLICATION::USER_AUTHORIZATION",
+        "AgentApplication::UserAuthorization",
+        "agentApplication::userAuthorization",
+        "agent_application::user_authorization",
+    ]
+
+
+@pytest.mark.parametrize("parts", [(), ("",), (" ",), ("a", "")])
+def test_xpath_empty_components_produce_no_aliases(parts):
+    assert _xpath(*parts) == []
+
+
+def test_xpath_all_styles_disabled_produces_no_aliases():
+    assert (
+        _xpath("client_id", upper_snake=False, lower_snake=False, all_caps=False) == []
+    )

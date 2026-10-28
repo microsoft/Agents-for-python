@@ -444,10 +444,9 @@ def _xpath(
     pascal: bool = False,
     all_caps: bool = True,
 ) -> list[str]:
-    """Generate casing variants of alternative configuration paths.
+    """Generate consistently cased variants of a configuration path.
 
-    :param snake_case_paths: Alternative snake_case paths using ``::`` separators.
-        These are configuration paths, not XPath expressions.
+    :param path_parts: Snake_case path components, optionally containing ``::``.
     :param upper_snake: Include upper snake case variant.
     :param lower_snake: Include lower snake case variant.
     :param camel: Include camel case variant.
@@ -459,25 +458,24 @@ def _xpath(
     if not path_parts:
         return []
 
-    n = len(path_parts)
-
-    sets = [
-        _xcase(
-            part,
-            upper_snake=upper_snake,
-            lower_snake=lower_snake,
-            camel=camel,
-            pascal=pascal,
-            all_caps=all_caps,
-        )
-        for part in path_parts
-    ]
-
+    components = _split(_path(*path_parts))
+    styles = {
+        "upper_snake": upper_snake,
+        "lower_snake": lower_snake,
+        "camel": camel,
+        "pascal": pascal,
+        "all_caps": all_caps,
+    }
     paths = set()
-    for i in range(n):
-        paths.add(_path(*[s[i] for s in sets]))
+    for style, enabled in styles.items():
+        if not enabled:
+            continue
+        options = {name: name == style for name in styles}
+        variants = [_xcase(component, **options) for component in components]
+        if all(variants):
+            paths.add(_path(*(variant[0] for variant in variants)))
 
-    return sorted(list(paths))
+    return sorted(paths)
 
 
 def str_in(base: str, *sub: str) -> bool:
