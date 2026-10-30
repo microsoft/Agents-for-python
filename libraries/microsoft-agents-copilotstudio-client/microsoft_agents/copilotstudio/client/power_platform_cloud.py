@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import Enum
+from enum import StrEnum
 
 
-class PowerPlatformCloud(str, Enum):
+class PowerPlatformCloud(StrEnum):
     """
     Enum representing different Power Platform Clouds.
     """

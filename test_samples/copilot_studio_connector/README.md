@@ -15,7 +15,7 @@ This sample shows:
 1. Azure Bot resource with App Registration
 2. Microsoft Copilot Studio agent configured to use the connector
 3. OAuth Connection configured for Graph API access
-4. Python 3.10 or higher
+4. Python 3.11 or higher
 
 ## Configuration
 

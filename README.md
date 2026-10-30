@@ -38,9 +38,9 @@ Additionally we provide a Copilot Studio Client, to interact with Agents created
 
 ### Environment requirements
 
-The packages should target Python 3.10 or greater, and can be used with modern Python package managers like pip, poetry, or conda.
+The SDK requires Python 3.11 or greater, and can be used with modern Python package managers like pip, poetry, or conda.
 
-> Note: We recommend using Python 3.11 or later for optimal performance and compatibility with all features. The SDK supports Python 3.10, 3.11, 3.12, 3.13, and 3.14.
+> Note: The SDK supports Python 3.11, 3.12, 3.13, and 3.14. Python 3.10 is no longer supported. Individual packages may require a newer version; the legacy `microsoft-agents-hosting-teams` package requires Python 3.12 or later.
 
 ### Code Style
 

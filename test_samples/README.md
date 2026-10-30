@@ -7,7 +7,7 @@ Unless stated otherwise, run commands from the sample directory.
 
 ## Common setup
 
-- Python samples generally require Python 3.10 or later. Check the sample
+- Python samples generally require Python 3.11 or later. Check the sample
   guide for any additional version or service requirements.
 - From the repository root, create and activate a virtual environment, then
   install the repository's SDK libraries:

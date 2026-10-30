@@ -564,7 +564,7 @@ audience = PowerPlatformEnvironment.get_token_audience(
 
 ## Requirements
 
-- Python 3.10+ (supports 3.10, 3.11, 3.12, 3.13, 3.14)
+- Python 3.11+ (supports 3.11, 3.12, 3.13, 3.14)
 - Valid Azure AD app registration
 - Access to Microsoft Power Platform environment
 - Published Copilot Studio agent

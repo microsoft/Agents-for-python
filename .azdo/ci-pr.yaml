@@ -8,8 +8,6 @@ pool:
 
 strategy:
   matrix:
-    Python_3.10:
-      PYTHON_VERSION: '3.10'
     Python_3.11:
       PYTHON_VERSION: '3.11'
     Python_3.12:
@@ -74,11 +72,7 @@ steps:
     python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
     python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
     python -m pip install ./dist/microsoft_agents_hosting_dialogs*.whl
-    if python -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)"; then
-      python -m pip install ./dist/microsoft_agents_hosting_msteams*.whl
-    else
-      echo "Skipping microsoft_agents_hosting_msteams: requires Python 3.11+"
-    fi
+    python -m pip install ./dist/microsoft_agents_hosting_msteams*.whl
     if python -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"; then
       python -m pip install ./dist/microsoft_agents_hosting_teams*.whl
     else

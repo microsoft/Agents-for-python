@@ -2,34 +2,28 @@
 # Licensed under the MIT License.
 """Real upstream clients/models at the extension boundary; no network requests."""
 
-import sys
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-pytestmark = pytest.mark.skipif(
-    sys.version_info < (3, 11), reason="Teams API requires Python 3.11+"
+import httpx
+from pydantic import ValidationError
+from microsoft_teams.api import ApiClient
+from microsoft_teams.api.models import (
+    ChannelData,
+    TaskModuleRequest,
+    NotificationInfo,
 )
-
-if sys.version_info >= (3, 11):
-    import httpx
-    from pydantic import ValidationError
-    from microsoft_teams.api import ApiClient
-    from microsoft_teams.api.models import (
-        ChannelData,
-        TaskModuleRequest,
-        NotificationInfo,
-    )
-    from microsoft_agents.activity import Activity
-    from microsoft_agents.hosting.msteams._teams_api_client import (
-        _get_teams_api_client,
-        _set_teams_api_client,
-    )
-    from microsoft_agents.hosting.msteams._utils import (
-        _send_invoke_response,
-        _try_get_channel_data,
-    )
+from microsoft_agents.activity import Activity
+from microsoft_agents.hosting.msteams._teams_api_client import (
+    _get_teams_api_client,
+    _set_teams_api_client,
+)
+from microsoft_agents.hosting.msteams._utils import (
+    _send_invoke_response,
+    _try_get_channel_data,
+)
 
 
 class Services:

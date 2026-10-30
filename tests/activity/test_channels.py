@@ -25,6 +25,12 @@ def _forms(base: str) -> list:
 
 
 class TestChannels:
+    def test_formatted_channel_id_is_supported(self):
+        channel_id = f"{Channels.msteams}"
+
+        assert Channels.supports_card_actions(channel_id, 3) is True
+        assert Channels.supports_card_actions(channel_id, 100) is False
+
     def test_ms_teams_is_alias_of_msteams(self):
         # Channels.ms_teams is a deprecated back-compat alias of Channels.msteams.
         assert Channels.ms_teams is Channels.msteams

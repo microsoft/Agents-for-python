@@ -2,7 +2,7 @@
 name = "agents-testing-sample"
 version = "0.1.0"
 description = "Test an AgentApplication without starting its aiohttp host"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "aiohttp",
     "microsoft-agents-activity",

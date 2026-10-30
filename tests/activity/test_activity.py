@@ -508,6 +508,12 @@ class TestActivityConversationOps:
 
 
 class TestActivityAsTypeHelpers:
+    def test_formatted_activity_type_preserves_dispatch_and_wire_value(self):
+        activity = Activity(type=f"{ActivityTypes.conversation_update}")
+
+        assert activity.as_conversation_update_activity() is activity
+        assert activity.model_dump(mode="json")["type"] == "conversationUpdate"
+
     @pytest.mark.parametrize(
         "activity_type, method_name",
         AS_ACTIVITY_TYPE_CASES,

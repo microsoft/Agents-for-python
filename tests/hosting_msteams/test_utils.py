@@ -7,28 +7,22 @@ import re
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from .helpers import _make_context, is_supported_version
+from .helpers import _make_context
 
-pytestmark = pytest.mark.skipif(
-    not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
+from microsoft_agents.activity import Activity, ActivityTypes
+from microsoft_teams.api.models.channel_data import (
+    ChannelData,
+    ChannelInfo,
+    TeamInfo,
 )
-
-if is_supported_version:
-    from microsoft_agents.activity import Activity, ActivityTypes
-    from microsoft_teams.api.models.channel_data import (
-        ChannelData,
-        ChannelInfo,
-        TeamInfo,
-    )
-    from microsoft_agents.hosting.msteams._utils import (
-        _get_channel_data,
-        _get_channel_event_type,
-        _get_channel_info,
-        _get_team_info,
-        _match_selector,
-        _send_invoke_response,
-    )
+from microsoft_agents.hosting.msteams._utils import (
+    _get_channel_data,
+    _get_channel_event_type,
+    _get_channel_info,
+    _get_team_info,
+    _match_selector,
+    _send_invoke_response,
+)
 
 
 class TestMatchSelector:

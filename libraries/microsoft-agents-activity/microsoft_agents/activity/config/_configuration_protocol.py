@@ -5,9 +5,9 @@ from abc import ABC, abstractmethod
 from typing import (
     Mapping,
     Protocol,
+    Self,
     runtime_checkable,
 )
-from typing_extensions import Self
 
 
 @runtime_checkable

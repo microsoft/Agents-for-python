@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import Enum
+from enum import StrEnum
 
 
-class SignInConstants(str, Enum):
+class SignInConstants(StrEnum):
     # Name for the signin invoke to verify the 6-digit authentication code as part of sign-in.
     verify_state_operation_name = "signin/verifyState"
     # Name for signin invoke to perform a token exchange.

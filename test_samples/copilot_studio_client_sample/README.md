@@ -6,7 +6,7 @@ conversation endpoints before starting the conversation.
 
 ## Setup
 
-Use Python 3.10 or later. From the repository root, create a virtual environment
+Use Python 3.11 or later. From the repository root, create a virtual environment
 and install the local SDK and sample dependencies:
 
 ```powershell

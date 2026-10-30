@@ -1,3 +1,14 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.10.0
+
+**Release Date:** Unreleased
+**Previous Version:** 1.9.0 (Released 2026-10-19)
+
+## Breaking Changes
+
+- **Python Support**: Python 3.10 is no longer supported. Upgrade to Python 3.11 or later before updating the SDK. Supported versions are Python 3.11 through 3.14; existing higher per-package minimums remain unchanged.
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.9.0
 
 **Release Date:** 2026-10-19

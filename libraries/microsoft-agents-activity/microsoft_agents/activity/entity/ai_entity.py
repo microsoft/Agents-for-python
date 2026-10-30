@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import Enum
+from enum import StrEnum
 from typing import Optional, Literal
 
 from pydantic import Field
@@ -10,7 +10,7 @@ from ._schema_mixin import _SchemaMixin
 from .entity import Entity
 
 
-class ClientCitationIconName(str, Enum):
+class ClientCitationIconName(StrEnum):
     """Supported citation icon names for ``citation.appearance.image.name``.
 
     The values mirror the predefined icon names documented for Teams bot

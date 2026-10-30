@@ -11,7 +11,7 @@ This folder contains end-to-end samples that resemble production “app-style”
 
 ### Prerequisites
 
-1. Python 3.10 or later.
+1. Python 3.11 or later.
 2. Install the Agents Python SDK packages (for example by running `pip install -e libraries/microsoft-agents-*`).
 3. A published Copilot Studio agent configured for Teams with application (client) ID, client secret, and tenant ID.
 

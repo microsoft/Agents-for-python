@@ -48,7 +48,6 @@ def test_annotated_callable_metadata_does_not_include_process_addresses():
     assert type_name(Literal["None"]) != type_name(Literal[None])
 
 
-@pytest.mark.skipif(sys.version_info < (3, 11), reason="Upstream requires Python 3.11")
 def test_functions_include_keyword_only_parameters_and_async_contract():
     async def method(value: str, *, count: int = 1) -> bool:
         return True
@@ -71,7 +70,6 @@ class FakeClient(FakeBaseClient):
         self.service_url = service_url.rstrip("/")
 
 
-@pytest.mark.skipif(sys.version_info < (3, 11), reason="Upstream requires Python 3.11")
 def test_constructor_ast_and_inherited_properties(monkeypatch):
     monkeypatch.setattr(FakeBaseClient, "__module__", "microsoft_teams.api.fixture")
     monkeypatch.setattr(FakeClient, "__module__", "microsoft_teams.api.fixture")

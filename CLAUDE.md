@@ -46,7 +46,7 @@ pip install -r dev_dependencies.txt
 pre-commit install
 ```
 
-**Python version**: Requires Python 3.10+, supports 3.10-3.14. Recommended: Python 3.11+
+**Python version**: Requires Python 3.11+, supports 3.11-3.14. The legacy `microsoft-agents-hosting-teams` package requires Python 3.12+.
 
 ## Common Commands
 

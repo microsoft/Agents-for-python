@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import Enum
+from enum import StrEnum
 
 
-class EntityTypes(str, Enum):
+class EntityTypes(StrEnum):
     """Well-known enumeration of entity types."""
 
     ACTIVITY_TREATMENT = "activityTreatment"

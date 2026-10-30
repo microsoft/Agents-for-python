@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import Enum
+from enum import StrEnum
 
 
-class RoleTypes(str, Enum):
+class RoleTypes(StrEnum):
     user = "user"
     agent = "bot"
     skill = "skill"

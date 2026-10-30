@@ -8,7 +8,7 @@ workflows for the extension's pinned Teams API dependency.
 
 ## Development Setup Scripts
 
-Both of these scripts will create a Python environment based on the default version of `python` in your PATH. Ensure the version is at least 3.10 by running:
+Both of these scripts will create a Python environment based on the default version of `python` in your PATH. Ensure the version is at least 3.11 by running:
 
 ```bash
 python --version
@@ -16,7 +16,7 @@ python --version
 
 The virtual environment, by default, will created as a directory named `venv` that will be placed at the root of this project.
 
-> Note: The SDK supports Python 3.10, 3.11, 3.12, 3.13, and 3.14.
+> Note: The SDK supports Python 3.11, 3.12, 3.13, and 3.14. The legacy `microsoft-agents-hosting-teams` package requires Python 3.12 or later.
 
 ### Windows
 

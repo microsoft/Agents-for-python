@@ -7,28 +7,18 @@ These tests operate on real ``TeamsActivity`` / ``ChannelData`` objects rather
 than mocks, so they exercise the actual parsing and mutation logic.
 """
 
-import pytest
-
-from .helpers import is_supported_version
-
-pytestmark = pytest.mark.skipif(
-    not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
+from microsoft_agents.activity import ActivityTypes, ChannelAccount, Entity
+from microsoft_teams.api.models import (
+    ChannelData,
+    ChannelInfo,
+    FeedbackLoop,
+    MeetingInfo,
+    TeamInfo,
 )
+from microsoft_teams.api.models.channel_data.settings import ChannelDataSettings
 
-if is_supported_version:
-    from microsoft_agents.activity import ActivityTypes, ChannelAccount, Entity
-    from microsoft_teams.api.models import (
-        ChannelData,
-        ChannelInfo,
-        FeedbackLoop,
-        MeetingInfo,
-        TeamInfo,
-    )
-    from microsoft_teams.api.models.channel_data.settings import ChannelDataSettings
-
-    from microsoft_agents.hosting.msteams import TeamsActivity
-    from microsoft_agents.hosting.msteams.models import QuotedReplyData
+from microsoft_agents.hosting.msteams import TeamsActivity
+from microsoft_agents.hosting.msteams.models import QuotedReplyData
 
 
 def _activity(channel_data=None) -> "TeamsActivity":

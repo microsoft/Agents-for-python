@@ -2,9 +2,7 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-from typing import Protocol, Callable, Awaitable, Optional
-
-from typing_extensions import Self
+from typing import Protocol, Callable, Awaitable, Optional, Self
 
 from .turn_context_protocol import TurnContextProtocol
 from microsoft_agents.activity import (

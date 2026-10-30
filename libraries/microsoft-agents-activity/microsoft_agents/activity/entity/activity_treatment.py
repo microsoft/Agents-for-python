@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from .entity import Entity
 from .entity_types import EntityTypes
 
 
-class ActivityTreatmentTypes(str, Enum):
+class ActivityTreatmentTypes(StrEnum):
     """Well-known enumeration of activity treatment types."""
 
     TARGETED = "targeted"
