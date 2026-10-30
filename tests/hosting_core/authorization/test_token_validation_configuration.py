@@ -45,16 +45,41 @@ def test_absent_policy_uses_service_connection_and_all_connection_audiences():
     assert policy.get_connection_settings("unmatched") is policy.default_jwt_settings
 
 
-@pytest.mark.parametrize("values", [["explicit-client"], {"0": "explicit-client"}])
-def test_explicit_policy_overrides_connection_defaults(values):
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (["explicit-client"], ["explicit-client"]),
+        ("explicit-client", ["explicit-client"]),
+        ("explicit-client other-client", ["explicit-client", "other-client"]),
+        ("explicit-client, other-client", ["explicit-client", "other-client"]),
+    ],
+)
+def test_explicit_policy_overrides_connection_defaults(values, expected):
     policy = TokenValidationConfiguration.from_configuration(
         _root(audiences=values, tenant_id="explicit-tenant", anonymous_allowed=False)
     )
-    assert policy.audiences == ["explicit-client"]
+    assert policy.audiences == expected
     assert policy.validate_audience("EXPLICIT-CLIENT")
     assert not policy.validate_audience("service-client")
+    assert not policy.validate_audience("mcs-client")
     assert policy.tenant_id == "explicit-tenant"
     assert policy.anonymous_allowed is False
+
+
+@pytest.mark.parametrize("value", [None, [], "", "   "])
+def test_empty_audiences_use_connection_defaults(value):
+    policy = TokenValidationConfiguration.from_configuration(_root(audiences=value))
+    assert policy.audiences == ["service-client", "mcs-client"]
+    assert policy.validate_audience("service-client")
+    assert policy.validate_audience("mcs-client")
+
+
+@pytest.mark.parametrize(
+    "value", [{"0": "explicit-client"}, {"client": "explicit-client"}]
+)
+def test_unresolved_audience_mappings_are_rejected(value):
+    with pytest.raises(ValueError, match="token_validation::audiences"):
+        TokenValidationConfiguration.from_configuration(_root(audiences=value))
 
 
 @pytest.mark.parametrize("audience", [None, "", [], ["mcs-client"], 123, {}])
@@ -81,11 +106,13 @@ def test_legacy_configuration_preserves_explicit_issuer_policy():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("audiences", [["explicit-client"], "explicit-client"])
 async def test_configuration_based_validator_checks_signature_and_explicit_audience(
     monkeypatch,
+    audiences,
 ):
     private_key, public_key = generate_rsa_keypair()
-    validator = JwtTokenValidator(_root(audiences=["explicit-client"]))
+    validator = JwtTokenValidator(_root(audiences=audiences))
     uris = []
 
     async def get_signing_key(uri, header):
@@ -100,10 +127,11 @@ async def test_configuration_based_validator_checks_signature_and_explicit_audie
     assert uris == [
         "https://login.microsoftonline.com/service-tenant/discovery/v2.0/keys"
     ]
-    with pytest.raises(ValueError, match="Invalid audience"):
-        await validator.validate_token(
-            make_signed_jwt(private_key, {"aud": "service-client"})
-        )
+    for rejected_audience in ["service-client", "mcs-client"]:
+        with pytest.raises(ValueError, match="Invalid audience"):
+            await validator.validate_token(
+                make_signed_jwt(private_key, {"aud": rejected_audience})
+            )
 
 
 @pytest.mark.asyncio
@@ -121,12 +149,26 @@ async def test_empty_configuration_rejects_tokens_without_jwks_lookup(monkeypatc
         await validator.validate_token(make_signed_jwt(private_key, {"aud": "client"}))
 
 
-def test_normalized_environment_policy_overrides_service_defaults():
-    config = Configuration(
-        _resolve(
+@pytest.mark.parametrize(
+    "audience_config, expected",
+    [
+        (
             {
                 "TOKENVALIDATION__AUDIENCES__10": "client-10",
                 "TOKENVALIDATION__AUDIENCES__2": "client-2",
+            },
+            ["client-2", "client-10"],
+        ),
+        ({"TOKENVALIDATION__AUDIENCES": "restricted-client"}, ["restricted-client"]),
+    ],
+)
+def test_normalized_environment_policy_overrides_service_defaults(
+    audience_config, expected
+):
+    config = Configuration(
+        _resolve(
+            {
+                **audience_config,
                 "TOKENVALIDATION__TENANTID": "explicit-tenant",
                 "TOKENVALIDATION__ANONYMOUSALLOWED": "false",
                 "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "service-client",
@@ -135,7 +177,8 @@ def test_normalized_environment_policy_overrides_service_defaults():
         )
     )
     policy = TokenValidationConfiguration.from_configuration(config)
-    assert policy.audiences == ["client-2", "client-10"]
+    assert policy.audiences == expected
+    assert not policy.validate_audience("service-client")
     assert policy.tenant_id == "explicit-tenant"
     assert policy.anonymous_allowed is False
     assert policy.default_jwt_settings.anonymous_allowed is True
