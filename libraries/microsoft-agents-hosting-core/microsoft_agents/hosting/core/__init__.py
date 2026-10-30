@@ -62,6 +62,7 @@ from .authorization.agent_auth_configuration import AgentAuthConfiguration
 from .authorization.claims_identity import ClaimsIdentity
 from .authorization.jwt.jwt_token_validator import JwtTokenValidator
 from .authorization.auth_types import AuthTypes
+from .authorization.connection_settings_base import ConnectionSettingsBase
 
 # Client API
 from .client.agent_conversation_reference import AgentConversationReference
@@ -114,6 +115,7 @@ from .errors import error_resources, ErrorMessage, ErrorResources
 
 # Define the package's public interface
 __all__ = [
+    "ConnectionSettingsBase",
     "ActivityHandler",
     "Agent",
     "CardFactory",

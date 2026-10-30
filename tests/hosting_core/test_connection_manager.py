@@ -6,11 +6,13 @@ from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
 
 from microsoft_agents.activity import Activity, ChannelAccount, RoleTypes
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     AccessTokenProviderBase,
     ClaimsIdentity,
     ConnectionManager,
+    ConnectionSettingsBase,
 )
 from microsoft_agents.hosting.core.authorization._helpers import (
     _CallableTokenCredential,
@@ -37,6 +39,105 @@ class FakeProvider(AccessTokenProviderBase):
             return AccessToken("fake-token", _TEST_TOKEN_EXPIRATION)
 
         return _CallableTokenCredential(get_token)
+
+
+class ConfiguredProvider(FakeProvider):
+    def __init__(self, configuration: Configuration):
+        self.received_config = configuration
+        self._settings = ConnectionSettingsBase.from_configuration(configuration)
+
+    @property
+    def config(self) -> ConnectionSettingsBase:
+        return self._settings
+
+    @property
+    def configuration(self) -> AgentAuthConfiguration:
+        raise AssertionError(
+            "Configuration-based routing must not require legacy settings"
+        )
+
+
+@pytest.mark.parametrize("named_map", [False, True])
+def test_configuration_manager_binds_aliases_and_routes_without_legacy_settings(
+    named_map,
+):
+    rules = [
+        {"audience": "client", "service_url": "example", "connection": "OTHER"},
+        {"service_url": "*", "connection": "SERVICE_CONNECTION"},
+    ]
+    config = Configuration(
+        connections={
+            "SERVICE_CONNECTION": {"settings": {"client_id": "default"}},
+            "OTHER": {"settings": {"client_id": "other"}},
+        },
+        connections_map={"first": rules[0], "second": rules[1]} if named_map else rules,
+    )
+    manager = ConnectionManager(ConfiguredProvider, config=config)
+    provider = manager.get_token_provider(
+        ClaimsIdentity({"aud": "CLIENT"}), "https://example.com"
+    )
+    assert provider is manager.get_connection("OTHER")
+    assert provider.config.client_id == "other"
+    assert provider.received_config._base_path == "connections::OTHER::settings"
+    assert (
+        manager.get_token_provider(
+            ClaimsIdentity({"aud": "unmatched"}), "https://example.com"
+        )
+        is manager.get_default_connection()
+    )
+    with pytest.raises(ValueError, match="get_default_connection\\(\\).config"):
+        manager.get_default_connection_configuration()
+
+
+def test_configuration_manager_redirects_agentic_requests_to_alternate_blueprint():
+    manager = ConnectionManager(
+        ConfiguredProvider, config=Configuration(ALT_BLUEPRINT_CONFIG)
+    )
+    activity = Activity(
+        type="message",
+        service_url="https://example.com",
+        recipient=ChannelAccount(id="instance", role=RoleTypes.agentic_identity),
+    )
+    assert manager.get_token_provider_from_activity(
+        ClaimsIdentity({}), activity
+    ) is manager.get_connection("ALT_BLUEPRINT")
+
+
+@pytest.mark.parametrize(
+    "legacy", [{"connections_configurations": {}}, {"connections_map": []}]
+)
+def test_configuration_manager_rejects_mixed_constructor_modes(legacy):
+    with pytest.raises(ValueError, match="both 'config'"):
+        ConnectionManager(ConfiguredProvider, config=Configuration(), **legacy)
+
+
+@pytest.mark.parametrize(
+    "config, path",
+    [
+        ({"connections": []}, "connections"),
+        (
+            {"connections": {"SERVICE_CONNECTION": "invalid"}},
+            "connections::SERVICE_CONNECTION",
+        ),
+        (
+            {"connections": {"SERVICE_CONNECTION": {"settings": []}}},
+            "connections::SERVICE_CONNECTION::settings",
+        ),
+    ],
+)
+def test_configuration_manager_reports_invalid_connection_sections(config, path):
+    with pytest.raises(TypeError, match=path):
+        ConnectionManager(ConfiguredProvider, config=Configuration(config))
+
+
+def test_legacy_provider_config_fallback_preserves_base_fields():
+    legacy = AgentAuthConfiguration(
+        client_id="client", ALT_BLUEPRINT_NAME="blueprint", scopes=["scope"]
+    )
+    settings = FakeProvider(legacy).config
+    assert settings.client_id == "client"
+    assert settings.alternate_blueprint_connection_name == "blueprint"
+    assert settings.scopes == ["scope"]
 
 
 @pytest.mark.asyncio
@@ -250,11 +351,10 @@ class TestGenericConnectionManager:
         config = cm.get_default_connection_configuration()
         assert config.CLIENT_ID == "client-service"
 
-    def test_default_connections_map_is_empty_list(self):
+    def test_default_connections_map_is_empty(self):
         config = {k: v for k, v in ENV_CONFIG.items() if k != "CONNECTIONSMAP"}
         cm = self._make(**config)
-        assert cm._connections_map == []
-        assert isinstance(cm._connections_map, list)
+        assert not cm._connections_map
 
     def test_explicit_empty_connections_map_overrides_kwargs(self):
         # An explicit empty map must win over a CONNECTIONSMAP kwarg and disable
@@ -264,7 +364,7 @@ class TestGenericConnectionManager:
             connections_map=[],
             **ENV_CONFIG,
         )
-        assert cm._connections_map == []
+        assert not cm._connections_map
         claims = ClaimsIdentity(claims={"aud": "api://service"})
         assert (
             cm.get_token_provider(claims, "https://service.com/api")

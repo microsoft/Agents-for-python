@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import AgentAuthConfiguration, ConnectionManager
 from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
 from microsoft_agents.authentication.entra_auth_sidecar._models import (
@@ -40,6 +41,35 @@ class TestScopeNormalization:
 
 
 class TestSettingsFromConfiguration:
+    def test_configuration_manager_binds_typed_sidecar_settings(self):
+        manager = ConnectionManager(
+            SidecarAuth,
+            config=Configuration(
+                connections={
+                    "SERVICE_CONNECTION": {
+                        "settings": {
+                            "client_id": "blueprint",
+                            "service_name": " service ",
+                            "blueprint_service_name": " ",
+                            "sidecar_base_url": "http://localhost:5178",
+                            "retry_count": "5",
+                            "request_timeout": "45",
+                            "bypass_local_network_restriction": "false",
+                            "scopes": "scope1, scope2",
+                        }
+                    }
+                },
+            ),
+        )
+        settings = manager.get_default_connection().config
+        assert isinstance(settings, SidecarConnectionSettings)
+        assert settings.service_name == "service"
+        assert settings.blueprint_service_name == "agenticblueprint"
+        assert settings.retry_count == 5
+        assert settings.request_timeout == 45.0
+        assert settings.bypass_local_network_restriction is False
+        assert settings.scopes == ["scope1", "scope2"]
+
     def test_reads_sidecar_settings_from_upper_case_kwargs(self):
         config = AgentAuthConfiguration(
             auth_type="EntraAuthSideCar",
@@ -62,11 +92,11 @@ class TestSettingsFromConfiguration:
         assert settings.blueprint_service_name == "agenticblueprint"
 
     def test_inherits_connection_settings_base(self):
-        from microsoft_agents.hosting.core.authorization.connection_settings_base import (  # noqa: E501
-            _ConnectionSettingsBase,
+        from microsoft_agents.hosting.core.authorization.connections import (
+            ConnectionSettingsBase,
         )
 
-        assert issubclass(SidecarConnectionSettings, _ConnectionSettingsBase)
+        assert issubclass(SidecarConnectionSettings, ConnectionSettingsBase)
 
     def test_binds_base_fields_from_configuration(self):
         config = AgentAuthConfiguration(
@@ -175,6 +205,22 @@ class TestScalarCoercion:
         # (including the dropped yes/on/no/off spellings) fail safe to False.
         settings = SidecarConnectionSettings(bypass_local_network_restriction=raw)
         assert settings.bypass_local_network_restriction is False
+
+    @pytest.mark.parametrize("raw", ["maybe", "no", "off", "yes", "on", ""])
+    @pytest.mark.parametrize("config_type", [AgentAuthConfiguration, Configuration])
+    def test_unrecognized_bypass_value_from_configuration_keeps_protection(
+        self, raw, config_type
+    ):
+        config = config_type(
+            auth_type="EntraAuthSideCar",
+            client_id="blueprint-id",
+            SIDECAR_BASE_URL="http://example.com",
+            BYPASS_LOCAL_NETWORK_RESTRICTION=raw,
+        )
+        settings = SidecarConnectionSettings.from_configuration(config)
+        assert settings.bypass_local_network_restriction is False
+        with pytest.raises(SidecarAuthError):
+            SidecarAuth(config)
 
     def test_retry_count_string_coerced_to_int(self):
         settings = SidecarConnectionSettings(retry_count="5")

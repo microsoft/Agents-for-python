@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from microsoft_agents.activity.config import Configuration, xpath
 
 from .._entra_issuers import default_connection_issuers
-from ..connection_settings_base import ConnectionSettingsBase
+from ..connections import ConnectionSettingsBase
 
 
 @dataclass(frozen=True)

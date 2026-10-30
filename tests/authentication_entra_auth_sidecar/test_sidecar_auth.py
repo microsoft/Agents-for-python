@@ -7,7 +7,9 @@ import pytest
 from datetime import datetime, timedelta, timezone
 
 from microsoft_agents.hosting.core import AgentAuthConfiguration
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
+from microsoft_agents.authentication.entra_auth_sidecar import SidecarConnectionSettings
 from microsoft_agents.authentication.entra_auth_sidecar._models import (
     SidecarTokenResult,
 )
@@ -49,6 +51,35 @@ def _make_auth(token="token", scopes=None, healthy=True, **settings):
     )
     client = FakeSidecarClient(token=token, healthy=healthy)
     return SidecarAuth(config, sidecar_client=client), client
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("bound", [False, True])
+async def test_typed_settings_preserve_agentic_scopes_and_reuse_token_credential_provider(
+    bound,
+):
+    config = Configuration(
+        settings={
+            "CLIENTID": "blueprint",
+            "SERVICE_NAME": "service",
+            "BLUEPRINT_SERVICE_NAME": "blueprint-service",
+            "SCOPES": "scope1, scope2",
+        }
+    )
+    settings = SidecarConnectionSettings.from_configuration(config)
+    auth = SidecarAuth(
+        settings if bound else config, sidecar_client=FakeSidecarClient()
+    )
+    await auth.get_agentic_instance_token("tenant", "instance")
+    service, options = auth._sidecar_client.calls[0]
+    assert service == "service"
+    assert options.scopes == ["scope1", "scope2"]
+    assert auth.config.client_id == "blueprint"
+    credential = auth.get_token_credential()
+    assert credential._provider is auth
+    assert credential._config is auth.config
+    with pytest.raises(ValueError, match="Use 'config'"):
+        _ = auth.configuration
 
 
 class TestSidecarAuthMapping:

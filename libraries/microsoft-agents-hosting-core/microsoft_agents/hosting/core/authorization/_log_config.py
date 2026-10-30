@@ -7,8 +7,10 @@ from logging import Logger
 from urllib.parse import urlparse
 
 from microsoft_agents.activity._model_utils import pick_model_dict, SkipNone
+from microsoft_agents.activity.config import Configuration, xpath
 
 from .agent_auth_configuration import AgentAuthConfiguration
+from .connections.connections_map import _ConnectionMap
 
 _REDACTION_PEEK_LENGTH = 3
 _REDACTION_THRESH = _REDACTION_PEEK_LENGTH + 6
@@ -90,7 +92,9 @@ def _redact_url_or_none(url: str | None) -> str | None:
     return _redact_url(url)
 
 
-def _summarize_auth_configs(config_map: dict[str, AgentAuthConfiguration]) -> str:
+def _summarize_auth_configs(
+    config_map: dict[str, AgentAuthConfiguration | Configuration],
+) -> str:
     """
     Summarize the authentication configuration for logging.
 
@@ -101,31 +105,84 @@ def _summarize_auth_configs(config_map: dict[str, AgentAuthConfiguration]) -> st
     """
     summary = []
     for connection_name, config in config_map.items():
+        scopes = (
+            config.SCOPES
+            if isinstance(config, AgentAuthConfiguration)
+            else (
+                config.get_scopes(xpath("scopes"))
+                if config.get(xpath("scopes")) is not None
+                else None
+            )
+        )
+        if isinstance(config, AgentAuthConfiguration):
+            config = Configuration(vars(config))
         summary.append(
             pick_model_dict(
                 CONNECTION=connection_name,
-                CONNECTION_NAME=SkipNone(config.CONNECTION_NAME),
-                CLIENTID=SkipNone(_redact_str_or_none(config.CLIENT_ID, peek=True)),
-                TENANTID=SkipNone(_redact_str_or_none(config.TENANT_ID, peek=True)),
-                CLIENTSECRET=SkipNone(_redact_str_or_none(config.CLIENT_SECRET)),
-                AUTHORITY=SkipNone(_redact_url_or_none(config.AUTHORITY)),
-                SCOPES=SkipNone(_redact_scopes(config.SCOPES)),
+                CONNECTION_NAME=SkipNone(config.get_strn(xpath("connection_name"))),
+                CLIENTID=SkipNone(
+                    _redact_str_or_none(config.get_strn(xpath("client_id")), peek=True)
+                ),
+                TENANTID=SkipNone(
+                    _redact_str_or_none(config.get_strn(xpath("tenant_id")), peek=True)
+                ),
+                CLIENTSECRET=SkipNone(
+                    _redact_str_or_none(config.get_strn(xpath("client_secret")))
+                ),
+                AUTHORITY=SkipNone(
+                    _redact_url_or_none(
+                        config.get_strn(xpath("authority"), xpath("authorityendpoint"))
+                    )
+                ),
+                SCOPES=SkipNone(_redact_scopes(scopes)),
                 FEDERATED_CLIENT_ID=SkipNone(
-                    _redact_str_or_none(config.FEDERATED_CLIENT_ID, peek=True)
+                    _redact_str_or_none(
+                        config.get_strn(xpath("federated_client_id")), peek=True
+                    )
                 ),
-                CERT_PFX_FILE=SkipNone(_redact_str_or_none(config.CERT_PFX_FILE)),
+                CERT_PFX_FILE=SkipNone(
+                    _redact_str_or_none(config.get_strn(xpath("cert_pfx_file")))
+                ),
                 ALT_BLUEPRINT_ID=SkipNone(
-                    _redact_str_or_none(config.ALT_BLUEPRINT_ID, peek=True)
+                    _redact_str_or_none(
+                        config.get_strn(
+                            xpath("alternate_blueprint_connection_name"),
+                            xpath("alt_blueprint_id"),
+                            xpath("alt_blueprint_name"),
+                        ),
+                        peek=True,
+                    )
                 ),
-                IDPM_RESOURCE=SkipNone(_redact_url_or_none(config.IDPM_RESOURCE)),
-                AZURE_REGION=SkipNone(_redact_url_or_none(config.AZURE_REGION)),
-                ANONYMOUS_ALLOWED=str(config.ANONYMOUS_ALLOWED),
+                IDPM_RESOURCE=SkipNone(
+                    _redact_url_or_none(config.get_strn(xpath("idpm_resource")))
+                ),
+                AZURE_REGION=SkipNone(
+                    _redact_url_or_none(
+                        config.get_strn(
+                            xpath("azure_region"), xpath("regional_authority")
+                        )
+                    )
+                ),
+                ANONYMOUS_ALLOWED=str(
+                    config.get_bool(xpath("anonymous_allowed"), default=False)
+                ),
             )
         )
     return json.dumps(summary, indent=2)
 
 
-def _summarize_connections_map(connections_map: list[dict[str, str]]) -> str:
+def _summarize_connections_map(
+    connections_map: list[dict[str, str]] | _ConnectionMap,
+) -> str:
+    if isinstance(connections_map, _ConnectionMap):
+        connections_map = [
+            {
+                "CONNECTION": item.connection,
+                "AUDIENCE": item.audience,
+                "SERVICEURL": item.service_url,
+            }
+            for item in connections_map
+        ]
     connections_map_output = []
     for mapping in connections_map:
         obj = {
@@ -148,8 +205,8 @@ def _summarize_connections_map(connections_map: list[dict[str, str]]) -> str:
 
 def _log_config(
     logger: Logger,
-    config_map: dict[str, AgentAuthConfiguration],
-    connections_map: list[dict[str, str]],
+    config_map: dict[str, AgentAuthConfiguration | Configuration],
+    connections_map: list[dict[str, str]] | _ConnectionMap,
 ) -> None:
     """
     Log the configuration of the MSAL connection manager.

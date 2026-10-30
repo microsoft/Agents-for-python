@@ -187,6 +187,24 @@ Additionally we provide a Copilot Studio Client, to interact with Agents created
 | `microsoft-agents-copilotstudio-client` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-copilotstudio-client)](https://pypi.org/project/microsoft-agents-copilotstudio-client/) | Direct to Engine client to interact with Agents created in CopilotStudio |
 
 
+## Connection Configuration
+
+`microsoft_agents.hosting.core.authorization.connections` contains `Connections`,
+`ConnectionManager`, `ConnectionSettingsBase`, and the legacy `AgentAuthConfiguration`.
+Existing top-level and legacy module imports remain supported.
+
+Pass application settings as `ConnectionManager(provider_factory, config=configuration)`
+to deliver each connection's settings to the provider as a `Configuration`. Read bound
+provider settings through `provider.config`; provider-specific settings derive from
+`ConnectionSettingsBase`. Connection maps accept ordered lists or named mappings with
+`service_url`, `audience`, and `connection` fields, including environment-style aliases.
+
+Existing `connections_configurations`, `connections_map`, and `**legacy_config`
+constructor calls still pass `AgentAuthConfiguration` objects to the provider factory.
+`get_default_connection_configuration()` remains available for those legacy calls;
+configuration-based managers should use `get_default_connection().config`.
+The environment loader is unchanged.
+
 ## Installation
 
 ```bash

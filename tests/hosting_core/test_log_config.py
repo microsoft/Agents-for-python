@@ -4,6 +4,7 @@ from unittest.mock import Mock
 import pytest
 
 from microsoft_agents.hosting.core import AgentAuthConfiguration
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core.authorization._log_config import (
     _log_config,
     _redact_scopes,
@@ -73,6 +74,27 @@ class TestRedactionUtils:
 
 
 class TestLogConfig:
+    def test_configuration_binding_redacts_credentials_and_provider_extras(self):
+        summary = _summarize_auth_configs(
+            {
+                "SERVICE_CONNECTION": Configuration(
+                    {
+                        "client_id": "client-id-secret",
+                        "client_secret": "synthetic-secret",
+                        "authorityendpoint": "https://login.microsoftonline.com/tenant",
+                        "scopes": "scope1 scope2",
+                        "custom_secret": "provider-secret",
+                    }
+                )
+            }
+        )
+        parsed = json.loads(summary)[0]
+        assert parsed["CLIENTSECRET"] == "..."
+        assert parsed["AUTHORITY"] == "https://login.microsoftonline.com/..."
+        assert parsed["SCOPES"] == "... [2 scope(s)]"
+        assert "synthetic-secret" not in summary
+        assert "provider-secret" not in summary
+
     def test_summarize_auth_configs_formats_connections_as_json_array(self):
         summary = _summarize_auth_configs(
             {

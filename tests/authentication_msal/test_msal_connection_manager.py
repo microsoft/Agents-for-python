@@ -35,7 +35,7 @@ class TestMsalConnectionManager:
         config = load_configuration_from_env(mock_environ)
         connection_manager = MsalConnectionManager(**config)
         for key in connection_manager._connections:
-            auth = connection_manager.get_connection(key)._msal_configuration
+            auth = connection_manager.get_connection(key).configuration
             assert auth.AUTH_TYPE == AuthTypes.client_secret
             assert auth.CLIENT_ID == f"test-client-id-{key}"
             assert auth.TENANT_ID == f"test-tenant-id-{key}"

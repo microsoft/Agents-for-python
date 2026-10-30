@@ -9,6 +9,7 @@ from azure.core.credentials_async import AsyncTokenCredential
 from microsoft_agents.hosting.core import AgentAuthConfiguration
 
 from .msal_auth import MsalAuth
+from .connection_settings import MsalConnectionSettings
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class MsalTokenCredential(AsyncTokenCredential):
 
     def __init__(
         self,
-        config: AgentAuthConfiguration,
+        config: AgentAuthConfiguration | MsalConnectionSettings,
         *,
         provider: MsalAuth | None = None,
     ):

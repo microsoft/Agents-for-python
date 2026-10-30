@@ -1,18 +1,20 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Protocol
+from __future__ import annotations
+
+from typing import Protocol, TYPE_CHECKING
 from abc import abstractmethod
 
 from azure.core.credentials_async import AsyncTokenCredential
 
-from .agent_auth_configuration import AgentAuthConfiguration
+if TYPE_CHECKING:
+    from .connections import AgentAuthConfiguration, ConnectionSettingsBase
 
 
 class AccessTokenProviderBase(Protocol):
 
     @property
-    @abstractmethod
     def configuration(self) -> AgentAuthConfiguration:
         """
         The configuration for the access token provider.
@@ -20,6 +22,13 @@ class AccessTokenProviderBase(Protocol):
         :return: The configuration for the access token provider.
         """
         raise NotImplementedError()
+
+    @property
+    def config(self) -> ConnectionSettingsBase:
+        """Bound connection settings, with a compatibility path for legacy providers."""
+        from .connections import ConnectionSettingsBase
+
+        return ConnectionSettingsBase._from_agent_auth_config(self.configuration)
 
     @abstractmethod
     async def get_access_token(

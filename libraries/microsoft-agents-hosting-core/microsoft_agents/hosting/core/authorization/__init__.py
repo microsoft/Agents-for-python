@@ -10,6 +10,7 @@ from .agent_auth_configuration import AgentAuthConfiguration
 from .claims_identity import ClaimsIdentity
 from .jwt import JwtTokenValidator
 from .auth_types import AuthTypes
+from .connection_settings_base import ConnectionSettingsBase
 
 __all__ = [
     "AccessTokenProviderBase",
@@ -21,4 +22,5 @@ __all__ = [
     "ClaimsIdentity",
     "JwtTokenValidator",
     "AuthTypes",
+    "ConnectionSettingsBase",
 ]

@@ -9,6 +9,8 @@ from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
 
 from microsoft_agents.hosting.core import AgentAuthConfiguration
+from microsoft_agents.activity.config import Configuration
+from .connection_settings import SidecarConnectionSettings
 
 from .sidecar_auth import SidecarAuth
 from ._token_expiry import SidecarTokenExpiry
@@ -31,7 +33,7 @@ class SidecarTokenCredential(AsyncTokenCredential):
 
     def __init__(
         self,
-        config: AgentAuthConfiguration,
+        config: AgentAuthConfiguration | Configuration | SidecarConnectionSettings,
         *,
         provider: SidecarAuth | None = None,
     ):
