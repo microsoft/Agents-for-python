@@ -3,6 +3,7 @@
 
 import pytest
 
+from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.activity.config import Configuration, _resolve
 from microsoft_agents.hosting.core import AgentAuthConfiguration
 from microsoft_agents.hosting.core.authorization.jwt import (
@@ -103,6 +104,43 @@ def test_legacy_configuration_preserves_explicit_issuer_policy():
     assert policy.anonymous_allowed is True
     assert policy.default_jwt_settings.validate_issuer is True
     assert policy.default_jwt_settings.issuers == ["https://custom.example.com/"]
+
+
+@pytest.mark.parametrize(
+    "indexed_scopes, expected",
+    [
+        ({"0": "resource/.default"}, ["resource/.default"]),
+        (
+            {"10": "scope-10", "2": "scope-2", "0": "scope-0"},
+            ["scope-0", "scope-2", "scope-10"],
+        ),
+    ],
+)
+def test_legacy_environment_scopes_bind_without_mutating_configuration(
+    indexed_scopes, expected
+):
+    env = {
+        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "legacy-client",
+        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CONNECTIONNAME": (
+            "SERVICE_CONNECTION"
+        ),
+        **{
+            f"CONNECTIONS__SERVICE_CONNECTION__SETTINGS__SCOPES__{index}": scope
+            for index, scope in indexed_scopes.items()
+        },
+    }
+    loaded = load_configuration_from_env(env)
+    raw_scopes = loaded["CONNECTIONS"]["SERVICE_CONNECTION"]["SETTINGS"]["SCOPES"]
+    legacy = AgentAuthConfiguration(
+        **loaded["CONNECTIONS"]["SERVICE_CONNECTION"]["SETTINGS"]
+    )
+
+    policy = JwtTokenValidator(legacy).config
+
+    assert policy.default_jwt_settings.scopes == expected
+    assert policy.connections["SERVICE_CONNECTION"].scopes == expected
+    assert legacy.SCOPES is raw_scopes
+    assert raw_scopes == indexed_scopes
 
 
 @pytest.mark.asyncio

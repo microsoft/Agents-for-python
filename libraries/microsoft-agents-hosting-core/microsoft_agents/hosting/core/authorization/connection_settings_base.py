@@ -8,7 +8,12 @@ from dataclasses import dataclass, field, fields
 from typing import Any, TYPE_CHECKING
 from typing_extensions import Self
 
-from microsoft_agents.activity.config import Configuration, _Configurable, xpath
+from microsoft_agents.activity.config import (
+    Configuration,
+    _Configurable,
+    _resolve,
+    xpath,
+)
 
 if TYPE_CHECKING:
     from .agent_auth_configuration import AgentAuthConfiguration
@@ -143,6 +148,10 @@ class ConnectionSettingsBase(_Configurable):
         attrs = dict(vars(agent_auth_config))
         attrs.update(attrs.pop("provider_settings", {}))
         attrs["ISSUERS"] = agent_auth_config.ISSUERS
+        if isinstance(attrs.get("SCOPES"), Mapping):
+            # TODO: Temporary compatibility for legacy indexed scopes; the next
+            # PR's configuration-loader migration will normalize these mappings.
+            attrs["SCOPES"] = _resolve({"SCOPES": attrs["SCOPES"]})["SCOPES"]
         return cls.from_mapping(attrs)
 
     @classmethod
