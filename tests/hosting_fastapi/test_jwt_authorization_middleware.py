@@ -85,7 +85,9 @@ async def test_fastapi_middleware_stores_claims_and_calls_downstream_app():
 
     assert downstream_called is True
     assert _status(messages) == 200
-    authorize.assert_awaited_once_with("Bearer token", auth_config)
+    authorize.assert_awaited_once_with(
+        "Bearer token", auth_config, cache_key=scope["app"]
+    )
 
 
 @pytest.mark.asyncio
@@ -94,6 +96,7 @@ async def test_fastapi_middleware_converts_http_response_without_calling_downstr
     messages = []
     downstream = AsyncMock()
     middleware = JwtAuthorizationMiddleware(downstream)
+    scope = _scope(auth_config, "Bearer bad")
 
     with patch(
         "microsoft_agents.hosting.fastapi.jwt_authorization_middleware._authorize_request",
@@ -105,14 +108,16 @@ async def test_fastapi_middleware_converts_http_response_without_calling_downstr
         ),
     ) as authorize:
         await middleware(
-            _scope(auth_config, "Bearer bad"),
+            scope,
             _receive,
             lambda message: _record_send(messages, message),
         )
 
     assert _status(messages) == 401
     downstream.assert_not_awaited()
-    authorize.assert_awaited_once_with("Bearer bad", auth_config)
+    authorize.assert_awaited_once_with(
+        "Bearer bad", auth_config, cache_key=scope["app"]
+    )
 
 
 @pytest.mark.asyncio
