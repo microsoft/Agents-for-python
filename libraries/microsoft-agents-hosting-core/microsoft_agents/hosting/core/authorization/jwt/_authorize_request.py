@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 _TOKEN_VALIDATION_CACHE: WeakKeyDictionary[Any, JwtTokenValidator] = WeakKeyDictionary()
 
+
 def _resolve_token_validator(
     auth_config: Configuration | AgentAuthConfiguration | None,
     cache_key: Any = None,
@@ -36,6 +37,7 @@ def _resolve_token_validator(
         return validator
     return None
 
+
 async def _authorize_request(
     authorization_header: str | None,
     auth_config: Configuration | AgentAuthConfiguration | None,
@@ -50,10 +52,7 @@ async def _authorize_request(
     :return: A ClaimsIdentity object if the token is valid, or an HttpResponse with an
         error message and status code if the token is invalid or missing.
     """
-    validator = _resolve_token_validator(
-        auth_config,
-        cache_key
-    )
+    validator = _resolve_token_validator(auth_config, cache_key)
 
     if not validator:
         return HttpResponse(

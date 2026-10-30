@@ -37,7 +37,7 @@ class JwtAuthorizationMiddleware:
         res = await _authorize_request(
             request.headers.get("Authorization"),
             getattr(app.state, "agent_configuration", None),
-            cache_key=app
+            cache_key=app,
         )
 
         if isinstance(res, HttpResponse):
