@@ -1,3 +1,17 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.10.0 (Unreleased)
+
+**Release Date:** Unreleased
+**Previous Version:** 1.9.0 (Released 2026-10-19)
+
+## Major Features & Enhancements
+
+- **Shared Configuration API**: Added a dictionary-backed `Configuration` API with nested path and alias lookup, typed getters, wildcard collection, configurable settings binding, and mapping/default resolution with indexed-list normalization. Retained the existing `load_configuration_from_env()` return contract (#636).
+- **JWT Authorization Configuration**: Added `ConnectionSettingsBase`, `JwtConnectionSettings`, and `TokenValidationConfiguration` to bind inbound JWT policies from application configuration, including explicit audiences, tenant and anonymous-access overrides, and per-connection issuer settings. Retained legacy `AgentAuthConfiguration` support and added application-scoped validator caching without changing `Connections` or `ConnectionManager` (#638).
+
+- **Explicit JWT Audience Lists**: Scalar and delimited audience strings now bind as explicit allow-lists instead of falling back to all configured connection client IDs. Missing or empty audiences continue to use connection defaults (#638).
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.9.0
 
 **Release Date:** 2026-10-19

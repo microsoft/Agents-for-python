@@ -352,7 +352,7 @@ class Configuration(dict, _ConfigurationProtocol):
             name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
             before_split = _handle_str(val, None, name)
             if before_split is None:
-                return default
+                return default if default is not None else []
             if "," in before_split:
                 return [s.strip() for s in before_split.split(",")]
             return [s.strip() for s in before_split.strip().split()]
