@@ -1,0 +1,879 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from __future__ import annotations
+
+import base64
+import ctypes
+import hashlib
+import json
+import sys
+import time
+import uuid
+import weakref
+
+_STORE_NAMES = {
+    "addressbook": "AddressBook",
+    "authroot": "AuthRoot",
+    "certificateauthority": "CA",
+    "disallowed": "Disallowed",
+    "my": "My",
+    "root": "Root",
+    "trustedpeople": "TrustedPeople",
+    "trustedpublisher": "TrustedPublisher",
+}
+
+DWORD = ctypes.c_uint32
+LONG = ctypes.c_int32
+BOOL = ctypes.c_int32
+BYTE = ctypes.c_ubyte
+HCERTSTORE = ctypes.c_void_p
+HCRYPTKEY = ctypes.c_size_t
+HCRYPTHASH = ctypes.c_size_t
+HCRYPTPROV_OR_NCRYPT_KEY_HANDLE = ctypes.c_size_t
+
+X509_ASN_ENCODING = 0x00000001
+PKCS_7_ASN_ENCODING = 0x00010000
+CERT_ENCODING = X509_ASN_ENCODING | PKCS_7_ASN_ENCODING
+
+CERT_FIND_SUBJECT_STR_W = 0x00080007
+CERT_CHAIN_POLICY_BASE = 1
+CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG = 0x00020000
+
+AT_KEYEXCHANGE = 1
+AT_SIGNATURE = 2
+CERT_NCRYPT_KEY_SPEC = 0xFFFFFFFF
+
+KP_ALGID = 7
+CALG_RSA_SIGN = 0x00002400
+CALG_RSA_KEYX = 0x0000A400
+
+CALG_SHA_256 = 0x0000800C
+HP_HASHVAL = 0x0002
+
+NCRYPT_ALGORITHM_GROUP_PROPERTY = "Algorithm Group"
+NCRYPT_RSA_ALGORITHM_GROUP = "RSA"
+
+NCRYPT_PAD_PKCS1_FLAG = 0x00000002
+NCRYPT_PAD_PSS_FLAG = 0x00000008
+BCRYPT_SHA256_ALGORITHM = "SHA256"
+SHA256_DIGEST_LENGTH = 32
+
+_CLIENT_ASSERTION_LIFETIME_SECONDS = 60 * 10
+
+
+class _CERT_CONTEXT(ctypes.Structure):
+    pass
+
+
+PCCERT_CONTEXT = ctypes.POINTER(_CERT_CONTEXT)
+
+_CERT_CONTEXT._fields_ = [
+    ("dwCertEncodingType", DWORD),
+    ("pbCertEncoded", ctypes.POINTER(BYTE)),
+    ("cbCertEncoded", DWORD),
+    ("pCertInfo", ctypes.c_void_p),
+    ("hCertStore", HCERTSTORE),
+]
+
+
+class _CERT_ENHKEY_USAGE(ctypes.Structure):
+    _fields_ = [
+        ("cUsageIdentifier", DWORD),
+        ("rgpszUsageIdentifier", ctypes.POINTER(ctypes.c_char_p)),
+    ]
+
+
+class _CERT_USAGE_MATCH(ctypes.Structure):
+    _fields_ = [
+        ("dwType", DWORD),
+        ("Usage", _CERT_ENHKEY_USAGE),
+    ]
+
+
+class _CERT_CHAIN_PARA(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", DWORD),
+        ("RequestedUsage", _CERT_USAGE_MATCH),
+        ("RequestedIssuancePolicy", _CERT_USAGE_MATCH),
+        ("dwUrlRetrievalTimeout", DWORD),
+        ("fCheckRevocationFreshnessTime", BOOL),
+        ("dwRevocationFreshnessTime", DWORD),
+        ("pftCacheResync", ctypes.c_void_p),
+        ("pStrongSignPara", ctypes.c_void_p),
+        ("dwStrongSignFlags", DWORD),
+    ]
+
+
+class _CERT_CHAIN_POLICY_PARA(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", DWORD),
+        ("dwFlags", DWORD),
+        ("pvExtraPolicyPara", ctypes.c_void_p),
+    ]
+
+
+class _CERT_CHAIN_POLICY_STATUS(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", DWORD),
+        ("dwError", DWORD),
+        ("lChainIndex", LONG),
+        ("lElementIndex", LONG),
+        ("pvExtraPolicyStatus", ctypes.c_void_p),
+    ]
+
+
+class _BCRYPT_PSS_PADDING_INFO(ctypes.Structure):
+    _fields_ = [
+        ("pszAlgId", ctypes.c_wchar_p),
+        ("cbSalt", DWORD),
+    ]
+
+
+class _BCRYPT_PKCS1_PADDING_INFO(ctypes.Structure):
+    _fields_ = [
+        ("pszAlgId", ctypes.c_wchar_p),
+    ]
+
+
+def _configure_crypt32(crypt32) -> None:
+    crypt32.CertOpenSystemStoreW.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_wchar_p,
+    ]
+    crypt32.CertOpenSystemStoreW.restype = HCERTSTORE
+
+    crypt32.CertFindCertificateInStore.argtypes = [
+        HCERTSTORE,
+        DWORD,
+        DWORD,
+        DWORD,
+        ctypes.c_wchar_p,
+        PCCERT_CONTEXT,
+    ]
+    crypt32.CertFindCertificateInStore.restype = PCCERT_CONTEXT
+
+    crypt32.CertDuplicateCertificateContext.argtypes = [PCCERT_CONTEXT]
+    crypt32.CertDuplicateCertificateContext.restype = PCCERT_CONTEXT
+
+    crypt32.CertFreeCertificateContext.argtypes = [PCCERT_CONTEXT]
+    crypt32.CertFreeCertificateContext.restype = BOOL
+
+    crypt32.CertCloseStore.argtypes = [HCERTSTORE, DWORD]
+    crypt32.CertCloseStore.restype = BOOL
+
+    crypt32.CertGetCertificateChain.argtypes = [
+        ctypes.c_void_p,
+        PCCERT_CONTEXT,
+        ctypes.c_void_p,
+        HCERTSTORE,
+        ctypes.POINTER(_CERT_CHAIN_PARA),
+        DWORD,
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    crypt32.CertGetCertificateChain.restype = BOOL
+
+    crypt32.CertVerifyCertificateChainPolicy.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+        ctypes.POINTER(_CERT_CHAIN_POLICY_PARA),
+        ctypes.POINTER(_CERT_CHAIN_POLICY_STATUS),
+    ]
+    crypt32.CertVerifyCertificateChainPolicy.restype = BOOL
+
+    crypt32.CertFreeCertificateChain.argtypes = [ctypes.c_void_p]
+    crypt32.CertFreeCertificateChain.restype = None
+
+    crypt32.CryptAcquireCertificatePrivateKey.argtypes = [
+        PCCERT_CONTEXT,
+        DWORD,
+        ctypes.c_void_p,
+        ctypes.POINTER(HCRYPTPROV_OR_NCRYPT_KEY_HANDLE),
+        ctypes.POINTER(DWORD),
+        ctypes.POINTER(BOOL),
+    ]
+    crypt32.CryptAcquireCertificatePrivateKey.restype = BOOL
+
+
+def _configure_ncrypt(ncrypt) -> None:
+    ncrypt.NCryptFreeObject.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+    ]
+    ncrypt.NCryptFreeObject.restype = LONG
+
+    ncrypt.NCryptGetProperty.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+        ctypes.c_wchar_p,
+        ctypes.POINTER(BYTE),
+        DWORD,
+        ctypes.POINTER(DWORD),
+        DWORD,
+    ]
+    ncrypt.NCryptGetProperty.restype = LONG
+
+    ncrypt.NCryptSignHash.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+        ctypes.c_void_p,
+        ctypes.POINTER(BYTE),
+        DWORD,
+        ctypes.POINTER(BYTE),
+        DWORD,
+        ctypes.POINTER(DWORD),
+        DWORD,
+    ]
+    ncrypt.NCryptSignHash.restype = LONG
+
+
+def _configure_advapi32(advapi32) -> None:
+    advapi32.CryptReleaseContext.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+        DWORD,
+    ]
+    advapi32.CryptReleaseContext.restype = BOOL
+
+    advapi32.CryptGetUserKey.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+        DWORD,
+        ctypes.POINTER(HCRYPTKEY),
+    ]
+    advapi32.CryptGetUserKey.restype = BOOL
+
+    advapi32.CryptGetKeyParam.argtypes = [
+        HCRYPTKEY,
+        DWORD,
+        ctypes.POINTER(BYTE),
+        ctypes.POINTER(DWORD),
+        DWORD,
+    ]
+    advapi32.CryptGetKeyParam.restype = BOOL
+
+    advapi32.CryptDestroyKey.argtypes = [HCRYPTKEY]
+    advapi32.CryptDestroyKey.restype = BOOL
+
+    advapi32.CryptCreateHash.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+        DWORD,
+        HCRYPTKEY,
+        DWORD,
+        ctypes.POINTER(HCRYPTHASH),
+    ]
+    advapi32.CryptCreateHash.restype = BOOL
+
+    advapi32.CryptSetHashParam.argtypes = [
+        HCRYPTHASH,
+        DWORD,
+        ctypes.POINTER(BYTE),
+        DWORD,
+    ]
+    advapi32.CryptSetHashParam.restype = BOOL
+
+    advapi32.CryptSignHashW.argtypes = [
+        HCRYPTHASH,
+        DWORD,
+        ctypes.c_wchar_p,
+        DWORD,
+        ctypes.POINTER(BYTE),
+        ctypes.POINTER(DWORD),
+    ]
+    advapi32.CryptSignHashW.restype = BOOL
+
+    advapi32.CryptDestroyHash.argtypes = [HCRYPTHASH]
+    advapi32.CryptDestroyHash.restype = BOOL
+
+
+def _normalize_store_name(store_name: str | None) -> str:
+    if not store_name:
+        return "My"
+
+    return _STORE_NAMES.get(store_name.casefold(), store_name)
+
+
+def _load_windows_apis():
+    if sys.platform != "win32":
+        raise OSError(
+            "CertificateSubjectName authentication requires "
+            "the Windows certificate store."
+        )
+
+    crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
+    ncrypt = ctypes.WinDLL("ncrypt", use_last_error=True)
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+
+    _configure_crypt32(crypt32)
+    _configure_ncrypt(ncrypt)
+    _configure_advapi32(advapi32)
+
+    return crypt32, ncrypt, advapi32
+
+
+def _is_certificate_valid(crypt32, certificate: PCCERT_CONTEXT) -> bool:
+    chain_parameters = _CERT_CHAIN_PARA()
+    chain_parameters.cbSize = ctypes.sizeof(chain_parameters)
+
+    chain_context = ctypes.c_void_p()
+
+    if not crypt32.CertGetCertificateChain(
+        None,
+        certificate,
+        None,
+        None,
+        ctypes.byref(chain_parameters),
+        0,
+        None,
+        ctypes.byref(chain_context),
+    ):
+        raise OSError("Failed to build certificate chain.")
+
+    try:
+        policy_parameters = _CERT_CHAIN_POLICY_PARA()
+        policy_parameters.cbSize = ctypes.sizeof(policy_parameters)
+
+        policy_status = _CERT_CHAIN_POLICY_STATUS()
+        policy_status.cbSize = ctypes.sizeof(policy_status)
+
+        if not crypt32.CertVerifyCertificateChainPolicy(
+            ctypes.c_void_p(CERT_CHAIN_POLICY_BASE),
+            chain_context,
+            ctypes.byref(policy_parameters),
+            ctypes.byref(policy_status),
+        ):
+            raise OSError("Failed to verify certificate chain policy.")
+
+        return policy_status.dwError == 0
+    finally:
+        crypt32.CertFreeCertificateChain(chain_context)
+
+
+def _find_certificate_context(
+    crypt32,
+    *,
+    subject_name: str,
+    store_name: str,
+    valid_only: bool,
+) -> PCCERT_CONTEXT:
+    """Find a matching certificate and return the certificate's duplicated context."""
+    normalized_store_name = _normalize_store_name(store_name)
+
+    store = crypt32.CertOpenSystemStoreW(None, normalized_store_name)
+    if not store:
+        raise OSError(f"Failed to open certificate store '{normalized_store_name}'.")
+
+    certificate = None
+    try:
+        while True:
+            certificate = crypt32.CertFindCertificateInStore(
+                store,
+                CERT_ENCODING,
+                0,
+                CERT_FIND_SUBJECT_STR_W,
+                subject_name,
+                certificate,
+            )
+
+            if not certificate:
+                raise LookupError(
+                    f"No certificate matching subject '{subject_name}' "
+                    f"was found in store '{normalized_store_name}'."
+                )
+
+            if valid_only and not _is_certificate_valid(crypt32, certificate):
+                continue
+
+            duplicate = crypt32.CertDuplicateCertificateContext(certificate)
+            if not duplicate:
+                raise OSError("Failed to duplicate certificate context.")
+
+            return duplicate
+    finally:
+        if certificate:
+            crypt32.CertFreeCertificateContext(certificate)
+
+        crypt32.CertCloseStore(store, 0)
+
+
+def _get_certificate_raw_data(certificate: PCCERT_CONTEXT) -> bytes:
+    return ctypes.string_at(
+        certificate.contents.pbCertEncoded,
+        certificate.contents.cbCertEncoded,
+    )
+
+
+def _base64url_encode(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+
+
+def _compute_certificate_thumbprint(
+    certificate: PCCERT_CONTEXT,
+    *,
+    use_sha2: bool,
+) -> str:
+    raw_data = _get_certificate_raw_data(certificate)
+
+    if use_sha2:
+        digest = hashlib.sha256(raw_data).digest()
+    else:
+        digest = hashlib.sha1(raw_data, usedforsecurity=False).digest()
+
+    return _base64url_encode(digest)
+
+
+def _acquire_private_key(
+    crypt32,
+    certificate: PCCERT_CONTEXT,
+) -> tuple[int, int, bool]:
+    key_handle = HCRYPTPROV_OR_NCRYPT_KEY_HANDLE()
+    key_spec = DWORD()
+    caller_free = BOOL()
+
+    if not crypt32.CryptAcquireCertificatePrivateKey(
+        certificate,
+        CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG,
+        None,
+        ctypes.byref(key_handle),
+        ctypes.byref(key_spec),
+        ctypes.byref(caller_free),
+    ):
+        raise OSError("Failed to acquire certificate private key.")
+
+    return key_handle.value, key_spec.value, bool(caller_free.value)
+
+
+def _release_private_key(
+    ncrypt,
+    advapi32,
+    *,
+    key_handle: int,
+    key_spec: int,
+    caller_free: bool,
+) -> None:
+    if not caller_free:
+        return
+
+    if key_spec == CERT_NCRYPT_KEY_SPEC:
+        if ncrypt.NCryptFreeObject(key_handle) != 0:
+            raise OSError("Failed to release CNG private key.")
+        return
+
+    if not advapi32.CryptReleaseContext(key_handle, 0):
+        raise OSError("Failed to release certificate private key provider.")
+
+
+def _is_cng_key_rsa(ncrypt, key_handle: int) -> bool:
+    result_size = DWORD()
+
+    if (
+        ncrypt.NCryptGetProperty(
+            key_handle,
+            NCRYPT_ALGORITHM_GROUP_PROPERTY,
+            None,
+            0,
+            ctypes.byref(result_size),
+            0,
+        )
+        != 0
+    ):
+        raise OSError("Failed to get CNG private key algorithm.")
+
+    buffer = (BYTE * result_size.value)()
+
+    if (
+        ncrypt.NCryptGetProperty(
+            key_handle,
+            NCRYPT_ALGORITHM_GROUP_PROPERTY,
+            buffer,
+            result_size.value,
+            ctypes.byref(result_size),
+            0,
+        )
+        != 0
+    ):
+        raise OSError("Failed to get CNG private key algorithm.")
+
+    algorithm_group = (
+        bytes(buffer[: result_size.value]).decode("utf-16-le").rstrip("\0")
+    )
+
+    return algorithm_group == NCRYPT_RSA_ALGORITHM_GROUP
+
+
+def _is_legacy_key_rsa(
+    advapi32,
+    *,
+    key_handle: int,
+    key_spec: int,
+) -> bool:
+    user_key = HCRYPTKEY()
+
+    if not advapi32.CryptGetUserKey(
+        key_handle,
+        key_spec,
+        ctypes.byref(user_key),
+    ):
+        raise OSError("Failed to access certificate private key.")
+
+    try:
+        algorithm = DWORD()
+        algorithm_size = DWORD(ctypes.sizeof(algorithm))
+
+        if not advapi32.CryptGetKeyParam(
+            user_key,
+            KP_ALGID,
+            ctypes.cast(ctypes.byref(algorithm), ctypes.POINTER(BYTE)),
+            ctypes.byref(algorithm_size),
+            0,
+        ):
+            raise OSError("Failed to get certificate private key algorithm.")
+    except BaseException:
+        advapi32.CryptDestroyKey(user_key.value)
+        raise
+
+    if not advapi32.CryptDestroyKey(user_key.value):
+        raise OSError("Failed to release certificate private key handle.")
+
+    return algorithm.value in (CALG_RSA_SIGN, CALG_RSA_KEYX)
+
+
+def _is_private_key_rsa(
+    ncrypt,
+    advapi32,
+    *,
+    key_handle: int,
+    key_spec: int,
+) -> bool:
+    if key_spec == CERT_NCRYPT_KEY_SPEC:
+        return _is_cng_key_rsa(ncrypt, key_handle)
+
+    return _is_legacy_key_rsa(
+        advapi32,
+        key_handle=key_handle,
+        key_spec=key_spec,
+    )
+
+
+def _sign_hash_with_cng(
+    ncrypt,
+    *,
+    key_handle: int,
+    digest: bytes,
+) -> bytes:
+    if len(digest) != SHA256_DIGEST_LENGTH:
+        raise ValueError("PS256 signing requires a SHA-256 digest.")
+
+    padding_info = _BCRYPT_PSS_PADDING_INFO(
+        pszAlgId=BCRYPT_SHA256_ALGORITHM,
+        cbSalt=SHA256_DIGEST_LENGTH,
+    )
+
+    digest_buffer = (BYTE * len(digest)).from_buffer_copy(digest)
+    signature_size = DWORD()
+
+    if (
+        ncrypt.NCryptSignHash(
+            key_handle,
+            ctypes.byref(padding_info),
+            digest_buffer,
+            len(digest),
+            None,
+            0,
+            ctypes.byref(signature_size),
+            NCRYPT_PAD_PSS_FLAG,
+        )
+        != 0
+    ):
+        raise OSError("Failed to determine CNG signature size.")
+
+    signature = (BYTE * signature_size.value)()
+
+    if (
+        ncrypt.NCryptSignHash(
+            key_handle,
+            ctypes.byref(padding_info),
+            digest_buffer,
+            len(digest),
+            signature,
+            signature_size.value,
+            ctypes.byref(signature_size),
+            NCRYPT_PAD_PSS_FLAG,
+        )
+        != 0
+    ):
+        raise OSError("Failed to sign with CNG private key.")
+
+    return bytes(signature[: signature_size.value])
+
+
+def _sign_hash_with_cng_pkcs1(
+    ncrypt,
+    *,
+    key_handle: int,
+    digest: bytes,
+) -> bytes:
+    if len(digest) != SHA256_DIGEST_LENGTH:
+        raise ValueError("RS256 signing requires a SHA-256 digest.")
+
+    padding_info = _BCRYPT_PKCS1_PADDING_INFO(
+        pszAlgId=BCRYPT_SHA256_ALGORITHM,
+    )
+
+    digest_buffer = (BYTE * len(digest)).from_buffer_copy(digest)
+    signature_size = DWORD()
+
+    if (
+        ncrypt.NCryptSignHash(
+            key_handle,
+            ctypes.byref(padding_info),
+            digest_buffer,
+            len(digest),
+            None,
+            0,
+            ctypes.byref(signature_size),
+            NCRYPT_PAD_PKCS1_FLAG,
+        )
+        != 0
+    ):
+        raise OSError("Failed to determine CNG PKCS#1 signature size.")
+
+    signature = (BYTE * signature_size.value)()
+
+    if (
+        ncrypt.NCryptSignHash(
+            key_handle,
+            ctypes.byref(padding_info),
+            digest_buffer,
+            len(digest),
+            signature,
+            signature_size.value,
+            ctypes.byref(signature_size),
+            NCRYPT_PAD_PKCS1_FLAG,
+        )
+        != 0
+    ):
+        raise OSError("Failed to sign with CNG PKCS#1 private key.")
+
+    return bytes(signature[: signature_size.value])
+
+
+def _sign_hash_with_legacy_csp(
+    advapi32,
+    *,
+    key_handle: int,
+    key_spec: int,
+    digest: bytes,
+) -> bytes:
+    if len(digest) != SHA256_DIGEST_LENGTH:
+        raise ValueError("RS256 signing requires a SHA-256 digest.")
+
+    hash_handle = HCRYPTHASH()
+
+    if not advapi32.CryptCreateHash(
+        key_handle,
+        CALG_SHA_256,
+        0,
+        0,
+        ctypes.byref(hash_handle),
+    ):
+        raise OSError("Failed to create CSP SHA-256 hash.")
+
+    try:
+        digest_buffer = (BYTE * len(digest)).from_buffer_copy(digest)
+
+        if not advapi32.CryptSetHashParam(
+            hash_handle.value,
+            HP_HASHVAL,
+            digest_buffer,
+            0,
+        ):
+            raise OSError("Failed to set CSP SHA-256 hash value.")
+
+        signature_size = DWORD()
+
+        if not advapi32.CryptSignHashW(
+            hash_handle.value,
+            key_spec,
+            None,
+            0,
+            None,
+            ctypes.byref(signature_size),
+        ):
+            raise OSError("Failed to determine CSP RSA signature size.")
+
+        signature = (BYTE * signature_size.value)()
+
+        if not advapi32.CryptSignHashW(
+            hash_handle.value,
+            key_spec,
+            None,
+            0,
+            signature,
+            ctypes.byref(signature_size),
+        ):
+            raise OSError("Failed to sign with CSP RSA private key.")
+
+        result = bytes(signature[: signature_size.value])[::-1]
+    except BaseException:
+        advapi32.CryptDestroyHash(hash_handle.value)
+        raise
+
+    if not advapi32.CryptDestroyHash(hash_handle.value):
+        raise OSError("Failed to release CSP hash handle.")
+
+    return result
+
+
+class _CertificateStoreClientAssertion:
+    """Creates MSAL client assertions backed by a certificate store certificate."""
+
+    def __init__(
+        self,
+        *,
+        subject_name: str,
+        store_name: str,
+        valid_only: bool,
+        send_x5c: bool,
+        client_id: str,
+    ):
+        self._crypt32, self._ncrypt, self._advapi32 = _load_windows_apis()
+
+        self._certificate = _find_certificate_context(
+            self._crypt32,
+            subject_name=subject_name,
+            store_name=store_name,
+            valid_only=valid_only,
+        )
+        self._certificate_finalizer = weakref.finalize(
+            self,
+            self._crypt32.CertFreeCertificateContext,
+            self._certificate,
+        )
+
+        self._raw_certificate = _get_certificate_raw_data(self._certificate)
+        self._sha1_thumbprint = _compute_certificate_thumbprint(
+            self._certificate,
+            use_sha2=False,
+        )
+        self._sha256_thumbprint = _compute_certificate_thumbprint(
+            self._certificate,
+            use_sha2=True,
+        )
+
+        self._send_x5c = send_x5c
+        self._client_id = client_id
+        self._audience: str | None = None
+
+    def bind_audience(self, audience: str) -> None:
+        """Bind the MSAL-resolved token endpoint used as the assertion audience."""
+        if self._audience is not None and self._audience != audience:
+            raise RuntimeError("Certificate assertion audience is already bound.")
+
+        self._audience = audience
+
+    def __call__(self) -> str:
+        if self._audience is None:
+            raise RuntimeError(
+                "Certificate assertion audience has not been initialized."
+            )
+
+        valid_from = int(time.time())
+        payload = {
+            "aud": self._audience,
+            "iss": self._client_id,
+            "sub": self._client_id,
+            "nbf": str(valid_from),
+            "exp": str(valid_from + _CLIENT_ASSERTION_LIFETIME_SECONDS),
+            "jti": str(uuid.uuid4()),
+        }
+
+        key_handle, key_spec, caller_free = _acquire_private_key(
+            self._crypt32,
+            self._certificate,
+        )
+
+        try:
+            if not _is_private_key_rsa(
+                self._ncrypt,
+                self._advapi32,
+                key_handle=key_handle,
+                key_spec=key_spec,
+            ):
+                raise ValueError(
+                    "The provided certificate is not of type RSA. "
+                    "Please use a certificate of type RSA."
+                )
+
+            is_cng_key = key_spec == CERT_NCRYPT_KEY_SPEC
+
+            if is_cng_key:
+                header = {
+                    "alg": "PS256",
+                    "typ": "JWT",
+                    "x5t#S256": self._sha256_thumbprint,
+                }
+            else:
+                header = {
+                    "alg": "RS256",
+                    "typ": "JWT",
+                    "x5t": self._sha1_thumbprint,
+                }
+
+            if self._send_x5c:
+                header["x5c"] = base64.b64encode(self._raw_certificate).decode("ascii")
+
+            encoded_payload = _base64url_encode(
+                json.dumps(payload, separators=(",", ":")).encode("utf-8")
+            )
+            encoded_header = _base64url_encode(
+                json.dumps(header, separators=(",", ":")).encode("utf-8")
+            )
+
+            token = f"{encoded_header}.{encoded_payload}"
+            digest = hashlib.sha256(token.encode("ascii")).digest()
+
+            if is_cng_key:
+                try:
+                    signature = _sign_hash_with_cng(
+                        self._ncrypt,
+                        key_handle=key_handle,
+                        digest=digest,
+                    )
+                except OSError:
+                    header = {
+                        "alg": "RS256",
+                        "typ": "JWT",
+                        "x5t": self._sha1_thumbprint,
+                    }
+
+                    if self._send_x5c:
+                        header["x5c"] = base64.b64encode(self._raw_certificate).decode(
+                            "ascii"
+                        )
+
+                    encoded_header = _base64url_encode(
+                        json.dumps(header, separators=(",", ":")).encode("utf-8")
+                    )
+                    token = f"{encoded_header}.{encoded_payload}"
+                    digest = hashlib.sha256(token.encode("ascii")).digest()
+
+                    signature = _sign_hash_with_cng_pkcs1(
+                        self._ncrypt,
+                        key_handle=key_handle,
+                        digest=digest,
+                    )
+            else:
+                signature = _sign_hash_with_legacy_csp(
+                    self._advapi32,
+                    key_handle=key_handle,
+                    key_spec=key_spec,
+                    digest=digest,
+                )
+
+            return f"{token}.{_base64url_encode(signature)}"
+
+        finally:
+            _release_private_key(
+                self._ncrypt,
+                self._advapi32,
+                key_handle=key_handle,
+                key_spec=key_spec,
+                caller_free=caller_free,
+            )
