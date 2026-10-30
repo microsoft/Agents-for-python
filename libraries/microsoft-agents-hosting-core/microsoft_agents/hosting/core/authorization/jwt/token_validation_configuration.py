@@ -31,8 +31,13 @@ class TokenValidationConfiguration(_Configurable):
         anonymous_allowed = token_validation.get_booln(xpath("anonymous_allowed"))
 
         connections: dict[str, JwtConnectionSettings] = {}
-        for name, conf in configuration.get_items(xpath("connections")):
-            connections[name] = JwtConnectionSettings.from_mapping(conf)
+        connection_config = configuration.get_section(
+            xpath("connections"), default=Configuration()
+        )
+        for name in connection_config:
+            connections[name] = JwtConnectionSettings.from_configuration(
+                connection_config.get_section(name)
+            )
 
         update_audiences = not audiences
         update_tenant_id = not tenant_id

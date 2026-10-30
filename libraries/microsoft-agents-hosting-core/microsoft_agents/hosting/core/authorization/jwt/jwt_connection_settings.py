@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from microsoft_agents.activity.config import Configuration, xpath
@@ -23,12 +22,7 @@ class JwtConnectionSettings(ConnectionSettingsBase):
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         base = super()._get_init_kwargs(config)
-        raw_issuers = config.get(xpath("issuers"))
-        issuers = (
-            Configuration(issuers=list(raw_issuers.values())).get_str_list("issuers")
-            if isinstance(raw_issuers, Mapping)
-            else config.get_str_list(xpath("issuers"))
-        )
+        issuers = config.get_str_list(xpath("issuers"))
         issuers = issuers or default_connection_issuers(
             base.get("tenant_id"), base.get("authority")
         )
