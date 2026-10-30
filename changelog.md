@@ -1,3 +1,12 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.10.0 (Unreleased)
+
+**Previous Version:** 1.9.0 (Released 2026-10-19)
+
+- **Auth Handler Configuration**: Added `AuthHandlerSettings` and a unified `settings` parameter accepting a settings object or dictionary across authorization handlers (#633).
+- **Deprecation**: Deprecated `AuthHandler` in favor of `AuthHandlerSettings`, and handler constructor parameters `auth_handler` and `auth_handler_settings` in favor of `settings`, while retaining backward compatibility (#633).
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.9.0
 
 **Release Date:** 2026-10-19

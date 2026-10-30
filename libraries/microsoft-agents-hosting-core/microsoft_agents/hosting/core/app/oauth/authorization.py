@@ -4,7 +4,7 @@ Licensed under the MIT License.
 """
 
 import logging
-from typing import Optional, Callable, Awaitable, cast
+from typing import Callable, Awaitable, cast
 from dataclasses import dataclass
 
 from azure.core.credentials_async import AsyncTokenCredential
@@ -27,7 +27,7 @@ from ...storage import Storage
 from ...authorization import Connections
 from ..._oauth import _FlowStateTag
 from ..state import TurnState
-from .auth_handler import AuthHandler
+from .auth_handler import AuthHandlerSettings
 from ._sign_in_state import _SignInState
 from ._sign_in_response import _SignInResponse
 from ._handlers import (
@@ -44,6 +44,10 @@ AUTHORIZATION_TYPE_MAP = {
     "agenticuserauthorization": AgenticUserAuthorization,
     "connectoruserauthorization": ConnectorUserAuthorization,
 }
+
+def _update_auth_type_map(handler_class: type[_AuthorizationHandler]) -> None:
+    type_name = handler_class.__name__.lower()
+    AUTHORIZATION_TYPE_MAP[type_name] = handler_class
 
 
 @dataclass(frozen=True)
@@ -66,7 +70,7 @@ class Authorization:
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handlers: dict[str, AuthHandler] | None = None,
+        auth_handlers: dict[str, AuthHandlerSettings] | None = None,
         auto_sign_in: bool = False,
         use_cache: bool = False,
         **kwargs,
@@ -82,7 +86,7 @@ class Authorization:
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections`
         :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`], Optional
+        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandlerSettings`], Optional
         :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:
@@ -91,12 +95,8 @@ class Authorization:
         self._storage = storage
         self._connection_manager = connection_manager
 
-        self._sign_in_success_handler: Optional[
-            Callable[[TurnContext, TurnState, str | None], Awaitable[None]]
-        ] = None
-        self._sign_in_failure_handler: Optional[
-            Callable[[TurnContext, TurnState, str | None], Awaitable[None]]
-        ] = None
+        self._sign_in_success_handler: Callable[[TurnContext, TurnState, str | None], Awaitable[None]] | None = None
+        self._sign_in_failure_handler: Callable[[TurnContext, TurnState, str | None], Awaitable[None]] | None = None
 
         self._handlers = {}
 
@@ -107,9 +107,9 @@ class Authorization:
             # get from config
             handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS") or {}
             auth_handlers = {
-                handler_name: AuthHandler(
+                handler_name: AuthHandlerSettings(
                     name=handler_name,
-                    auth_type=config.get("TYPE", ""),
+                    auth_type=config.get("TYPE", None),
                     **config.get("SETTINGS", {}),
                 )
                 for handler_name, config in handlers_config.items()
@@ -132,17 +132,17 @@ class Authorization:
         it initializes an instance of each variant that is referenced.
 
         :param auth_handlers: A dictionary of auth handler configurations.
-        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`]
+        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandlerSettings`]
         """
-        for name, auth_handler in self._handler_settings.items():
-            auth_type = auth_handler.auth_type
+        for name, settings in self._handler_settings.items():
+            auth_type = settings.auth_type
             if auth_type not in AUTHORIZATION_TYPE_MAP:
                 raise ValueError(f"Auth type {auth_type} not recognized.")
 
             self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
                 connection_manager=self._connection_manager,
-                auth_handler=auth_handler,
+                settings=settings,
             )
 
     @property
@@ -429,13 +429,13 @@ class Authorization:
         :param context: The context object for the current turn.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param scopes: The scopes to request during the token exchange or refresh. Defaults
-            to the list given in the AuthHandler configuration if None.
+            to the list given in the AuthHandlerSettings configuration if None.
         :type scopes: list[str] | None
         :param auth_handler_id: The ID of the auth handler to exchange or refresh the token for.
             If None, the default handler will be used.
         :type auth_handler_id: str | None
         :param exchange_connection: The name of the connection to use for token exchange. If None,
-            the connection defined in the AuthHandler configuration will be used.
+            the connection defined in the AuthHandlerSettings configuration will be used.
         :type exchange_connection: str | None
         :return: The token response from the OAuth provider.
         :rtype: :class:`microsoft_agents.activity.TokenResponse`
@@ -483,13 +483,13 @@ class Authorization:
         :param context: The context object for the current turn.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param scopes: The scopes to request during the token exchange or refresh. Defaults
-            to the list given in the AuthHandler configuration if None.
+            to the list given in the AuthHandlerSettings configuration if None.
         :type scopes: list[str] | None
         :param auth_handler_id: The ID of the auth handler to exchange or refresh the token for.
             If None, the default handler will be used.
         :type auth_handler_id: str | None
         :param exchange_connection: The name of the connection to use for token exchange. If None,
-            the connection defined in the AuthHandler configuration will be used.
+            the connection defined in the AuthHandlerSettings configuration will be used.
         :type exchange_connection: str | None
         :return: An instance of `AsyncTokenCredential`.
         :rtype: :class:`azure.core.credentials_async.AsyncTokenCredential`

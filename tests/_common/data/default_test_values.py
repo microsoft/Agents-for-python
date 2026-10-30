@@ -1,5 +1,5 @@
 from microsoft_agents.hosting.core import (
-    AuthHandler,
+    AuthHandlerSettings,
 )
 
 
@@ -40,4 +40,4 @@ class DEFAULT_TEST_VALUES:
 
         self.missing_abs_oauth_connection_name = "missing_connection_name"
 
-        self.auth_handlers = [AuthHandler()]
+        self.auth_handlers = [AuthHandlerSettings()]

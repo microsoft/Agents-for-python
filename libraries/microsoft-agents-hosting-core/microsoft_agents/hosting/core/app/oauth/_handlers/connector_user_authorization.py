@@ -6,7 +6,6 @@ Licensed under the MIT License.
 import logging
 import jwt
 from datetime import datetime, timezone
-from typing import Optional
 
 from microsoft_agents.activity import TokenResponse
 from microsoft_agents.hosting.core.errors import ErrorResources
@@ -15,7 +14,7 @@ from ...._oauth._flow_state import _FlowStateTag
 from ....turn_context import TurnContext
 from ....storage import Storage
 from ....authorization import Connections
-from ..auth_handler import AuthHandler
+from ..auth_handler import AuthHandlerSettings
 from ._authorization_handler import _AuthorizationHandler
 from .._sign_in_response import _SignInResponse
 
@@ -32,10 +31,11 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handler: Optional[AuthHandler] = None,
+        settings: dict | AuthHandlerSettings | None = None,
         *,
-        auth_handler_id: Optional[str] = None,
-        auth_handler_settings: Optional[dict] = None,
+        auth_handler_id: str | None = None,
+        auth_handler: AuthHandlerSettings | None = None,
+        auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
         """
@@ -45,17 +45,20 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param auth_handler: Configuration for OAuth provider.
-        :type auth_handler: AuthHandler, Optional
+        :param settings: Optional settings for the auth handler.
+        :type settings: dict | AuthHandlerSettings | None
+        :param auth_handler: (Deprecated) Configuration for OAuth provider.
+        :type auth_handler: AuthHandlerSettings | None
         :param auth_handler_id: Optional ID of the auth handler.
-        :type auth_handler_id: str, Optional
-        :param auth_handler_settings: Optional settings dict for the auth handler.
-        :type auth_handler_settings: dict, Optional
+        :type auth_handler_id: str | None
+        :param auth_handler_settings: (Deprecated) Optional settings dict for the auth handler.
+        :type auth_handler_settings: dict | None
         """
         super().__init__(
             storage,
             connection_manager,
-            auth_handler,
+            settings,
+            auth_handler=auth_handler,
             auth_handler_id=auth_handler_id,
             auth_handler_settings=auth_handler_settings,
             **kwargs,
@@ -64,8 +67,8 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
     async def _sign_in(
         self,
         context: TurnContext,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> _SignInResponse:
         """
         For connector requests, there is no separate sign-in flow.
@@ -74,9 +77,9 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional connection name for token exchange.
-        :type exchange_connection: Optional[str]
+        :type exchange_connection: str | None
         :param exchange_scopes: Optional list of scopes (unused for connector auth).
-        :type exchange_scopes: Optional[list[str]]
+        :type exchange_scopes: list[str] | None
         :return: A SignInResponse with the extracted token.
         :rtype: _SignInResponse
         """
@@ -89,8 +92,8 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
     async def get_refreshed_token(
         self,
         context: TurnContext,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> TokenResponse:
         """
         Gets the connector user token and optionally exchanges it via OBO.
@@ -98,9 +101,9 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange.
-        :type exchange_connection: Optional[str], Optional
+        :type exchange_connection: str | None
         :param exchange_scopes: Optional list of scopes to request during token exchange.
-        :type exchange_scopes: Optional[list[str]], Optional
+        :type exchange_scopes: list[str] | None
         :return: The token response, potentially after OBO exchange.
         :rtype: TokenResponse
         """
@@ -146,8 +149,8 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         self,
         context: TurnContext,
         input_token_response: TokenResponse,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> TokenResponse:
         """
         Exchanges a token for another token with different scopes via OBO flow.
@@ -157,9 +160,9 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         :param input_token_response: The input token to exchange.
         :type input_token_response: TokenResponse
         :param exchange_connection: Optional connection name for exchange.
-        :type exchange_connection: Optional[str]
+        :type exchange_connection: str | None
         :param exchange_scopes: Optional scopes for the exchanged token.
-        :type exchange_scopes: Optional[list[str]]
+        :type exchange_scopes: list[str] | None
         :return: The token response after exchange, or the original if exchange not configured.
         :rtype: TokenResponse
         """

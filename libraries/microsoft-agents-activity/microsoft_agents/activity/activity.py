@@ -38,6 +38,7 @@ from .entity import (
     ClientCitation,
     ProductInfo,
     SensitivityUsageInfo,
+    StreamInfo,
 )
 from .entity._validate_known_entities import _validate_known_entities
 from .conversation_reference import ConversationReference
@@ -1158,7 +1159,7 @@ class Activity(AgentsModel):
         target = entity_type.lower()
         return [e for e in self.entities if e.type.lower() == target]
 
-    def get_product_info_entity(self) -> Optional[ProductInfo]:
+    def get_product_info_entity(self) -> ProductInfo | None:
         """
         Get the product info entity from the activity's entities.
 
@@ -1168,6 +1169,21 @@ class Activity(AgentsModel):
         if raw_product_info is None:
             return None
         return Activity._convert_entity(raw_product_info, ProductInfo)
+
+    def get_streaming_entity(self) -> StreamInfo | None:
+        """Gets the streaming entity from the activity's entities.
+
+        :return: The streaming entity if found, otherwise None.
+        """
+        if not self.entities:
+            return None
+        target = EntityTypes.STREAM_INFO.lower()
+        raw_stream_info = next(
+            filter(lambda e: e.type.lower() == target, self.entities), None
+        )
+        if raw_stream_info is None:
+            return None
+        return Activity._convert_entity(raw_stream_info, StreamInfo)
 
     def get_mentions(self) -> list[Mention]:
         """
