@@ -36,7 +36,7 @@ class JwtAuthorizationMiddleware:
         request = Request(scope, receive=receive)
         res = await _authorize_request(
             request.headers.get("Authorization"),
-            getattr(app.state, "agent_configuration", None),
+            getattr(getattr(app, "state", None), "agent_configuration", None),
             cache_key=app,
         )
 

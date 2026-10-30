@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 from types import SimpleNamespace
 
 import pytest
-from fastapi import Depends, Request
+from fastapi import Depends, FastAPI, Request
 
 from microsoft_agents.hosting.core.authorization import (
     AgentAuthConfiguration,
@@ -118,6 +118,35 @@ async def test_fastapi_middleware_converts_http_response_without_calling_downstr
     authorize.assert_awaited_once_with(
         "Bearer bad", auth_config, cache_key=scope["app"]
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("missing", ["app", "state"])
+async def test_fastapi_middleware_returns_configuration_error_without_app_or_state(
+    missing,
+):
+    scope = _scope(AgentAuthConfiguration())
+    if missing == "app":
+        del scope["app"]
+    else:
+        app = FastAPI()
+        del app.state
+        scope["app"] = app
+    messages = []
+    downstream = AsyncMock()
+
+    await JwtAuthorizationMiddleware(downstream)(
+        scope, _receive, lambda message: _record_send(messages, message)
+    )
+
+    assert _status(messages) == 500
+    body = b"".join(
+        message.get("body", b"")
+        for message in messages
+        if message["type"] == "http.response.body"
+    )
+    assert body == b'{"error":"Agent Authentication configuration not found"}'
+    downstream.assert_not_awaited()
 
 
 @pytest.mark.asyncio
