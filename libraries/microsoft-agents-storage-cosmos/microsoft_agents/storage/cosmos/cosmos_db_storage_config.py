@@ -1,5 +1,4 @@
 import json
-
 from azure.core.credentials_async import AsyncTokenCredential
 from microsoft_agents.storage.cosmos.errors import storage_errors
 
@@ -64,7 +63,9 @@ class CosmosDBStorageConfig:
         self.credential: AsyncTokenCredential | None = credential
 
     @staticmethod
-    def validate_cosmos_db_config(config: "CosmosDBStorageConfig") -> None:
+    def validate_cosmos_db_config(
+        config: "CosmosDBStorageConfig",
+    ) -> None:
         """Validate the CosmosDBConfig object.
 
         This is used prior to the creation of the CosmosDBStorage object."""
