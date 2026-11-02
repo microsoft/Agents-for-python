@@ -26,7 +26,7 @@ def _forms(base: str) -> list:
 
 class TestChannels:
     def test_formatted_channel_id_is_supported(self):
-        channel_id = f"{Channels.msteams}"
+        channel_id = f"{Channels.msteams.value}"
 
         assert Channels.supports_card_actions(channel_id, 3) is True
         assert Channels.supports_card_actions(channel_id, 100) is False

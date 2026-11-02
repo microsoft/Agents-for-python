@@ -3,12 +3,12 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
+from enum import Enum
 
 from .channel_id import ChannelId
 
 
-class Channels(StrEnum):
+class Channels(str, Enum):
     """
     Ids of channels supported by ABS.
     """
