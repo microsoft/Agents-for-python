@@ -63,7 +63,7 @@ class MsalAuth(AccessTokenProviderBase):
         # TokenCache is thread-safe and async-safe per MSAL documentation
         self._token_cache = TokenCache()
         logger.debug(
-            f"Initializing MsalAuth with configuration: {self._msal_configuration}"
+            "Initializing MsalAuth with configuration: %s", self._msal_configuration
         )
 
     @property
@@ -115,7 +115,9 @@ class MsalAuth(AccessTokenProviderBase):
             self._msal_configuration.AUTH_TYPE,
         ):
             logger.debug(
-                f"Requesting access token for resource: {resource_url}, scopes: {scopes}"
+                "Requesting access token for resource: %s, scopes: %s",
+                resource_url,
+                scopes,
             )
             valid_uri, instance_uri = self._uri_validator(resource_url)
             if not valid_uri:
@@ -191,7 +193,7 @@ class MsalAuth(AccessTokenProviderBase):
                 )
 
                 if "access_token" not in token:
-                    logger.error(f"Failed to acquire token on behalf of user.")
+                    logger.error("Failed to acquire token on behalf of user.")
                     raise ValueError(
                         authentication_errors.FailedToAcquireToken.format(str(token))
                     )
@@ -199,7 +201,8 @@ class MsalAuth(AccessTokenProviderBase):
                 return token["access_token"]
 
             logger.error(
-                f"On-behalf-of flow is not supported with the current authentication type: {msal_auth_client.__class__.__name__}"
+                "On-behalf-of flow is not supported with the current authentication type: %s",
+                msal_auth_client.__class__.__name__,
             )
             raise NotImplementedError(
                 authentication_errors.OnBehalfOfFlowNotSupportedAuthType.format(
@@ -322,7 +325,8 @@ class MsalAuth(AccessTokenProviderBase):
                     )
                     if "access_token" not in result:
                         logger.error(
-                            f"Failed to acquire token for federated credentials: {result}"
+                            "Failed to acquire token for federated credentials: %s",
+                            result,
                         )
                         raise ValueError(
                             authentication_errors.FailedToAcquireToken.format(
@@ -347,7 +351,8 @@ class MsalAuth(AccessTokenProviderBase):
                 client_credential = {"client_assertion": get_assertion}
             else:
                 logger.error(
-                    f"Unsupported authentication type: {self._msal_configuration.AUTH_TYPE}"
+                    "Unsupported authentication type: %s",
+                    self._msal_configuration.AUTH_TYPE,
                 )
                 raise NotImplementedError(
                     str(authentication_errors.AuthenticationTypeNotSupported)
@@ -385,7 +390,7 @@ class MsalAuth(AccessTokenProviderBase):
             result = urlparse(url_str)
             return all([result.scheme, result.netloc]), result
         except AttributeError:
-            logger.error(f"URI parsing error for {url_str}")
+            logger.error("URI parsing error for %s", url_str)
             return False, None
 
     def _resolve_scopes_list(self, instance_url: URI, scopes=None) -> list[str]:
@@ -401,7 +406,7 @@ class MsalAuth(AccessTokenProviderBase):
                     "{instance}", f"{instance_url.scheme}://{instance_url.hostname}"
                 )
             temp_list.append(scope_placeholder)
-        logger.debug(f"Resolved scopes: {temp_list}")
+        logger.debug("Resolved scopes: %s", temp_list)
         return temp_list
 
     # the call to MSAL is blocking, but in the future we want to create an asyncio task
