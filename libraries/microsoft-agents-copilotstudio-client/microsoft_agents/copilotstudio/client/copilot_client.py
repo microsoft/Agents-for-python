@@ -145,7 +145,7 @@ class CopilotClient:
 
         # Log diagnostic information if enabled
         if self.settings.enable_diagnostics:
-            self._logger.debug(f">>> SEND TO {url}")
+            self._logger.debug(">>> SEND TO %s", url)
 
         async with aiohttp.ClientSession(
             **self.settings.client_session_settings
@@ -153,7 +153,7 @@ class CopilotClient:
             async with session.post(url, json=data, headers=headers) as response:
 
                 if response.status != 200:
-                    self._logger.error(f"Error sending request: {response.status}")
+                    self._logger.error("Error sending request: %s", response.status)
                     raise aiohttp.ClientError(
                         f"Error sending request: {response.status}"
                     )
@@ -162,7 +162,7 @@ class CopilotClient:
                 if self.settings.enable_diagnostics:
                     self._logger.debug("=" * 53)
                     for header_key, header_value in response.headers.items():
-                        self._logger.debug(f"{header_key} = {header_value}")
+                        self._logger.debug("%s = %s", header_key, header_value)
                     self._logger.debug("=" * 53)
 
                 # Capture experimental endpoint if enabled and not already using DirectConnect
@@ -177,7 +177,8 @@ class CopilotClient:
                         self._island_experimental_url = experimental_url
                         self.settings.direct_connect_url = self._island_experimental_url
                         self._logger.debug(
-                            f"Island Experimental URL: {self._island_experimental_url}"
+                            "Island Experimental URL: %s",
+                            self._island_experimental_url,
                         )
 
                 # Set conversation ID from response header when status is 200
@@ -354,7 +355,7 @@ class CopilotClient:
 
         # Log diagnostic information if enabled
         if self.settings.enable_diagnostics:
-            self._logger.debug(f">>> SEND TO {url}")
+            self._logger.debug(">>> SEND TO %s", url)
 
         async with aiohttp.ClientSession(
             **self.settings.client_session_settings
@@ -363,7 +364,7 @@ class CopilotClient:
 
                 if response.status != 200:
                     self._logger.error(
-                        f"Error subscribing to conversation: {response.status}"
+                        "Error subscribing to conversation: %s", response.status
                     )
                     raise aiohttp.ClientError(
                         f"Error subscribing to conversation: {response.status}"
@@ -373,7 +374,7 @@ class CopilotClient:
                 if self.settings.enable_diagnostics:
                     self._logger.debug("=" * 53)
                     for header_key, header_value in response.headers.items():
-                        self._logger.debug(f"{header_key} = {header_value}")
+                        self._logger.debug("%s = %s", header_key, header_value)
                     self._logger.debug("=" * 53)
 
                 event_id = None
