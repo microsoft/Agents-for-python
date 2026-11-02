@@ -119,7 +119,9 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
                     )
             except (ValueError, AttributeError) as ex:
                 logger.error(
-                    f"Error checking token expiration for handler {self._id}: {ex}"
+                    "Error checking token expiration for handler %s: %s",
+                    self._id,
+                    ex,
                 )
                 raise
 
@@ -234,7 +236,7 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
                 token_response.expiration = expiration.isoformat()
 
         except Exception as ex:
-            logger.warning(f"Failed to parse JWT token for handler {self._id}: {ex}")
+            logger.warning("Failed to parse JWT token for handler %s: %s", self._id, ex)
             raise ex
 
         return token_response

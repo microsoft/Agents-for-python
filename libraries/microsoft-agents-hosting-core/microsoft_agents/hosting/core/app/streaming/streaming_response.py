@@ -468,7 +468,7 @@ class StreamingResponse:
         Sends any queued activities to the client until the queue is empty.
         """
         try:
-            logger.debug(f"Draining queue with {len(self._queue)} activities.")
+            logger.debug("Draining queue with %s activities.", len(self._queue))
             while self._queue:
                 factory = self._queue.pop(0)
                 activity = factory()
