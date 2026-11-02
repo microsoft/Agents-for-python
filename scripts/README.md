@@ -16,7 +16,7 @@ python --version
 
 The virtual environment, by default, will created as a directory named `venv` that will be placed at the root of this project.
 
-> Note: The SDK supports Python 3.11, 3.12, 3.13, and 3.14. The legacy `microsoft-agents-hosting-teams` package requires Python 3.12 or later.
+> Note: The SDK supports Python 3.11, 3.12, 3.13, 3.14, and 3.15. The legacy `microsoft-agents-hosting-teams` package requires Python 3.12 or later.
 
 ### Windows
 

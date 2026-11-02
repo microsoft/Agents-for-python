@@ -5,7 +5,11 @@
 
 ## Breaking Changes
 
-- **Python Support**: Python 3.10 is no longer supported. Upgrade to Python 3.11 or later before updating the SDK. Supported versions are Python 3.11 through 3.14; existing higher per-package minimums remain unchanged.
+- **Python Support**: Python 3.10 is no longer supported. Upgrade to Python 3.11 or later before updating the SDK. Supported versions are Python 3.11 through 3.15; existing higher per-package minimums remain unchanged.
+
+## Major Features & Enhancements
+
+- **Python 3.15 Support**: Added explicit Python 3.15 package classifiers and CI coverage.
 
 ---
 
