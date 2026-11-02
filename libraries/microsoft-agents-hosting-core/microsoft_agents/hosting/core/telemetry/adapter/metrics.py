@@ -12,20 +12,24 @@ adapter_process_duration = agents_telemetry.meter.create_histogram(
 
 activities_received = agents_telemetry.meter.create_counter(
     constants.METRIC_ACTIVITIES_RECEIVED,
+    unit="activity",
     description="Number of activities received by the adapter",
 )
 
 activities_sent = agents_telemetry.meter.create_counter(
     constants.METRIC_ACTIVITIES_SENT,
+    unit="activity",
     description="Number of activities sent by the adapter",
 )
 
 activities_updated = agents_telemetry.meter.create_counter(
     constants.METRIC_ACTIVITIES_UPDATED,
+    unit="activity",
     description="Number of activities updated by the adapter",
 )
 
 activities_deleted = agents_telemetry.meter.create_counter(
     constants.METRIC_ACTIVITIES_DELETED,
+    unit="activity",
     description="Number of activities deleted by the adapter",
 )
