@@ -62,9 +62,7 @@ class MsalAuth(AccessTokenProviderBase):
 
         # TokenCache is thread-safe and async-safe per MSAL documentation
         self._token_cache = TokenCache()
-        logger.debug(
-            "Initializing MsalAuth with configuration: %s", self._msal_configuration
-        )
+        logger.debug("Initializing MsalAuth")
 
     @property
     def configuration(self) -> AgentAuthConfiguration:
