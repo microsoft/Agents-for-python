@@ -52,6 +52,8 @@ ENV_DICT = {
         {"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "*"},
         {"CONNECTION": "AGENTIC", "SERVICEURL": "agentic"},
     ],
+    "LOGGING": {},
+    "TOKENVALIDATION": {},
 }
 
 ENV_RAW = """
@@ -120,4 +122,6 @@ def test_load_configuration_from_empty_mapping():
         "AGENTAPPLICATION": {},
         "CONNECTIONS": {},
         "CONNECTIONSMAP": [],
+        "LOGGING": {},
+        "TOKENVALIDATION": {},
     }

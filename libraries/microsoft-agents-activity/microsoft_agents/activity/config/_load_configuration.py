@@ -4,6 +4,7 @@
 from typing import Any, Mapping
 
 from ._logging import _configure_logging
+from ._resolve import _resolve
 
 
 def load_configuration_from_env(env_vars: Mapping[str, Any]) -> dict:
@@ -30,8 +31,15 @@ def load_configuration_from_env(env_vars: Mapping[str, Any]) -> dict:
 
     _configure_logging(result.get("LOGGING", {}))
 
+    # temporary fix before next PR
+    token_validation_options = _resolve(
+        result.get("TOKENVALIDATION", {}),
+    )
+
     return {
-        "AGENTAPPLICATION": result.get("AGENTAPPLICATION", {}),
-        "CONNECTIONS": result.get("CONNECTIONS", {}),
-        "CONNECTIONSMAP": result.get("CONNECTIONSMAP", []),
+        "AGENTAPPLICATION": result.pop("AGENTAPPLICATION", {}),
+        "CONNECTIONS": result.pop("CONNECTIONS", {}),
+        "CONNECTIONSMAP": result.pop("CONNECTIONSMAP", []),
+        "LOGGING": result.pop("LOGGING", {}),
+        "TOKENVALIDATION": token_validation_options,
     }
