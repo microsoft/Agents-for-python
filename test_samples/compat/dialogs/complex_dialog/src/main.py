@@ -44,4 +44,3 @@ if __name__ == "__main__":
         web.run_app(APP, host="localhost", port=3978)
     except Exception:
         raise
-    

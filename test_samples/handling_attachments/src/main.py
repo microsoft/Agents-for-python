@@ -8,7 +8,6 @@ from microsoft_agents.hosting.fastapi import (
 
 from .agent import AGENT_APP, ADAPTER, agents_sdk_config
 
-
 if __name__ == "__main__":
 
     app = FastAPI(title="Handling Attachments Agent", version="1.0.0")

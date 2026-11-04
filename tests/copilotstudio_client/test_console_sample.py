@@ -90,3 +90,53 @@ def test_sample_signs_in_interactively_without_cached_accounts(sample, mocker):
     application.acquire_token_interactive.assert_called_once_with(
         scopes=["https://api.test.powerplatform.com/.default"]
     )
+
+
+@pytest.mark.parametrize("enabled", ["true", "false"])
+def test_sample_reads_direct_connection_and_flags_from_configuration(
+    sample, monkeypatch, enabled
+):
+    monkeypatch.setenv("CLOUD", "PROD")
+    settings = sample.McsConnectionSettings(
+        Configuration(
+            {
+                "APP_CLIENT_ID": "client",
+                "TENANT_ID": "tenant",
+                "CLOUD": "TEST",
+                "COPILOT_AGENT_TYPE": "PUBLISHED",
+                "DIRECT_CONNECT_URL": "https://custom.example.com/agent",
+                "USE_EXPERIMENTAL_ENDPOINT": enabled,
+                "ENABLE_DIAGNOSTICS": enabled,
+            }
+        )
+    )
+
+    assert settings.cloud == PowerPlatformCloud.TEST
+    assert settings.direct_connect_url == "https://custom.example.com/agent"
+    assert settings.use_experimental_endpoint is (enabled == "true")
+    assert settings.enable_diagnostics is (enabled == "true")
+
+
+def test_sample_client_uses_configured_token_cache(sample, mocker):
+    config = Configuration(
+        {
+            "APP_CLIENT_ID": "client",
+            "TENANT_ID": "tenant",
+            "ENVIRONMENT_ID": "environment",
+            "AGENT_IDENTIFIER": "agent",
+            "TOKEN_CACHE_PATH": "custom-cache.bin",
+        }
+    )
+    acquire_token = mocker.patch.object(
+        sample, "acquire_token", return_value="sample-token"
+    )
+    copilot_client = mocker.patch.object(sample, "CopilotClient")
+
+    client = sample.create_mcs_client(config)
+
+    settings = acquire_token.call_args.args[0]
+    acquire_token.assert_called_once_with(settings, "custom-cache.bin")
+    assert settings.environment_id == "environment"
+    assert settings.agent_identifier == "agent"
+    copilot_client.assert_called_once_with(settings, "sample-token")
+    assert client is copilot_client.return_value

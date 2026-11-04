@@ -7,6 +7,7 @@ from microsoft_agents.copilotstudio.client import (
 
 
 class McsConnectionSettings(ConnectionSettings):
+
     def __init__(self, config: Configuration) -> None:
         self.app_client_id = config.get_str("APP_CLIENT_ID", default=None)
         self.tenant_id = config.get_str("TENANT_ID", default=None)

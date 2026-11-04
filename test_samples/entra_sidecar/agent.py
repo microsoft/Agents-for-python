@@ -43,7 +43,7 @@ agents_sdk_config = load_configuration_from_env(environ)
 # sidecar without a real tenant/app registration. Set TOKENVALIDATION__ENABLED=true
 # (and a real CLIENTID/TENANTID) for any non-local deployment.
 TOKEN_VALIDATION_ENABLED = agents_sdk_config.get_bool(
-    ["TOKENVALIDATION", "ENABLED"], default=False
+    "TOKENVALIDATION::ENABLED", default=False
 )
 
 STORAGE = MemoryStorage()
@@ -54,9 +54,7 @@ CONNECTION_MANAGER = ConnectionManager(
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
-AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, authorization=AUTHORIZATION
-)
+AGENT_APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
 
 
 async def _help(context: TurnContext, _state: TurnState):

@@ -9,9 +9,7 @@ from aiohttp.web import Request, Response, Application, run_app
 
 
 def start_server(
-    agent_application: AgentApplication,
-    adapter: CloudAdapter,
-    config: Configuration
+    agent_application: AgentApplication, adapter: CloudAdapter, config: Configuration
 ):
     async def entry_point(req: Request) -> Response:
         agent: AgentApplication = req.app["agent_app"]

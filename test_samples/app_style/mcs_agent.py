@@ -69,9 +69,7 @@ class McsConnectionSettings(ConnectionSettings):
 
 
 # Create the agent instance
-AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, authorization=AUTHORIZATION
-)
+AGENT_APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
 
 
 @AGENT_APP.conversation_update("membersAdded")
@@ -165,7 +163,9 @@ async def _status(context: TurnContext, state: TurnState) -> None:
 
 def _create_client(token: str) -> CopilotClient:
     """Create CopilotClient with connection settings from environment"""
-    settings = McsConnectionSettings(agents_sdk_config.get_section("COPILOTSTUDIOAGENT"))
+    settings = McsConnectionSettings(
+        agents_sdk_config.get_section("COPILOTSTUDIOAGENT")
+    )
     return CopilotClient(settings, token)
 
 

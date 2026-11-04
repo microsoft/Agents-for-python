@@ -36,9 +36,7 @@ ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 ADAPTER.use(TranscriptLoggerMiddleware(ConsoleTranscriptLogger()))
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
-AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, authorization=AUTHORIZATION
-)
+AGENT_APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
 
 
 @AGENT_APP.activity("message", auth_handlers=["AGENTIC"])

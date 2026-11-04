@@ -33,9 +33,7 @@ CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
-AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, authorization=AUTHORIZATION
-)
+AGENT_APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
 
 # Create FastAPI app
 app = FastAPI(title="Empty Agent Sample", version="1.0.0")

@@ -41,7 +41,9 @@ load_dotenv()
 agents_sdk_config = load_configuration_from_env(environ)
 
 # Public base URL of this agent (dev tunnel / host) used for the webpage dialog.
-APP_BASE_URL = agents_sdk_config.get_str("APP_BASE_URL", default="http://localhost:3978")
+APP_BASE_URL = agents_sdk_config.get_str(
+    "APP_BASE_URL", default="http://localhost:3978"
+)
 
 STORAGE = MemoryStorage()
 CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)

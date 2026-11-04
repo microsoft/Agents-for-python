@@ -13,9 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def start_server(
-    agent_application: AgentApplication,
-    adapter: CloudAdapter,
-    config: Configuration
+    agent_application: AgentApplication, adapter: CloudAdapter, config: Configuration
 ):
     async def entry_point(req: Request) -> Response:
 

@@ -13,7 +13,7 @@ The sample uses the generic `ConnectionManager` from `microsoft-agents-hosting-c
 from microsoft_agents.hosting.core import ConnectionManager
 from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
 
-CONNECTION_MANAGER = ConnectionManager(provider_factory=SidecarAuth, **agents_sdk_config)
+CONNECTION_MANAGER = ConnectionManager(provider_factory=SidecarAuth, config=agents_sdk_config)
 ```
 
 No `SidecarConnectionManager` is needed — the generic connection manager dispatches to any
@@ -85,4 +85,3 @@ because `TENANTID` is missing/placeholder, or the inbound token's issuer require
 > Note: credential-free applies to **outbound** token acquisition (the sidecar owns those
 > secrets). Validating **inbound** channel tokens is a separate concern controlled by
 > `TOKENVALIDATION__ENABLED`.
-

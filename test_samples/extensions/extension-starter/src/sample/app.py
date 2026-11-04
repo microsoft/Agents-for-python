@@ -26,9 +26,7 @@ STORAGE = MemoryStorage()
 CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
-APP = AgentApplication[TurnState](
-    storage=STORAGE, authorization=AUTHORIZATION
-)
+APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
 
 
 @APP.activity("message", rank=RouteRank.LAST)
