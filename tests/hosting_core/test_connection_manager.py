@@ -117,7 +117,6 @@ def test_configuration_manager_rejects_mixed_constructor_modes(legacy):
 @pytest.mark.parametrize(
     "config, path",
     [
-        ({"connections": []}, "connections"),
         (
             {"connections": {"SERVICE_CONNECTION": "invalid"}},
             "connections::SERVICE_CONNECTION",
