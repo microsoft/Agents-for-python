@@ -3,10 +3,9 @@
 
 """Shared helpers for recognizing Microsoft Entra ID / Bot Framework token issuers.
 
-Centralizes the cloud (public vs. US Government) and tenant-GUID parsing rules
-used by both :class:`AgentAuthConfiguration` (default ``ISSUERS``) and
-:class:`JwtTokenValidator` (issuer allow-list validation, tid-to-issuer
-binding, and JWKS routing) so the two stay consistent.
+Centralizes cloud (public vs. US Government) and tenant-GUID parsing for
+JwtTokenValidator's issuer validation, tenant binding, and JWKS routing.
+Also provides default issuer construction for legacy configuration compatibility.
 """
 
 from __future__ import annotations

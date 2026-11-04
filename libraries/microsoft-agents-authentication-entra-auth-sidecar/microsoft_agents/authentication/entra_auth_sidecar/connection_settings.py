@@ -3,122 +3,126 @@
 
 from __future__ import annotations
 
+import warnings
+
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing_extensions import Self
 
-from microsoft_agents.activity.config import Configuration, xpath
-from microsoft_agents.activity.config._coercion import (
-    coerce_bool,
-    coerce_int,
-    coerce_float,
+from microsoft_agents.activity.config import (
+    Configuration,
+    xpath,
 )
 from microsoft_agents.hosting.core.authorization.connections import (
-    AgentAuthConfiguration,
     ConnectionSettingsBase,
 )
-
 from .constants import (
     DEFAULT_SERVICE_NAME,
     DEFAULT_BLUEPRINT_SERVICE_NAME,
+    DEFAULT_SIDECAR_BASE_URL,
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_RETRY_COUNT,
 )
 
 
+def _or_default(s: str, default: str) -> str:
+    return (s.strip() if s else None) or default
+
+
 @dataclass(frozen=True)
 class SidecarConnectionSettings(ConnectionSettingsBase):
-    """Typed connection settings for the credential-free sidecar provider."""
+    """
+    Connection settings for the sidecar-based token provider.
 
-    service_name: str = DEFAULT_SERVICE_NAME
-    blueprint_service_name: str = DEFAULT_BLUEPRINT_SERVICE_NAME
+    Extends
+    :class:`microsoft_agents.hosting.core.authorization.connection_settings_base._ConnectionSettingsBase`
+    with the sidecar-specific fields, mirroring the .NET
+    ``Microsoft.Agents.Authentication.EntraAuthSidecar.SidecarConnectionSettings``
+    which derives from ``_ConnectionSettingsBase``. Bound from an
+    :class:`microsoft_agents.hosting.core.AgentAuthConfiguration` (or its raw
+    ``SETTINGS`` keyword arguments). No secrets/certificates are required: the
+    sidecar owns all credential management.
+    """
+
+    service_name: str | None = DEFAULT_SERVICE_NAME
+    blueprint_service_name: str | None = DEFAULT_BLUEPRINT_SERVICE_NAME
     sidecar_base_url: str | None = None
     bypass_local_network_restriction: bool = False
     request_timeout: float = DEFAULT_REQUEST_TIMEOUT_SECONDS
     retry_count: int = DEFAULT_RETRY_COUNT
 
-    def __post_init__(self):
-        object.__setattr__(
-            self,
-            "service_name",
-            (self.service_name or "").strip() or DEFAULT_SERVICE_NAME,
-        )
-        object.__setattr__(
-            self,
-            "blueprint_service_name",
-            (self.blueprint_service_name or "").strip()
-            or DEFAULT_BLUEPRINT_SERVICE_NAME,
-        )
-        object.__setattr__(self, "scopes", self._normalize_scopes(self.scopes) or [])
-        object.__setattr__(
-            self,
-            "bypass_local_network_restriction",
-            coerce_bool(
-                self.bypass_local_network_restriction,
-                default=False,
-                name="BYPASS_LOCAL_NETWORK_RESTRICTION",
-            ),
-        )
-        object.__setattr__(
-            self,
-            "request_timeout",
-            coerce_float(
-                self.request_timeout, DEFAULT_REQUEST_TIMEOUT_SECONDS, "REQUEST_TIMEOUT"
-            ),
-        )
-        object.__setattr__(
-            self,
-            "retry_count",
-            coerce_int(self.retry_count, DEFAULT_RETRY_COUNT, "RETRY_COUNT"),
-        )
-
-    @staticmethod
-    def _normalize_scopes(scopes) -> list[str] | None:
-        if scopes is None:
-            return None
-        if isinstance(scopes, str):
-            scopes = scopes.replace(",", " ").split()
-        if isinstance(scopes, Mapping):
-            scopes = scopes.values()
-        return [
-            str(scope).strip() for scope in scopes if scope and str(scope).strip()
-        ] or None
-
-    @classmethod
-    def from_configuration(
-        cls, config: Configuration | Mapping | AgentAuthConfiguration | Self
-    ) -> Self:
-        if isinstance(config, AgentAuthConfiguration):
-            return cls._from_agent_auth_config(config)
-        if isinstance(config, Mapping):
-            config = Configuration.from_mapping(config)
-        return super().from_configuration(config)
-
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:
-        normalized = Configuration(config, _base_path=config._base_path)
-        for alias in xpath("scopes"):
-            normalized.pop(alias, None)
-        normalized["scopes"] = cls._normalize_scopes(config.get(xpath("scopes"))) or []
-        base = super()._get_init_kwargs(normalized)
+        base = super()._get_init_kwargs(config)
+
+        # An explicitly blank or whitespace-only value (e.g. binding yields "" or
+        # "   ") must never produce an invalid sidecar endpoint path, so strip and
+        # normalize to the defaults here.
+        _service_name = config.get_strn(xpath("service_name"))
+        service_name = _or_default(_service_name, DEFAULT_SERVICE_NAME)
+
+        blueprint_service_name = config.get_str(
+            xpath("blueprint_service_name"), default=DEFAULT_BLUEPRINT_SERVICE_NAME
+        )
+        blueprint_service_name = _or_default(
+            blueprint_service_name, DEFAULT_BLUEPRINT_SERVICE_NAME
+        )
+
+        sidecar_base_url = config.get_strn(xpath("sidecar_base_url"))
+
+        # Config values can arrive as strings from ``load_configuration_from_env``,
+        # so coerce explicitly: ``bool("false")`` would otherwise be ``True`` and
+        # silently disable the SSRF guard, and ``max(0, "5")`` would raise.
+        bypass_local_network_restriction = config.get_bool(
+            xpath("bypass_local_network_restriction"),
+            default=False,
+        )
+        request_timeout = config.get_float(
+            xpath("request_timeout"),
+            default=DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        )
+        retry_count = config.get_int(
+            xpath("retry_count"),
+            default=DEFAULT_RETRY_COUNT,
+        )
+
+        base["scopes"] = cls._normalize_scopes(base.get("scopes", []))
+
         base.update(
             {
-                "service_name": config.get_strn(xpath("service_name")),
-                "blueprint_service_name": config.get_strn(
-                    xpath("blueprint_service_name")
-                ),
-                "sidecar_base_url": config.get_strn(xpath("sidecar_base_url")),
-                "bypass_local_network_restriction": coerce_bool(
-                    config.get(xpath("bypass_local_network_restriction")),
-                    default=False,
-                    name="BYPASS_LOCAL_NETWORK_RESTRICTION",
-                ),
-                "request_timeout": config.get_float(
-                    xpath("request_timeout"), default=DEFAULT_REQUEST_TIMEOUT_SECONDS
-                ),
-                "retry_count": config.get_int(
-                    xpath("retry_count"), default=DEFAULT_RETRY_COUNT
-                ),
+                "service_name": service_name,
+                "blueprint_service_name": blueprint_service_name,
+                "sidecar_base_url": sidecar_base_url,
+                "bypass_local_network_restriction": bypass_local_network_restriction,
+                "request_timeout": request_timeout,
+                "retry_count": retry_count,
             }
         )
         return base
+
+    @staticmethod
+    def _normalize_scopes(scopes) -> list[str] | None:
+        """Normalize scopes to a list of strings.
+
+        Accepts a list, a string (space/comma-delimited), or a dict (produced when
+        scopes are supplied via env as ``SCOPES__0=...`` and parsed into
+        ``{"0": "..."}``). Returns ``None`` when no scopes are present.
+        """
+        if scopes is None:
+            return None
+        if isinstance(scopes, str):
+            parts = [s.strip() for s in scopes.replace(",", " ").split()]
+            return [s for s in parts if s] or None
+        if isinstance(scopes, dict):
+            scopes = scopes.values()
+        result = [str(s).strip() for s in scopes if s and str(s).strip()]
+        return result or None
+
+    # for backward compatibility with previous versions that used `from_configuration`
+    @classmethod
+    def from_configuration(cls, configuration: Mapping) -> SidecarConnectionSettings:
+        warnings.warn(
+            "`from_configuration` is deprecated, use `from_mapping` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return cls.from_mapping(configuration)

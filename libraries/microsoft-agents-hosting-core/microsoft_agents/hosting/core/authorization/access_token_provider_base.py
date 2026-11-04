@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 from abc import abstractmethod
 
 from azure.core.credentials_async import AsyncTokenCredential
@@ -17,18 +17,24 @@ class AccessTokenProviderBase(Protocol):
     @property
     def configuration(self) -> AgentAuthConfiguration:
         """
-        The configuration for the access token provider.
+        Deprecated legacy configuration view. Prefer :attr:`config`.
 
-        :return: The configuration for the access token provider.
+        :return: AgentAuthConfiguration retained for compatibility.
         """
+        # this property is deprecated and will be removed in future versions
         raise NotImplementedError()
 
     @property
     def config(self) -> ConnectionSettingsBase:
-        """Bound connection settings, with a compatibility path for legacy providers."""
-        from .connections import ConnectionSettingsBase
+        """
+        Bound provider-specific settings extending ConnectionSettingsBase.
 
-        return ConnectionSettingsBase._from_agent_auth_config(self.configuration)
+        :return: The provider's typed connection settings.
+        """
+        # Convert the deprecated configuration to the new connection settings format.
+        from .connections.connection_settings_base import ConnectionSettingsBase
+
+        return ConnectionSettingsBase.from_mapping(**self.configuration._to_dict())
 
     @abstractmethod
     async def get_access_token(

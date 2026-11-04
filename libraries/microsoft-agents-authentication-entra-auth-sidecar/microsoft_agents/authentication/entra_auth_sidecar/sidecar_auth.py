@@ -6,8 +6,10 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from microsoft_agents.activity.config import Configuration
 
+import warnings
+
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import (
     AccessTokenProviderBase,
     AgentAuthConfiguration,
@@ -55,15 +57,20 @@ class SidecarAuth(AccessTokenProviderBase):
     def __init__(
         self,
         configuration: (
-            AgentAuthConfiguration | Configuration | SidecarConnectionSettings
+            AgentAuthConfiguration | SidecarConnectionSettings | Configuration
         ),
         *,
         sidecar_client: SidecarHttpClient | None = None,
     ):
-        self._configuration = (
-            configuration if isinstance(configuration, AgentAuthConfiguration) else None
-        )
-        self._settings = SidecarConnectionSettings.from_configuration(configuration)
+
+        if isinstance(configuration, AgentAuthConfiguration):
+            self._configuration = configuration
+            self._settings = SidecarConnectionSettings.from_configuration(
+                SidecarConnectionSettings._from_agent_auth_config(configuration)
+            )
+        else:
+            self._configuration = None
+            self._settings = SidecarConnectionSettings.from_configuration(configuration)
 
         if sidecar_client is not None:
             self._sidecar_client = sidecar_client
@@ -96,10 +103,19 @@ class SidecarAuth(AccessTokenProviderBase):
         such as the alternate-blueprint connection name without depending on a
         specific provider implementation.
         """
-        if self._configuration is None:
+
+        warnings.warn(
+            "AgentAuthCConfiguration is deprecated and will be removed in a future version."
+            "This field thus is also deprecated.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        if not self._configuration:
             raise ValueError(
                 "No AgentAuthConfiguration available. Use 'config' instead."
             )
+
         return self._configuration
 
     @property

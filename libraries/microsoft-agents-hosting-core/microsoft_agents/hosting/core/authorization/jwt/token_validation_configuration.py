@@ -13,6 +13,7 @@ from .jwt_connection_settings import JwtConnectionSettings
 
 @dataclass(frozen=True)
 class TokenValidationConfiguration(_Configurable):
+
     tenant_id: str | None = None
     audiences: list[str] = field(default_factory=list)
     anonymous_allowed: bool = False
@@ -23,32 +24,33 @@ class TokenValidationConfiguration(_Configurable):
     def _from_configuration(
         cls, configuration: Configuration
     ) -> TokenValidationConfiguration:
+
         token_validation = configuration.get_section(
             xpath("token_validation"), default=Configuration()
         )
-        audiences = token_validation.get_str_list(xpath("audiences"))
+        audiences = token_validation.get_str_list(xpath("audience"))
         tenant_id = token_validation.get_strn(xpath("tenant_id"))
         anonymous_allowed = token_validation.get_booln(xpath("anonymous_allowed"))
 
         connections: dict[str, JwtConnectionSettings] = {}
-        connection_config = configuration.get_section(
-            xpath("connections"), default=Configuration()
-        )
-        for name in connection_config:
-            connections[name] = JwtConnectionSettings.from_configuration(
-                connection_config.get_section(name)
-            )
+        for name, conf in configuration.get_items(xpath("connections")):
+            connections[name] = JwtConnectionSettings.from_mapping(conf)
 
         update_audiences = not audiences
         update_tenant_id = not tenant_id
+
         default_jwt_settings: JwtConnectionSettings | None = None
         for conn_name, conn in connections.items():
+
             if conn_name.upper() == "SERVICE_CONNECTION":
                 if update_tenant_id:
                     tenant_id = conn.tenant_id
                 default_jwt_settings = conn
-            if update_audiences and conn.client_id:
-                audiences.append(conn.client_id)
+
+            if update_audiences:
+                aud = conn.client_id
+                if aud:
+                    audiences.append(aud)
 
         if default_jwt_settings is not None and anonymous_allowed is None:
             anonymous_allowed = default_jwt_settings.anonymous_allowed
@@ -64,7 +66,10 @@ class TokenValidationConfiguration(_Configurable):
     def validate_audience(self, aud: Any) -> bool:
         if not aud or not isinstance(aud, str):
             return False
-        return any(aud.lower() == target.lower() for target in self.audiences)
+        for target_audience in self.audiences:
+            if aud.lower() == target_audience.lower():
+                return True
+        return False
 
     def get_connection_settings(self, aud: Any) -> JwtConnectionSettings | None:
         if not aud or not isinstance(aud, str):

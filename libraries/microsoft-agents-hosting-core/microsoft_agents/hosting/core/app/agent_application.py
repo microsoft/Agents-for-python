@@ -421,7 +421,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering activity handler for route handler {func.__name__} with type: {activity_type} with auth handlers: {auth_handlers}"
+                "Registering activity handler for route handler %s with type: %s with auth handlers: %s",
+                func.__name__,
+                activity_type,
+                auth_handlers,
             )
             self.add_route(selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -481,7 +484,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering event handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
+                "Registering event handler for route handler %s with select: %s with auth handlers: %s",
+                func.__name__,
+                select,
+                auth_handlers,
             )
             self.add_route(selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -523,7 +529,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering invoke handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
+                "Registering invoke handler for route handler %s with select: %s with auth handlers: %s",
+                func.__name__,
+                select,
+                auth_handlers,
             )
             self.add_route(
                 selector, func, auth_handlers=auth_handlers, is_invoke=True, **kwargs
@@ -570,7 +579,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering message handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
+                "Registering message handler for route handler %s with select: %s with auth handlers: %s",
+                func.__name__,
+                select,
+                auth_handlers,
             )
             self.add_route(selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -634,7 +646,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering conversation update handler for route handler {func.__name__} with type: {update_type} with auth handlers: {auth_handlers}"
+                "Registering conversation update handler for route handler %s with type: %s with auth handlers: %s",
+                func.__name__,
+                update_type,
+                auth_handlers,
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -763,7 +778,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering message reaction handler for route handler {func.__name__} with type: {reaction_type} with auth handlers: {auth_handlers}"
+                "Registering message reaction handler for route handler %s with type: %s with auth handlers: %s",
+                func.__name__,
+                reaction_type,
+                auth_handlers,
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -880,7 +898,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering message update handler for route handler {func.__name__} with type: {update_type} with auth handlers: {auth_handlers}"
+                "Registering message update handler for route handler %s with type: %s with auth handlers: %s",
+                func.__name__,
+                update_type,
+                auth_handlers,
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -961,7 +982,9 @@ class AgentApplication(Agent, Generic[StateT]):
                 )
 
             logger.debug(
-                f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
+                "Registering handoff handler for route handler %s with auth handlers: %s",
+                func.__name__,
+                auth_handlers,
             )
 
             self.add_route(selector, __handler, auth_handlers=auth_handlers, **kwargs)
@@ -991,12 +1014,14 @@ class AgentApplication(Agent, Generic[StateT]):
 
         if self._auth:
             logger.debug(
-                f"Registering sign-in success handler for route handler {func.__name__}"
+                "Registering sign-in success handler for route handler %s",
+                func.__name__,
             )
             self._auth.on_sign_in_success(func)
         else:
             logger.error(
-                f"Failed to register sign-in success handler for route handler {func.__name__}",
+                "Failed to register sign-in success handler for route handler %s",
+                func.__name__,
                 stack_info=True,
             )
             raise ApplicationError("""
@@ -1025,12 +1050,14 @@ class AgentApplication(Agent, Generic[StateT]):
 
         if self._auth:
             logger.debug(
-                f"Registering sign-in failure handler for route handler {func.__name__}"
+                "Registering sign-in failure handler for route handler %s",
+                func.__name__,
             )
             self._auth.on_sign_in_failure(func)
         else:
             logger.error(
-                f"Failed to register sign-in failure handler for route handler {func.__name__}",
+                "Failed to register sign-in failure handler for route handler %s",
+                func.__name__,
                 stack_info=True,
             )
             raise ApplicationError("""
@@ -1056,7 +1083,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :type func: Callable[[TurnContext, Exception], Awaitable[None]]
         """
 
-        logger.debug(f"Registering the error handler {func.__name__} ")
+        logger.debug("Registering the error handler %s ", func.__name__)
         self._turn_error_handlers.append(func)
 
         return func
@@ -1065,13 +1092,14 @@ class AgentApplication(Agent, Generic[StateT]):
         """
         Custom Turn State Factory
         """
-        logger.debug(f"Setting custom turn state factory: {func.__name__}")
+        logger.debug("Setting custom turn state factory: %s", func.__name__)
         self._turn_state_factory = func
         return func
 
     async def on_turn(self, context: TurnContext):
         logger.debug(
-            f"AgentApplication.on_turn(): Processing turn for context: {context.activity.id}"
+            "AgentApplication.on_turn(): Processing turn for context: %s",
+            context.activity.id,
         )
         await self._start_long_running_call(context, self._on_turn)
 
@@ -1179,7 +1207,8 @@ class AgentApplication(Agent, Generic[StateT]):
                 input_files = state.temp.input_files if state.temp.input_files else []
                 for file_downloader in self._options.file_downloaders:
                     logger.info(
-                        f"Using file downloader: {file_downloader.__class__.__name__}"
+                        "Using file downloader: %s",
+                        file_downloader.__class__.__name__,
                     )
                     files = await file_downloader.download_files(context)
                     input_files.extend(files)
@@ -1237,7 +1266,9 @@ class AgentApplication(Agent, Generic[StateT]):
 
         if not route_matched:
             logger.warning(
-                f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
+                "No route found for activity type: %s with text: %s",
+                context.activity.type,
+                context.activity.text,
             )
         if on_turn_span is not None:
             on_turn_span.share(
@@ -1254,7 +1285,9 @@ class AgentApplication(Agent, Generic[StateT]):
             and context.identity is not None
         ):
             logger.debug(
-                f"Starting long running call for context: {context.activity.id} with function: {func.__name__}"
+                "Starting long running call for context: %s with function: %s",
+                context.activity.id,
+                func.__name__,
             )
             return await context.adapter.continue_conversation_with_claims(
                 claims_identity=context.identity,
@@ -1290,7 +1323,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 task.result()
             except Exception as e:
                 logger.error(
-                    f"Error occurred while replaying the turn.",
+                    "Error occurred while replaying the turn.",
                     exc_info=True,
                 )
 
@@ -1327,12 +1360,15 @@ class AgentApplication(Agent, Generic[StateT]):
         """
 
         logger.error(
-            f"An error occurred in the AgentApplication: {err}",
+            "An error occurred in the AgentApplication: %s",
+            err,
             exc_info=True,
         )
 
         for err_func in self._turn_error_handlers:
-            logger.info(f"Calling error handler {err_func.__name__} for error: {err}")
+            logger.info(
+                "Calling error handler %s for error: %s", err_func.__name__, err
+            )
             await err_func(context, err)
 
         if not self._turn_error_handlers:

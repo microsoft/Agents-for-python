@@ -8,7 +8,9 @@ import asyncio
 import logging
 import time
 import jwt
-from typing import Optional
+import warnings
+
+from typing import Any
 from urllib.parse import urlparse, ParseResult as URI
 from msal import (
     ConfidentialClientApplication,
@@ -23,8 +25,8 @@ from azure.core.credentials_async import AsyncTokenCredential
 
 from requests import Session
 
-from microsoft_agents.activity._utils import _DeferredString
 from microsoft_agents.activity.config import Configuration
+from microsoft_agents.activity._utils import _DeferredString
 
 from microsoft_agents.hosting.core import (
     AuthTypes,
@@ -32,8 +34,8 @@ from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
 )
 from microsoft_agents.hosting.core.authorization.telemetry import spans
-from microsoft_agents.authentication.msal.errors import authentication_errors
 from .connection_settings import MsalConnectionSettings
+from .errors import authentication_errors
 
 logger = logging.getLogger(__name__)
 
@@ -50,28 +52,32 @@ async def _async_acquire_token_for_client(msal_auth_client, *args, **kwargs):
 class MsalAuth(AccessTokenProviderBase):
 
     def __init__(
-        self,
-        msal_configuration: (
-            AgentAuthConfiguration | Configuration | MsalConnectionSettings
-        ),
+        self, config: Configuration | MsalConnectionSettings | AgentAuthConfiguration
     ):
         """Initializes the MsalAuth class with the given configuration.
 
-        :param msal_configuration: The MSAL authentication configuration. Assumed to
-            not be mutated after being passed in.
-        :type msal_configuration: :class:`microsoft_agents.hosting.core.authorization.agent_auth_configuration.AgentAuthConfiguration`
+        :param config: Raw Configuration or bound MsalConnectionSettings.
+            AgentAuthConfiguration remains accepted for deprecated compatibility.
+            Do not mutate settings or their nested values after passing them in.
+        :type config: Configuration | MsalConnectionSettings | AgentAuthConfiguration
         """
+        if isinstance(config, MsalConnectionSettings):
+            self._deprecated_config = None
+            msal_configuration = config
+        elif isinstance(config, Configuration):
+            self._deprecated_config = None
+            msal_configuration = MsalConnectionSettings.from_configuration(config)
+        else:
+            warnings.warn(
+                "AgentAuthConfiguration is deprecated and will be removed in future versions. "
+                "Please pass a config of type Mapping instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self._deprecated_config = config
+            msal_configuration = MsalConnectionSettings._from_agent_auth_config(config)
 
-        self._deprecated_config = (
-            msal_configuration
-            if isinstance(msal_configuration, AgentAuthConfiguration)
-            else None
-        )
-        self._msal_configuration = (
-            MsalConnectionSettings._from_agent_auth_config(msal_configuration)
-            if isinstance(msal_configuration, AgentAuthConfiguration)
-            else MsalConnectionSettings.from_configuration(msal_configuration)
-        )
+        self._msal_configuration = msal_configuration
         self._msal_auth_client_map: dict[
             str, ConfidentialClientApplication | ManagedIdentityClient
         ] = {}
@@ -82,18 +88,29 @@ class MsalAuth(AccessTokenProviderBase):
 
     @property
     def configuration(self) -> AgentAuthConfiguration:
-        """Returns the MSAL authentication configuration.
+        """Return the deprecated AgentAuthConfiguration compatibility view.
 
-        :return: The MSAL authentication configuration.
-        :rtype: :class:`microsoft_agents.hosting.core.authorization.agent_auth_configuration.AgentAuthConfiguration`
+        Use :attr:`config` for the bound MsalConnectionSettings instead.
+
+        :return: The legacy authentication configuration.
+        :rtype: AgentAuthConfiguration
         """
+        warnings.warn(
+            "Accessing the deprecated configuration. This will be removed in future versions.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if self._deprecated_config is None:
             self._deprecated_config = self._msal_configuration._to_agent_auth_config()
         return self._deprecated_config
 
     @property
     def config(self) -> MsalConnectionSettings:
-        """Return the bound MSAL connection settings."""
+        """Return the bound MSAL settings; nested mutable values remain mutable.
+
+        :return: The MSAL connection settings.
+        :rtype: MsalConnectionSettings
+        """
         return self._msal_configuration
 
     async def get_access_token(
@@ -230,8 +247,7 @@ class MsalAuth(AccessTokenProviderBase):
 
     @staticmethod
     def _resolve_authority(
-        config: MsalConnectionSettings | AgentAuthConfiguration,
-        tenant_id: str | None = None,
+        config: MsalConnectionSettings, tenant_id: str | None = None
     ) -> str:
         tenant_id = MsalAuth._resolve_tenant_id(config, tenant_id)
         if not tenant_id:
@@ -250,42 +266,30 @@ class MsalAuth(AccessTokenProviderBase):
         return f"https://login.microsoftonline.com/{tenant_id}"
 
     @staticmethod
-    def _resolve_azure_region(
-        config: MsalConnectionSettings | AgentAuthConfiguration,
-    ) -> str | None:
+    def _resolve_azure_region(config: MsalConnectionSettings) -> str | None:
         """Resolves the Azure regional token service (ESTS-R) to use, if configured.
 
-        :param config: The agent authentication configuration.
-        :type config: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
+        :param config: The bound MSAL connection settings.
+        :type config: :class:`microsoft_agents.authentication.msal.MsalConnectionSettings`
         :return: The resolved Azure region or None if not configured.
         :rtype: str | None
 
         Returns the configured region only when it is populated and non-whitespace,
         otherwise None so that MSAL falls back to the global token service.
         """
-        azure_region = (
-            config.AZURE_REGION
-            if isinstance(config, AgentAuthConfiguration)
-            else config.azure_region
-        )
+        azure_region = config.azure_region
         if azure_region and azure_region.strip():
             return azure_region
         return None
 
     @staticmethod
-    def _resolve_idpm_resource(
-        config: MsalConnectionSettings | AgentAuthConfiguration,
-    ) -> str:
+    def _resolve_idpm_resource(config: MsalConnectionSettings) -> str:
         """Resolves the resource URL for Identity Proxy Manager (IDPM) token acquisition.
 
         When no resource is configured, defaults to the AzureAdTokenExchange resource.
         Otherwise the configured value must be a valid absolute URI.
         """
-        idpm_resource = (
-            config.IDPM_RESOURCE
-            if isinstance(config, AgentAuthConfiguration)
-            else config.idpm_resource
-        )
+        idpm_resource = config.idpm_resource
         if not idpm_resource:
             return "api://AzureAdTokenExchange/.default"
 
@@ -297,8 +301,7 @@ class MsalAuth(AccessTokenProviderBase):
 
     @staticmethod
     def _resolve_tenant_id(
-        config: MsalConnectionSettings | AgentAuthConfiguration,
-        tenant_id: str | None = None,
+        config: MsalConnectionSettings, tenant_id: str | None = None
     ) -> str:
 
         if not config.tenant_id:

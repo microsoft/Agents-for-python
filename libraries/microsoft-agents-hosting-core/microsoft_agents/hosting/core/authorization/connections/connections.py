@@ -61,7 +61,7 @@ class Connections(Protocol):
     @abstractmethod
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:
         """
-        Get the default connection configuration for the agent.
+        Get the deprecated default AgentAuthConfiguration compatibility view.
 
         :return: The default connection configuration for the agent.
         """

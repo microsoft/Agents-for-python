@@ -17,6 +17,7 @@ from microsoft_agents.activity import (
     TokenResponse,
 )
 from microsoft_agents.activity.activity_types import ActivityTypes
+from microsoft_agents.activity.config import Configuration, xpath, _get, _get_str
 
 from microsoft_agents.hosting.core.authorization._helpers import (
     _CallableTokenCredential,
@@ -68,7 +69,9 @@ class Authorization:
         connection_manager: Connections,
         auth_handlers: dict[str, AuthHandler] | None = None,
         auto_sign_in: bool = False,
+        *,
         use_cache: bool = False,
+        config: Configuration | None = None,
         **kwargs,
     ):
         """
@@ -100,24 +103,25 @@ class Authorization:
 
         self._handlers = {}
 
-        auth_configuration: dict = kwargs.get("AGENTAPPLICATION", {}).get(
-            "USERAUTHORIZATION", {}
+        auth_configuration = Configuration.from_mapping(config, **kwargs).get_section(
+            xpath("agent_application", "user_authorization"), default=Configuration()
         )
+
         if not auth_handlers:
             # get from config
-            handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS") or {}
+            handlers_config = auth_configuration.get(xpath("handlers"), default={})
             auth_handlers = {
                 handler_name: AuthHandler(
                     name=handler_name,
-                    auth_type=config.get("TYPE", ""),
-                    **config.get("SETTINGS", {}),
+                    auth_type=_get_str(config, *xpath("type"), default=""),
+                    **_get(config, *xpath("settings"), default={}),
                 )
                 for handler_name, config in handlers_config.items()
             }
 
         self._handler_settings = auth_handlers
-        self._auto_sign_in = auto_sign_in or bool(
-            auth_configuration.get("AUTO_SIGN_IN", False)
+        self._auto_sign_in = auto_sign_in or auth_configuration.get_bool(
+            xpath("auto_sign_in"), default=False
         )
 
         # operations default to the first handler if none specified

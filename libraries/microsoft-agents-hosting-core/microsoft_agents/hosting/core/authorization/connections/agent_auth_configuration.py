@@ -3,9 +3,17 @@
 
 from __future__ import annotations
 
+import warnings
+
 from typing import Any
 
-from microsoft_agents.activity.config._coercion import coerce_bool
+from microsoft_agents.activity.config import (
+    coerce_bool,
+    coerce_int,
+    coerce_float,
+    _Configurable,
+    Configuration,
+)
 
 from microsoft_agents.hosting.core.authorization.auth_types import AuthTypes
 from microsoft_agents.hosting.core.authorization._entra_issuers import (
@@ -120,6 +128,10 @@ class AgentAuthConfiguration:
     # not directly access _connections.
     _connections: dict[str, AgentAuthConfiguration]
 
+    @staticmethod
+    def from_dict(config: dict[str, Any]) -> AgentAuthConfiguration:
+        return AgentAuthConfiguration(**config)
+
     def __init__(
         self,
         auth_type: AuthTypes | None = None,
@@ -141,6 +153,12 @@ class AgentAuthConfiguration:
         send_x5c: bool | None = None,
         **kwargs: Any,
     ):
+
+        warnings.warn(
+            "AgentAuthConfiguration is deprecated and will be removed in a future version. Please use ConnectionSettings instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
         self.CLIENT_ID = client_id or kwargs.get("CLIENTID", None)
@@ -257,6 +275,32 @@ class AgentAuthConfiguration:
                 "FEDERATED_TOKEN_FILE is required for workload_identity authentication."
             )
 
+    def _to_dict(self) -> dict[str, Any]:
+        """
+        Converts the agent auth configuration to a dictionary representation.
+
+        :return: A dictionary containing the configuration fields and their values.
+        """
+        return {
+            "tenant_id": self.TENANT_ID,
+            "client_id": self.CLIENT_ID,
+            "authority": self.AUTHORITY,
+            "scopes": self.SCOPES,
+            "auth_type": self.AUTH_TYPE,
+            "cert_pfx_file": self.CERT_PFX_FILE,
+            "federated_client_id": self.FEDERATED_CLIENT_ID,
+            "federated_token_file": self.FEDERATED_TOKEN_FILE,
+            "alt_blueprint_id": self.ALT_BLUEPRINT_ID,
+            "alternate_blueprint_connection_name": self.ALT_BLUEPRINT_ID,
+            "idpm_resource": self.IDPM_RESOURCE,
+            "validate_issuer": self.VALIDATE_ISSUER,
+            "issuers": self._configured_issuers,
+            "anonymous_allowed": self.ANONYMOUS_ALLOWED,
+            "client_secret": self.CLIENT_SECRET,
+            "azure_region": self.AZURE_REGION,
+            **self.provider_settings,
+        }
+
     @property
     def ISSUERS(self) -> list[str]:
         """
@@ -299,6 +343,14 @@ class AgentAuthConfiguration:
     def alternate_blueprint_connection_name(self) -> str | None:
         """Alias for :attr:`ALT_BLUEPRINT_ID` (.NET ``AlternateBlueprintConnectionName``)."""
         return self.ALT_BLUEPRINT_ID
+
+    def _get_audiences(self) -> list[str]:
+        """Returns a list of all audiences (CLIENT_IDs) for the configured connections."""
+        audiences = []
+        for conn in self._connections.values():
+            if conn.CLIENT_ID:
+                audiences.append(conn.CLIENT_ID)
+        return audiences
 
     def _jwt_patch_is_valid_aud(self, aud: Any) -> bool:
         """

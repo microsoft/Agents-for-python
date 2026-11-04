@@ -10,7 +10,7 @@ from weakref import WeakKeyDictionary
 from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core.http import HttpResponse
 
-from ..agent_auth_configuration import AgentAuthConfiguration
+from ..connections import AgentAuthConfiguration
 from ..claims_identity import ClaimsIdentity
 from .jwt_token_validator import JwtTokenValidator
 

@@ -3,27 +3,6 @@
 
 from __future__ import annotations
 
-from .connection_settings import SidecarConnectionSettings
-from .constants import (
-    DEFAULT_SERVICE_NAME,
-    DEFAULT_BLUEPRINT_SERVICE_NAME,
-    DEFAULT_SIDECAR_BASE_URL,
-    DEFAULT_REQUEST_TIMEOUT_SECONDS,
-    DEFAULT_RETRY_COUNT,
-)
-
-__all__ = [
-    "SidecarConnectionSettings",
-    "SidecarRequestOptions",
-    "SidecarTokenResult",
-    "SidecarProblemDetails",
-    "DEFAULT_SERVICE_NAME",
-    "DEFAULT_BLUEPRINT_SERVICE_NAME",
-    "DEFAULT_SIDECAR_BASE_URL",
-    "DEFAULT_REQUEST_TIMEOUT_SECONDS",
-    "DEFAULT_RETRY_COUNT",
-]
-
 
 class SidecarRequestOptions:
     """Options used to build the query string for a sidecar token request."""

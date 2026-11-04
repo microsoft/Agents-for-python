@@ -3,117 +3,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass, field, fields
-from typing import Any, TYPE_CHECKING
+from typing import TypeVar
 from typing_extensions import Self
 
 from microsoft_agents.activity.config import Configuration, _Configurable, xpath
 
-if TYPE_CHECKING:
-    from .agent_auth_configuration import AgentAuthConfiguration
+from .agent_auth_configuration import AgentAuthConfiguration
 
-
-def _read(configuration: Any, *names: str, default: Any = None) -> Any:
-    """Read the first populated attribute from ``configuration``.
-
-    Tolerates both the SDK's upper-case configuration keys (e.g. ``CLIENT_ID``)
-    and the snake_case property aliases, so settings can be bound from an
-    :class:`AgentAuthConfiguration`, a raw mapping-like object, or another
-    settings instance.
-    """
-    is_mapping = isinstance(configuration, Mapping)
-    for name in names:
-        value = (
-            configuration.get(name)
-            if is_mapping
-            else getattr(configuration, name, None)
-        )
-        if value is not None:
-            return value
-    return default
-
-
-class _ConnectionSettingsBase:
-    """Common, provider-agnostic connection settings shared by all providers.
-
-    Mirrors the .NET ``Microsoft.Agents.Authentication.ConnectionSettingsBase``
-    abstract base. Provider-specific settings classes (for example the Entra
-    sidecar's :class:`SidecarConnectionSettings`) extend this with their own
-    fields, enabling an extensible, connection-type-based configuration model
-    that matches the .NET provider pattern.
-
-    Instances are normally produced from an :class:`AgentAuthConfiguration`
-    (the raw, provider-agnostic configuration bag) via
-    :meth:`from_configuration`. Subclasses bind their own fields and merge the
-    common base fields via :meth:`base_kwargs_from_configuration`.
-
-    Property names are the Python snake_case equivalents of the .NET
-    ``ConnectionSettingsBase`` properties:
-
-    ====================================  ====================================
-    .NET                                  Python
-    ====================================  ====================================
-    ``ClientId``                          ``client_id``
-    ``AuthorityEndpoint``                 ``authority``
-    ``TenantId``                          ``tenant_id``
-    ``Scopes``                            ``scopes``
-    ``AlternateBlueprintConnectionName``  ``alternate_blueprint_connection_name``
-    ====================================  ====================================
-    """
-
-    def __init__(
-        self,
-        *,
-        client_id: str | None = None,
-        authority: str | None = None,
-        tenant_id: str | None = None,
-        scopes: list[str] | None = None,
-        alternate_blueprint_connection_name: str | None = None,
-    ):
-        self.client_id = client_id
-        self.authority = authority
-        self.tenant_id = tenant_id
-        self.scopes = scopes
-        self.alternate_blueprint_connection_name = alternate_blueprint_connection_name
-
-    @staticmethod
-    def base_kwargs_from_configuration(
-        configuration: "AgentAuthConfiguration",
-    ) -> dict:
-        """Bind the common base fields from an :class:`AgentAuthConfiguration`.
-
-        Returns a kwargs dict suitable for passing to ``__init__``. Subclasses
-        call this and merge it with their own provider-specific kwargs so the
-        base fields stay defined in a single place.
-        """
-        # Accept both the underscored configuration keys and the SDK's env-style
-        # keys (e.g. ``load_configuration_from_env`` yields ``CLIENTID`` /
-        # ``TENANTID`` without underscores) so binding from a raw ``SETTINGS``
-        # mapping doesn't silently drop values.
-        return dict(
-            client_id=_read(configuration, "CLIENT_ID", "CLIENTID", "client_id"),
-            authority=_read(
-                configuration, "AUTHORITY", "AUTHORITYENDPOINT", "authority"
-            ),
-            tenant_id=_read(configuration, "TENANT_ID", "TENANTID", "tenant_id"),
-            scopes=_read(configuration, "SCOPES", "scopes"),
-            alternate_blueprint_connection_name=_read(
-                configuration,
-                "ALT_BLUEPRINT_ID",
-                "ALT_BLUEPRINT_NAME",
-                "ALTERNATEBLUEPRINTCONNECTIONNAME",
-                "alternate_blueprint_connection_name",
-            ),
-        )
-
-    @classmethod
-    def from_configuration(
-        cls, configuration: "AgentAuthConfiguration"
-    ) -> "_ConnectionSettingsBase":
-        """Build base settings from an :class:`AgentAuthConfiguration`."""
-        return cls(**cls.base_kwargs_from_configuration(configuration))
-
+T = TypeVar("T", bound="ConnectionSettingsBase")
 
 _KNOWN_KWARGS_CACHE: dict[type[ConnectionSettingsBase], list[str]] = {}
 
@@ -140,11 +38,12 @@ class ConnectionSettingsBase(_Configurable):
 
     @classmethod
     def _from_agent_auth_config(cls, agent_auth_config: AgentAuthConfiguration) -> Self:
-        attrs = dict(vars(agent_auth_config))
-        attrs.pop("_connections", None)
-        attrs.pop("_configured_issuers", None)
-        attrs.update(attrs.pop("provider_settings", {}))
-        attrs["ISSUERS"] = agent_auth_config.ISSUERS
+        attrs = {}
+        for attr in agent_auth_config.__dict__:
+            if attr == "provider_settings":
+                attrs.update(getattr(agent_auth_config, attr))
+            else:
+                attrs[attr] = getattr(agent_auth_config, attr)
         return cls.from_mapping(attrs)
 
     @classmethod
@@ -167,14 +66,17 @@ class ConnectionSettingsBase(_Configurable):
 
     @classmethod
     def _known_kwargs(cls) -> list[str]:
-        if cls not in _KNOWN_KWARGS_CACHE:
-            _KNOWN_KWARGS_CACHE[cls] = [
-                alias
-                for f in fields(cls)
-                if f.init and f.name != "_extras"
-                for alias in xpath(f.name)
-            ]
-        return _KNOWN_KWARGS_CACHE[cls]
+
+        if cls in _KNOWN_KWARGS_CACHE:
+            return _KNOWN_KWARGS_CACHE[cls]
+
+        base = [f.name for f in fields(cls) if f.init and f.name != "_extras"]
+        final = []
+        for n in base:
+            final.extend(xpath(n))
+
+        _KNOWN_KWARGS_CACHE[cls] = final
+        return final
 
     @classmethod
     def _get_extras(cls, config: Configuration) -> Configuration:

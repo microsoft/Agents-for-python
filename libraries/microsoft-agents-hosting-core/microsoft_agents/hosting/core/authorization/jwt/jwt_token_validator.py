@@ -11,7 +11,7 @@ from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
 
 from microsoft_agents.activity.config import Configuration
 
-from ..agent_auth_configuration import AgentAuthConfiguration
+from ..connections.agent_auth_configuration import AgentAuthConfiguration
 from ..authentication_constants import AuthenticationConstants
 from ..claims_identity import ClaimsIdentity
 from .._entra_issuers import (
@@ -90,17 +90,13 @@ class JwtTokenValidator:
             self._config = TokenValidationConfiguration(
                 tenant_id=configuration.tenant_id,
                 anonymous_allowed=configuration.ANONYMOUS_ALLOWED,
-                audiences=[
-                    conn.CLIENT_ID
-                    for conn in configuration._connections.values()
-                    if conn.CLIENT_ID
-                ],
+                audiences=configuration._get_audiences(),
                 connections={
-                    name: JwtConnectionSettings._from_agent_auth_config(conn)
-                    for name, conn in configuration._connections.items()
+                    conn_name: JwtConnectionSettings.from_mapping(conn._to_dict())
+                    for conn_name, conn in configuration._connections.items()
                 },
-                default_jwt_settings=JwtConnectionSettings._from_agent_auth_config(
-                    configuration
+                default_jwt_settings=JwtConnectionSettings.from_mapping(
+                    configuration._to_dict()
                 ),
             )
         else:
@@ -145,6 +141,7 @@ class JwtTokenValidator:
                 "No default or specific routing configuration found for the given audience."
             )
             raise ValueError("Invalid audience.")
+
         jwks_uri = _build_jwks_uri(
             unverified_payload.get(AuthenticationConstants.ISSUER_CLAIM),
             self.config,
