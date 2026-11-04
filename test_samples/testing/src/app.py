@@ -20,13 +20,14 @@ from microsoft_agents.hosting.core import (
 load_dotenv()
 
 CONFIGURATION = load_configuration_from_env(environ)
-CONNECTION_MANAGER = MsalConnectionManager(**CONFIGURATION)
+CONNECTION_MANAGER = MsalConnectionManager(config=CONFIGURATION)
 AGENT_APP = AgentApplication[TurnState](
     options=ApplicationOptions(
         storage=MemoryStorage(),
         start_typing_timer=False,
     ),
     connection_manager=CONNECTION_MANAGER,
+    config=CONFIGURATION,
 )
 
 
@@ -54,5 +55,5 @@ if __name__ == "__main__":
     start_server(
         AGENT_APP,
         cloud_adapter,
-        CONNECTION_MANAGER.get_default_connection_configuration(),
+        CONFIGURATION,
     )

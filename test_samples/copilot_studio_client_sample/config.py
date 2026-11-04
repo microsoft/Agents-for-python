@@ -1,6 +1,4 @@
-from os import environ
-from typing import Optional
-
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.copilotstudio.client import (
     ConnectionSettings,
     PowerPlatformCloud,
@@ -9,38 +7,29 @@ from microsoft_agents.copilotstudio.client import (
 
 
 class McsConnectionSettings(ConnectionSettings):
-    def __init__(
-        self,
-        app_client_id: Optional[str] = None,
-        tenant_id: Optional[str] = None,
-        environment_id: Optional[str] = None,
-        agent_identifier: Optional[str] = None,
-        cloud: Optional[PowerPlatformCloud] = None,
-        copilot_agent_type: Optional[AgentType] = None,
-        custom_power_platform_cloud: Optional[str] = None,
-        direct_connect_url: Optional[str] = None,
-        use_experimental_endpoint: Optional[bool] = None,
-        enable_diagnostics: Optional[bool] = None,
-    ) -> None:
-        self.app_client_id = app_client_id or environ.get("APP_CLIENT_ID")
-        self.tenant_id = tenant_id or environ.get("TENANT_ID")
+
+    def __init__(self, config: Configuration) -> None:
+        self.app_client_id = config.get_str("APP_CLIENT_ID", default=None)
+        self.tenant_id = config.get_str("TENANT_ID", default=None)
 
         if not self.app_client_id:
             raise ValueError("App Client ID must be provided")
         if not self.tenant_id:
             raise ValueError("Tenant ID must be provided")
 
-        # Use the parent class's method to populate settings from environment
-        settings = ConnectionSettings.populate_from_environment(
-            environment_id=environment_id,
-            agent_identifier=agent_identifier,
-            cloud=cloud,
-            copilot_agent_type=copilot_agent_type,
-            custom_power_platform_cloud=custom_power_platform_cloud,
-            direct_connect_url=direct_connect_url,
-            use_experimental_endpoint=use_experimental_endpoint,
-            enable_diagnostics=enable_diagnostics,
+        super().__init__(
+            environment_id=config.get_str("ENVIRONMENT_ID", default=""),
+            agent_identifier=config.get_str("AGENT_IDENTIFIER", default=""),
+            cloud=PowerPlatformCloud[config.get_str("CLOUD", default="PROD")],
+            copilot_agent_type=AgentType[
+                config.get_str("COPILOT_AGENT_TYPE", default="PUBLISHED")
+            ],
+            custom_power_platform_cloud=config.get_str(
+                "CUSTOM_POWER_PLATFORM_CLOUD", default=None
+            ),
+            direct_connect_url=config.get_str("DIRECT_CONNECT_URL", default=None),
+            use_experimental_endpoint=config.get_bool(
+                "USE_EXPERIMENTAL_ENDPOINT", default=False
+            ),
+            enable_diagnostics=config.get_bool("ENABLE_DIAGNOSTICS", default=False),
         )
-
-        # Initialize the parent class with the populated settings
-        super().__init__(**settings)

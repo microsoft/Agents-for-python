@@ -12,9 +12,11 @@ from urllib.parse import quote, urlparse, urlunparse
 
 import httpx
 
-from ._models import (
+from .constants import (
     DEFAULT_RETRY_COUNT,
     DEFAULT_SIDECAR_BASE_URL,
+)
+from ._models import (
     SidecarProblemDetails,
     SidecarRequestOptions,
     SidecarTokenResult,

@@ -229,6 +229,36 @@ def start_server(
 [...]
 ```
 
+## Typed Connection Settings
+
+`MsalAuth` accepts `Configuration` or `MsalConnectionSettings` as well as the existing
+`AgentAuthConfiguration` input. Use `provider.config` to read bound MSAL settings.
+
+```python
+from microsoft_agents.activity.config import Configuration
+from microsoft_agents.authentication.msal import MsalConnectionManager
+
+connections = MsalConnectionManager(
+    config=Configuration(
+        connections={
+            "SERVICE_CONNECTION": {
+                "settings": {
+                    "auth_type": "ClientSecret",
+                    "client_id": "your-client-id",
+                    "tenant_id": "your-tenant-id",
+                    "client_secret": "your-client-secret",
+                }
+            }
+        }
+    )
+)
+settings = connections.get_default_connection().config
+```
+
+Load credentials from your application's secure configuration rather than hardcoding
+them. Legacy constructor calls and the `provider.configuration` compatibility view
+remain supported. Token credentials reuse the provider's bound settings.
+
 ## Authentication Types
 The M365 Agents SDK in Python supports the following Auth types:
 ```python

@@ -29,19 +29,15 @@ load_dotenv()
 agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
-AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
-)
+AGENT_APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
 
 # Create FastAPI app
 app = FastAPI(title="Empty Agent Sample", version="1.0.0")
-app.state.agent_configuration = (
-    CONNECTION_MANAGER.get_default_connection_configuration()
-)
+app.state.agent_configuration = agents_sdk_config
 
 
 # Agent handlers
@@ -84,5 +80,5 @@ async def messages_get():
 
 if __name__ == "__main__":
 
-    port = int(environ.get("PORT", 3978))
+    port = agents_sdk_config.get_int("PORT", default=3978)
     uvicorn.run(app, host="127.0.0.1", port=port)

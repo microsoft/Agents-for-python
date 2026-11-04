@@ -23,9 +23,9 @@ CONFIG = DefaultConfig()
 agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
 USER_STATE = UserState(STORAGE)
 
@@ -95,7 +95,7 @@ static_path = pathlib.Path(__file__).parent / "public"
 if static_path.exists():
     APP.router.add_static("/public", static_path)
 
-APP["agent_configuration"] = CONFIG
+APP["agent_configuration"] = agents_sdk_config
 APP["adapter"] = ADAPTER
 
 if __name__ == "__main__":

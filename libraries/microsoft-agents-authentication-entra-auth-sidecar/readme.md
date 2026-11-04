@@ -142,6 +142,37 @@ connection_manager = ConnectionManager(
 )
 ```
 
+## Typed Connection Settings
+
+`SidecarConnectionSettings` now derives from the shared `ConnectionSettingsBase`.
+`SidecarAuth` accepts a `Configuration`, bound `SidecarConnectionSettings`, or a legacy
+`AgentAuthConfiguration`. Read bound settings with `provider.config`.
+
+```python
+from microsoft_agents.activity.config import Configuration
+from microsoft_agents.hosting.core.authorization.connections import ConnectionManager
+from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
+
+connection_manager = ConnectionManager(
+    SidecarAuth,
+    config=Configuration(
+        connections={
+            "SERVICE_CONNECTION": {
+                "settings": {
+                    "client_id": "your-blueprint-id",
+                    "service_name": "default",
+                    "sidecar_base_url": "http://localhost:5178",
+                }
+            }
+        }
+    ),
+)
+```
+
+Legacy inputs and the previous settings import remain supported. The legacy
+`provider.configuration` view is available only when constructed with an
+`AgentAuthConfiguration`; new callers should use `provider.config`.
+
 ## Sidecar endpoint mapping
 
 The provider uses the sidecar's unauthenticated endpoint, where `{serviceName}` is a

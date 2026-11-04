@@ -3,7 +3,9 @@ from dotenv import load_dotenv
 from os import environ, path
 from msal import PublicClientApplication
 
-from microsoft_agents.copilotstudio.client import ConnectionSettings, CopilotClient
+from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.activity.config import Configuration
+from microsoft_agents.copilotstudio.client import CopilotClient
 
 from msal_cache_plugin import get_msal_token_cache
 from chat_console_service import ChatConsoleService
@@ -42,10 +44,11 @@ def acquire_token(mcs_settings: McsConnectionSettings, cache_path: str) -> str:
         raise Exception("Authentication with the Public AgentApplication failed")
 
 
-def create_mcs_client(connection_settings: ConnectionSettings) -> CopilotClient:
+def create_mcs_client(config: Configuration) -> CopilotClient:
+    connection_settings = McsConnectionSettings(config)
     token = acquire_token(
         connection_settings,
-        environ.get("TOKEN_CACHE_PATH")
+        config.get_str("TOKEN_CACHE_PATH", default=None)
         or path.join(path.dirname(__file__), "bin/token_cache.bin"),
     )
     return CopilotClient(connection_settings, token)
@@ -53,8 +56,8 @@ def create_mcs_client(connection_settings: ConnectionSettings) -> CopilotClient:
 
 def main() -> None:
     load_dotenv(path.join(path.dirname(__file__), ".env"))
-    connection_settings = McsConnectionSettings()
-    client = create_mcs_client(connection_settings)
+    config = load_configuration_from_env(environ)
+    client = create_mcs_client(config)
     asyncio.run(ChatConsoleService(client).start_service())
 
 

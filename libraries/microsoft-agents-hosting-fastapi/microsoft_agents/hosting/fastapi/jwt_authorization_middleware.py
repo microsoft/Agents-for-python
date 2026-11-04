@@ -66,7 +66,11 @@ def jwt_authorization_decorator(func):
 
         auth_header = request.headers.get("Authorization")
 
-        res = await _authorize_request(auth_header, auth_config)
+        res = await _authorize_request(
+            auth_header,
+            auth_config,
+            cache_key=request.app,
+        )
         if isinstance(res, HttpResponse):
             return JSONResponse(content=res.body, status_code=res.status_code)
         request.state.claims_identity = res

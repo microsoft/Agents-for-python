@@ -4,10 +4,32 @@
 import pytest
 
 from microsoft_agents.activity.config import Configuration, _resolve
-from microsoft_agents.hosting.core.authorization.connection_settings_base import (
+from microsoft_agents.hosting.core.authorization.connections import (
     ConnectionSettingsBase,
 )
 from microsoft_agents.hosting.core.authorization.jwt import JwtConnectionSettings
+from microsoft_agents.hosting.core import AgentAuthConfiguration
+
+
+def test_legacy_binding_preserves_explicit_issuers_without_internal_provider_extras():
+    legacy = AgentAuthConfiguration(
+        client_id="client",
+        issuers=["https://custom.example/"],
+        validate_issuer=True,
+        anonymous_allowed=True,
+        custom_option="value",
+    )
+    original_connections = legacy._connections
+    settings = JwtConnectionSettings._from_agent_auth_config(legacy)
+
+    assert settings.issuers == ["https://custom.example/"]
+    assert settings.validate_issuer is True
+    assert settings.anonymous_allowed is True
+    assert settings.extras["custom_option"] == "value"
+    assert "_connections" not in settings.extras
+    assert "_configured_issuers" not in settings.extras
+    assert legacy._connections is original_connections
+    assert legacy.ISSUERS == ["https://custom.example/"]
 
 
 @pytest.mark.parametrize(

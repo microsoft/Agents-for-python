@@ -1,13 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Optional
-
 from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
 
 from .access_token_provider_base import AccessTokenProviderBase
-from .agent_auth_configuration import AgentAuthConfiguration
+from .connections import AgentAuthConfiguration, ConnectionSettingsBase
 from ._helpers import _CallableTokenCredential
 
 _ANONYMOUS_TOKEN_EXPIRATION = 2**31 - 1
@@ -27,6 +25,14 @@ class AnonymousTokenProvider(AccessTokenProviderBase):
         """
         return AgentAuthConfiguration()
 
+    @property
+    def config(self) -> ConnectionSettingsBase:
+        """
+        The configuration for the access token provider.
+        :return: The configuration for the access token provider.
+        """
+        return ConnectionSettingsBase()
+
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False
     ) -> str:
@@ -45,7 +51,7 @@ class AnonymousTokenProvider(AccessTokenProviderBase):
 
     async def get_agentic_application_token(
         self, tenant_id: str, agent_app_instance_id: str
-    ) -> Optional[str]:
+    ) -> str | None:
         return ""
 
     async def get_agentic_instance_token(
@@ -59,5 +65,5 @@ class AnonymousTokenProvider(AccessTokenProviderBase):
         agent_app_instance_id: str,
         agentic_user_id: str,
         scopes: list[str],
-    ) -> Optional[str]:
+    ) -> str | None:
         return ""

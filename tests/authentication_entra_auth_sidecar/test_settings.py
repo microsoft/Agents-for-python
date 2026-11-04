@@ -2,9 +2,10 @@
 # Licensed under the MIT License.
 
 from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import AgentAuthConfiguration, ConnectionManager
-from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
-from microsoft_agents.authentication.entra_auth_sidecar._models import (
+from microsoft_agents.authentication.entra_auth_sidecar import (
+    SidecarAuth,
     SidecarConnectionSettings,
 )
 from microsoft_agents.authentication.entra_auth_sidecar.errors import (
@@ -14,32 +15,56 @@ from microsoft_agents.authentication.entra_auth_sidecar.errors import (
 import pytest
 
 
-class TestScopeNormalization:
-    def test_none(self):
-        assert SidecarConnectionSettings._normalize_scopes(None) is None
-
-    def test_list(self):
-        assert SidecarConnectionSettings._normalize_scopes(["a", "b"]) == ["a", "b"]
-
-    def test_space_delimited_string(self):
-        assert SidecarConnectionSettings._normalize_scopes("a b") == ["a", "b"]
-
-    def test_comma_delimited_string(self):
-        assert SidecarConnectionSettings._normalize_scopes("a, b") == ["a", "b"]
-
-    def test_dict_from_env_nesting(self):
-        # Env "SCOPES__0=a", "SCOPES__1=b" parses into {"0": "a", "1": "b"}.
-        assert SidecarConnectionSettings._normalize_scopes({"0": "a", "1": "b"}) == [
-            "a",
-            "b",
-        ]
-
-    def test_empty_collapses_to_none(self):
-        assert SidecarConnectionSettings._normalize_scopes("") is None
-        assert SidecarConnectionSettings._normalize_scopes([]) is None
-
-
 class TestSettingsFromConfiguration:
+    @pytest.mark.parametrize("nested", [False, True])
+    def test_mapping_binding_and_typed_rebinding_preserve_settings(self, nested):
+        values = {
+            "CLIENTID": "blueprint",
+            "SCOPES": "scope1,scope2 scope3",
+            "RETRY_COUNT": "4",
+            "BYPASS_LOCAL_NETWORK_RESTRICTION": "false",
+        }
+        source = {"SETTINGS": values} if nested else values
+
+        settings = SidecarConnectionSettings.from_mapping(source)
+
+        assert settings.client_id == "blueprint"
+        assert settings.scopes == ["scope1", "scope2", "scope3"]
+        assert settings.retry_count == 4
+        assert settings.bypass_local_network_restriction is False
+        assert SidecarConnectionSettings.from_configuration(settings) is settings
+        assert values["SCOPES"] == "scope1,scope2 scope3"
+        assert values["RETRY_COUNT"] == "4"
+
+    def test_configuration_manager_binds_typed_sidecar_settings(self):
+        manager = ConnectionManager(
+            SidecarAuth,
+            config=Configuration(
+                connections={
+                    "SERVICE_CONNECTION": {
+                        "settings": {
+                            "client_id": "blueprint",
+                            "service_name": " service ",
+                            "blueprint_service_name": " ",
+                            "sidecar_base_url": "http://localhost:5178",
+                            "retry_count": "5",
+                            "request_timeout": "45",
+                            "bypass_local_network_restriction": "false",
+                            "scopes": "scope1, scope2",
+                        }
+                    }
+                },
+            ),
+        )
+        settings = manager.get_default_connection().config
+        assert isinstance(settings, SidecarConnectionSettings)
+        assert settings.service_name == "service"
+        assert settings.blueprint_service_name == "agenticblueprint"
+        assert settings.retry_count == 5
+        assert settings.request_timeout == 45.0
+        assert settings.bypass_local_network_restriction is False
+        assert settings.scopes == ["scope1", "scope2"]
+
     def test_reads_sidecar_settings_from_upper_case_kwargs(self):
         config = AgentAuthConfiguration(
             auth_type="EntraAuthSideCar",
@@ -62,11 +87,11 @@ class TestSettingsFromConfiguration:
         assert settings.blueprint_service_name == "agenticblueprint"
 
     def test_inherits_connection_settings_base(self):
-        from microsoft_agents.hosting.core.authorization.connection_settings_base import (  # noqa: E501
-            _ConnectionSettingsBase,
+        from microsoft_agents.hosting.core.authorization.connections import (
+            ConnectionSettingsBase,
         )
 
-        assert issubclass(SidecarConnectionSettings, _ConnectionSettingsBase)
+        assert issubclass(SidecarConnectionSettings, ConnectionSettingsBase)
 
     def test_binds_base_fields_from_configuration(self):
         config = AgentAuthConfiguration(
@@ -152,52 +177,78 @@ class TestScalarCoercion:
     """Scalar settings must tolerate the string values produced by env config."""
 
     def test_bypass_false_string_keeps_protection_on(self):
-        settings = SidecarConnectionSettings(bypass_local_network_restriction="false")
+        settings = SidecarConnectionSettings.from_mapping(
+            bypass_local_network_restriction="false"
+        )
         assert settings.bypass_local_network_restriction is False
 
     def test_bypass_true_string(self):
-        settings = SidecarConnectionSettings(bypass_local_network_restriction="true")
+        settings = SidecarConnectionSettings.from_mapping(
+            bypass_local_network_restriction="true"
+        )
         assert settings.bypass_local_network_restriction is True
 
     @pytest.mark.parametrize("raw", ["0", "false", "False", "FALSE"])
     def test_bypass_falsy_strings(self, raw):
-        settings = SidecarConnectionSettings(bypass_local_network_restriction=raw)
+        settings = SidecarConnectionSettings.from_mapping(
+            bypass_local_network_restriction=raw
+        )
         assert settings.bypass_local_network_restriction is False
 
     @pytest.mark.parametrize("raw", ["1", "true", "True", "TRUE"])
     def test_bypass_truthy_strings(self, raw):
-        settings = SidecarConnectionSettings(bypass_local_network_restriction=raw)
+        settings = SidecarConnectionSettings.from_mapping(
+            bypass_local_network_restriction=raw
+        )
         assert settings.bypass_local_network_restriction is True
 
-    @pytest.mark.parametrize("raw", ["maybe", "no", "off", "yes", "on", ""])
-    def test_unrecognized_or_unset_bypass_value_fails_safe_to_false(self, raw):
-        # The call site supplies default=False, so unrecognized/unset values
-        # (including the dropped yes/on/no/off spellings) fail safe to False.
-        settings = SidecarConnectionSettings(bypass_local_network_restriction=raw)
+    @pytest.mark.parametrize("raw", [None, "", "   "])
+    def test_unset_bypass_value_defaults_to_false(self, raw):
+        settings = SidecarConnectionSettings.from_mapping(
+            bypass_local_network_restriction=raw
+        )
         assert settings.bypass_local_network_restriction is False
 
+    @pytest.mark.parametrize("raw", ["maybe", "no", "off", "yes", "on"])
+    @pytest.mark.parametrize("config_type", [AgentAuthConfiguration, Configuration])
+    def test_unrecognized_bypass_value_from_configuration_is_rejected(
+        self, raw, config_type
+    ):
+        config = config_type(
+            auth_type="EntraAuthSideCar",
+            client_id="blueprint-id",
+            SIDECAR_BASE_URL="http://example.com",
+            BYPASS_LOCAL_NETWORK_RESTRICTION=raw,
+        )
+        with pytest.raises(ValueError, match="BYPASS_LOCAL_NETWORK_RESTRICTION"):
+            SidecarConnectionSettings.from_configuration(config)
+        with pytest.raises(ValueError, match="BYPASS_LOCAL_NETWORK_RESTRICTION"):
+            SidecarAuth(config)
+
     def test_retry_count_string_coerced_to_int(self):
-        settings = SidecarConnectionSettings(retry_count="5")
+        settings = SidecarConnectionSettings.from_mapping(retry_count="5")
         assert settings.retry_count == 5
         assert isinstance(settings.retry_count, int)
 
     def test_request_timeout_string_coerced_to_float(self):
-        settings = SidecarConnectionSettings(request_timeout="45")
+        settings = SidecarConnectionSettings.from_mapping(request_timeout="45")
         assert settings.request_timeout == 45.0
         assert isinstance(settings.request_timeout, float)
 
     def test_blank_numeric_strings_fall_back_to_defaults(self):
-        settings = SidecarConnectionSettings(retry_count="", request_timeout="")
+        settings = SidecarConnectionSettings.from_mapping(
+            retry_count="", request_timeout=""
+        )
         assert settings.retry_count == 3
         assert settings.request_timeout == 30.0
 
     def test_invalid_retry_count_raises_clear_error(self):
         with pytest.raises(ValueError, match="RETRY_COUNT"):
-            SidecarConnectionSettings(retry_count="abc")
+            SidecarConnectionSettings.from_mapping(RETRY_COUNT="abc")
 
     def test_invalid_request_timeout_raises_clear_error(self):
         with pytest.raises(ValueError, match="REQUEST_TIMEOUT"):
-            SidecarConnectionSettings(request_timeout="abc")
+            SidecarConnectionSettings.from_mapping(REQUEST_TIMEOUT="abc")
 
 
 class TestEnvScalarFlowEndToEnd:

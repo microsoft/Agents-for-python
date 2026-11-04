@@ -14,6 +14,7 @@ from microsoft_agents.hosting.core.authorization import (
     Connections,
     AccessTokenProviderBase,
     AgentAuthConfiguration,
+    ConnectionSettingsBase,
 )
 from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
 
@@ -294,7 +295,9 @@ class TestRestChannelServiceClientFactory:
         if alt_blueprint:
             auth_config.ALT_BLUEPRINT_ID = "alt_blueprint_id"
             connection_manager.get_connection = mocker.Mock(return_value=token_provider)
-        token_provider.configuration = auth_config
+        token_provider.config = ConnectionSettingsBase._from_agent_auth_config(
+            auth_config
+        )
 
         factory = RestChannelServiceClientFactory(connection_manager)
 
@@ -338,7 +341,7 @@ class TestRestChannelServiceClientFactory:
         self, mocker, activity_agentic_identity
     ):
         """Providers without ``_msal_configuration`` (e.g. the Entra sidecar)
-        must still work via the generic ``configuration`` attribute."""
+        must still work via the generic ``config`` attribute."""
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
@@ -355,10 +358,12 @@ class TestRestChannelServiceClientFactory:
         connection_manager = mocker.Mock(spec=Connections)
         connection_manager.get_token_provider = mocker.Mock(return_value=token_provider)
 
-        # Non-MSAL provider: exposes ``configuration`` with an alternate blueprint.
+        # Non-MSAL provider: exposes typed settings with an alternate blueprint.
         auth_config = AgentAuthConfiguration()
         auth_config.ALT_BLUEPRINT_ID = "alt_blueprint_id"
-        token_provider.configuration = auth_config
+        token_provider.config = ConnectionSettingsBase._from_agent_auth_config(
+            auth_config
+        )
         connection_manager.get_connection = mocker.Mock(return_value=token_provider)
 
         factory = RestChannelServiceClientFactory(connection_manager)
@@ -375,7 +380,7 @@ class TestRestChannelServiceClientFactory:
             ["scope1", "scope2"],
         )
 
-        # verify the alternate blueprint redirect happened via ``configuration``
+        # Verify the alternate blueprint redirect uses provider-independent settings.
         connection_manager.get_connection.assert_called_once_with("alt_blueprint_id")
         token_provider.get_agentic_instance_token.assert_called_once_with(
             "tenant_id", "agentic_app_id"
@@ -399,7 +404,7 @@ class TestRestChannelServiceClientFactory:
         token_provider.get_agentic_instance_token = mocker.AsyncMock(
             return_value=(DEFAULTS.token, DEFAULTS.token)
         )
-        token_provider.configuration = AgentAuthConfiguration()
+        token_provider.config = ConnectionSettingsBase()
 
         connection_manager = mocker.Mock(spec=Connections)
         connection_manager.get_token_provider = mocker.Mock(return_value=token_provider)
@@ -450,7 +455,9 @@ class TestRestChannelServiceClientFactory:
         if alt_blueprint:
             auth_config.ALT_BLUEPRINT_ID = "alt_blueprint_id"
             connection_manager.get_connection = mocker.Mock(return_value=token_provider)
-        token_provider.configuration = auth_config
+        token_provider.config = ConnectionSettingsBase._from_agent_auth_config(
+            auth_config
+        )
 
         factory = RestChannelServiceClientFactory(connection_manager)
 

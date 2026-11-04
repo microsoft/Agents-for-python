@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 from aiohttp.web import Request, Response, Application, middleware, run_app
 
 from microsoft_agents.activity import load_configuration_from_env
-from microsoft_agents.activity.config._coercion import coerce_bool
 from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
 from microsoft_agents.hosting.core import (
     AgentApplication,
@@ -43,21 +42,19 @@ agents_sdk_config = load_configuration_from_env(environ)
 # validation is DISABLED by default so the sample runs locally against the
 # sidecar without a real tenant/app registration. Set TOKENVALIDATION__ENABLED=true
 # (and a real CLIENTID/TENANTID) for any non-local deployment.
-TOKEN_VALIDATION_ENABLED = coerce_bool(
-    environ.get("TOKENVALIDATION__ENABLED", "false"), default=False
+TOKEN_VALIDATION_ENABLED = agents_sdk_config.get_bool(
+    "TOKENVALIDATION::ENABLED", default=False
 )
 
 STORAGE = MemoryStorage()
 # No secrets/certificates required: the sidecar owns all credential management.
 CONNECTION_MANAGER = ConnectionManager(
-    provider_factory=SidecarAuth, **agents_sdk_config
+    provider_factory=SidecarAuth, config=agents_sdk_config
 )
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
-AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
-)
+AGENT_APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
 
 
 async def _help(context: TurnContext, _state: TurnState):
@@ -110,16 +107,14 @@ def start_server(agent_application: AgentApplication, adapter: CloudAdapter):
     app.router.add_post("/api/messages", entry_point)
     app.router.add_get("/api/messages", lambda _: Response(status=200))
     app.router.add_get("/health", _health)
-    app["agent_configuration"] = (
-        CONNECTION_MANAGER.get_default_connection_configuration()
-    )
+    app["agent_configuration"] = agents_sdk_config
     app["agent_app"] = agent_application
     app["adapter"] = adapter
 
     run_app(
         app,
-        host=environ.get("HOST", "localhost"),
-        port=int(environ.get("PORT", 3978)),
+        host=agents_sdk_config.get_str("HOST", default="localhost"),
+        port=agents_sdk_config.get_int("PORT", default=3978),
     )
 
 

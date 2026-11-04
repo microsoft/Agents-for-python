@@ -52,8 +52,6 @@ ENV_DICT = {
         {"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "*"},
         {"CONNECTION": "AGENTIC", "SERVICEURL": "agentic"},
     ],
-    "LOGGING": {},
-    "TOKENVALIDATION": {},
 }
 
 ENV_RAW = """
@@ -118,10 +116,30 @@ def test_load_configuration_from_read_only_mapping():
 def test_load_configuration_from_empty_mapping():
     config = load_configuration_from_env({})
 
-    assert config == {
-        "AGENTAPPLICATION": {},
-        "CONNECTIONS": {},
-        "CONNECTIONSMAP": [],
-        "LOGGING": {},
-        "TOKENVALIDATION": {},
+    assert config == {}
+
+
+def test_environment_values_override_defaults_and_preserve_custom_sections():
+    defaults = {
+        "CONNECTIONS": {
+            "SERVICE_CONNECTION": {
+                "SETTINGS": {"CLIENTID": "default-client", "TENANTID": "tenant"}
+            }
+        },
+        "CUSTOM": {"ENABLED": "false"},
     }
+
+    config = load_configuration_from_env(
+        {"CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "env-client"},
+        defaults=defaults,
+    )
+
+    assert config["CONNECTIONS"]["SERVICE_CONNECTION"]["SETTINGS"] == {
+        "CLIENTID": "env-client",
+        "TENANTID": "tenant",
+    }
+    assert config["CUSTOM"] == {"ENABLED": "false"}
+    assert (
+        defaults["CONNECTIONS"]["SERVICE_CONNECTION"]["SETTINGS"]["CLIENTID"]
+        == "default-client"
+    )
