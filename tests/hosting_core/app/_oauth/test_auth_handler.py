@@ -1,6 +1,7 @@
 import pytest
 
 from microsoft_agents.hosting.core import AuthHandler
+from microsoft_agents.activity import load_configuration_from_env
 
 from tests._common.data import (
     DEFAULT_TEST_VALUES,
@@ -14,6 +15,29 @@ AGENTIC_ENV_DICT = AGENTIC_TEST_ENV_DICT()
 
 
 class TestAuthHandler:
+    @pytest.mark.parametrize("from_settings", [False, True])
+    def test_indexed_environment_scopes_are_bound_without_mutation(self, from_settings):
+        config = load_configuration_from_env(
+            {
+                "AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__graph__SETTINGS__SCOPES__2": "Mail.Read",
+                "AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__graph__SETTINGS__SCOPES__0": "User.Read",
+            }
+        )
+        settings = config["AGENTAPPLICATION"]["USERAUTHORIZATION"]["HANDLERS"]["graph"][
+            "SETTINGS"
+        ]
+        scopes = settings["SCOPES"]
+
+        handler = (
+            AuthHandler._from_settings(settings)
+            if from_settings
+            else AuthHandler("graph", **settings)
+        )
+
+        assert handler.scopes == ["User.Read", "Mail.Read"]
+        assert settings["SCOPES"] is scopes
+        assert scopes == ["User.Read", "Mail.Read"]
+
     @pytest.fixture
     def auth_setting(self):
         return ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"]["HANDLERS"][

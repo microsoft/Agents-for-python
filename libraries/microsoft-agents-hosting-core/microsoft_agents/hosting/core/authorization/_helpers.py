@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.credentials import AccessToken

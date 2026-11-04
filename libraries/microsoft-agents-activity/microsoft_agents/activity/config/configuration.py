@@ -61,6 +61,21 @@ class Configuration(dict, _ConfigurationProtocol):
             raise ValueError("Cannot provide both '_original' and keyword arguments.")
         super().__init__(_original or kwargs)
         self._base_path = _base_path or ""
+        self._key = None
+
+    @property
+    def base_path(self) -> str:
+        return self._base_path
+
+    @property
+    def key(self) -> str:
+        if not self._key:
+            self._key = (
+                self._base_path.rsplit(_PATH_SEPARATOR, maxsplit=1)[-1]
+                if self._base_path
+                else ""
+            )
+        return self._key
 
     @classmethod
     def from_mapping(
@@ -407,6 +422,7 @@ class Configuration(dict, _ConfigurationProtocol):
         if scopes is None:
             return []
         if isinstance(scopes, str):
+            scopes = scopes.replace(",", " ")
             lst = scopes.strip().split()
             return [s for s in lst if s]
         return scopes

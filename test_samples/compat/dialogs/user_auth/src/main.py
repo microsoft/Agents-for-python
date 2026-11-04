@@ -19,10 +19,10 @@ from .main_dialog import MainDialog
 from .auth_agent import AuthAgent
 
 load_dotenv(path.join(path.dirname(__file__), "..", ".env"))
-agents_sdk_config = load_configuration_from_env(dict(environ))
+agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 
 CONVERSATION_STATE = ConversationState(STORAGE)
@@ -39,7 +39,7 @@ async def messages(req: Request) -> Response:
 APP = web.Application(middlewares=[jwt_authorization_middleware])
 APP.router.add_post("/api/messages", messages)
 
-APP["agent_configuration"] = CONNECTION_MANAGER.get_default_connection_configuration()
+APP["agent_configuration"] = agents_sdk_config
 APP["agent_app"] = AGENT
 APP["adapter"] = ADAPTER
 

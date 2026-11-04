@@ -62,12 +62,12 @@ load_dotenv(path.join(path.dirname(__file__), ".env"))
 agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 
 # Authorization is built from agents_sdk_config so the "me" handler
 # defined in the env file is automatically registered.
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
     options=ApplicationOptions(
@@ -337,7 +337,7 @@ def create_app() -> web.Application:
 
     app["agent_app"] = AGENT_APP
     app["adapter"] = ADAPTER
-    app["agent_configuration"] = CONNECTION_MANAGER.get_default_connection_configuration()
+    app["agent_configuration"] = agents_sdk_config
 
     app.router.add_get("/", _handle_root)
     app.router.add_post("/api/messages", _handle_messages)
@@ -352,7 +352,7 @@ def create_app() -> web.Application:
 
 
 if __name__ == "__main__":
-    host = environ.get("HOST", "localhost")
-    port = int(environ.get("PORT", "3978"))
+    host = agents_sdk_config.get_str("HOST", default="localhost")
+    port = agents_sdk_config.get_int("PORT", default=3978)
 
     web.run_app(create_app(), host=host, port=port)

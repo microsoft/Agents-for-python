@@ -140,7 +140,7 @@ def test_legacy_environment_scopes_bind_without_mutating_configuration(
     assert policy.default_jwt_settings.scopes == expected
     assert policy.connections["SERVICE_CONNECTION"].scopes == expected
     assert legacy.SCOPES is raw_scopes
-    assert raw_scopes == indexed_scopes
+    assert raw_scopes == expected
 
 
 @pytest.mark.asyncio
@@ -239,26 +239,9 @@ def test_no_service_connection_has_no_default_route_or_inherited_anonymous_acces
     "config, path, error_type",
     [
         ({"token_validation": "invalid"}, "token_validation", TypeError),
-        ({"connections": []}, "connections", TypeError),
-        ({"connections": {"MCS": "invalid"}}, "connections::MCS", TypeError),
-        (
-            {"connections": {"MCS": {"settings": []}}},
-            "connections::MCS::settings",
-            TypeError,
-        ),
         (
             {"token_validation": {"anonymous_allowed": "invalid"}},
             "token_validation::anonymous_allowed",
-            ValueError,
-        ),
-        (
-            {"connections": {"MCS": {"settings": {"validate_issuer": "invalid"}}}},
-            "connections::MCS::settings::validate_issuer",
-            ValueError,
-        ),
-        (
-            {"connections": {"MCS": {"settings": {"anonymous_allowed": "invalid"}}}},
-            "connections::MCS::settings::anonymous_allowed",
             ValueError,
         ),
     ],

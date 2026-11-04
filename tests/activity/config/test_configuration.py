@@ -8,6 +8,22 @@ import pytest
 from microsoft_agents.activity.config import Configuration, path, xpath
 
 
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("scope1 scope2", ["scope1", "scope2"]),
+        ("scope1, scope2", ["scope1", "scope2"]),
+        ("scope1,scope2 scope3", ["scope1", "scope2", "scope3"]),
+        (" , \t ", []),
+        (None, []),
+    ],
+)
+def test_scope_strings_use_shared_whitespace_and_comma_normalization(value, expected):
+    config = Configuration(scopes=value)
+
+    assert config.get_scopes("scopes") == expected
+
+
 def test_section_uses_matched_alias_and_nested_path():
     config = Configuration(
         {"Connections": {"Service": {"SETTINGS": {"Enabled": True}}}}
