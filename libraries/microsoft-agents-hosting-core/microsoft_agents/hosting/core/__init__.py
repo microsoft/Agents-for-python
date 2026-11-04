@@ -53,16 +53,18 @@ from .app.state.temp_state import TempState
 from .app.state.turn_state import TurnState
 
 # Authorization
-from .authorization.access_token_provider_base import AccessTokenProviderBase
-from .authorization.authentication_constants import AuthenticationConstants
-from .authorization.anonymous_token_provider import AnonymousTokenProvider
-from .authorization.connections import Connections
-from .authorization.connection_manager import ConnectionManager
-from .authorization.agent_auth_configuration import AgentAuthConfiguration
-from .authorization.claims_identity import ClaimsIdentity
-from .authorization.jwt.jwt_token_validator import JwtTokenValidator
-from .authorization.auth_types import AuthTypes
-from .authorization.connection_settings_base import ConnectionSettingsBase
+from .authorization import (
+    AccessTokenProviderBase,
+    AuthenticationConstants,
+    AnonymousTokenProvider,
+    Connections,
+    ConnectionManager,
+    AgentAuthConfiguration,
+    ClaimsIdentity,
+    JwtTokenValidator,
+    AuthTypes,
+    ConnectionSettingsBase,
+)
 
 # Client API
 from .client.agent_conversation_reference import AgentConversationReference
@@ -118,6 +120,7 @@ __all__ = [
     "ConnectionSettingsBase",
     "ActivityHandler",
     "Agent",
+    "AuthTypes",
     "CardFactory",
     "ChannelAdapter",
     "ChannelApiHandlerProtocol",

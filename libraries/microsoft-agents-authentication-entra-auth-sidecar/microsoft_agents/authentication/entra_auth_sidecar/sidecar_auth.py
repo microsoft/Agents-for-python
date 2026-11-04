@@ -65,8 +65,8 @@ class SidecarAuth(AccessTokenProviderBase):
 
         if isinstance(configuration, AgentAuthConfiguration):
             self._configuration = configuration
-            self._settings = SidecarConnectionSettings.from_configuration(
-                SidecarConnectionSettings._from_agent_auth_config(configuration)
+            self._settings = SidecarConnectionSettings._from_agent_auth_config(
+                configuration
             )
         else:
             self._configuration = None

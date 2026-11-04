@@ -3,16 +3,16 @@
 
 from __future__ import annotations
 
-import warnings
-
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing_extensions import Self
 
 from microsoft_agents.activity.config import (
     Configuration,
     xpath,
 )
 from microsoft_agents.hosting.core.authorization.connections import (
+    AgentAuthConfiguration,
     ConnectionSettingsBase,
 )
 from .constants import (
@@ -85,8 +85,6 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
             default=DEFAULT_RETRY_COUNT,
         )
 
-        base["scopes"] = cls._normalize_scopes(base.get("scopes", []))
-
         base.update(
             {
                 "service_name": service_name,
@@ -99,30 +97,12 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
         )
         return base
 
-    @staticmethod
-    def _normalize_scopes(scopes) -> list[str] | None:
-        """Normalize scopes to a list of strings.
-
-        Accepts a list, a string (space/comma-delimited), or a dict (produced when
-        scopes are supplied via env as ``SCOPES__0=...`` and parsed into
-        ``{"0": "..."}``). Returns ``None`` when no scopes are present.
-        """
-        if scopes is None:
-            return None
-        if isinstance(scopes, str):
-            parts = [s.strip() for s in scopes.replace(",", " ").split()]
-            return [s for s in parts if s] or None
-        if isinstance(scopes, dict):
-            scopes = scopes.values()
-        result = [str(s).strip() for s in scopes if s and str(s).strip()]
-        return result or None
-
-    # for backward compatibility with previous versions that used `from_configuration`
     @classmethod
-    def from_configuration(cls, configuration: Mapping) -> SidecarConnectionSettings:
-        warnings.warn(
-            "`from_configuration` is deprecated, use `from_mapping` instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return cls.from_mapping(configuration)
+    def from_configuration(
+        cls, config: Configuration | Mapping | AgentAuthConfiguration | Self
+    ) -> Self:
+        if isinstance(config, AgentAuthConfiguration):
+            return cls._from_agent_auth_config(config)
+        if isinstance(config, Mapping):
+            config = Configuration.from_mapping(config)
+        return super().from_configuration(config)

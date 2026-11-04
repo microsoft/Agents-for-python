@@ -7,13 +7,7 @@ import warnings
 
 from typing import Any
 
-from microsoft_agents.activity.config import (
-    coerce_bool,
-    coerce_int,
-    coerce_float,
-    _Configurable,
-    Configuration,
-)
+from microsoft_agents.activity.config import coerce_bool
 
 from microsoft_agents.hosting.core.authorization.auth_types import AuthTypes
 from microsoft_agents.hosting.core.authorization._entra_issuers import (

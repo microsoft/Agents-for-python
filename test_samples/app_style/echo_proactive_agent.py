@@ -118,13 +118,12 @@ load_dotenv(path.join(path.dirname(__file__), ".env"))
 agents_sdk_config = load_configuration_from_env(environ)
 
 storage = MemoryStorage()
-connection_manager = MsalConnectionManager(**agents_sdk_config)
+connection_manager = MsalConnectionManager(config=agents_sdk_config)
 adapter = CloudAdapter(connection_manager=connection_manager)
-authorization = Authorization(storage, connection_manager, **agents_sdk_config)
+authorization = Authorization(storage, connection_manager, config=agents_sdk_config)
 AGENT_APP = AgentApplication[TurnState](
     storage=storage,
     authorization=authorization,
-    **agents_sdk_config.get("AGENTAPPLICATION", {}),
 )
 
 
@@ -209,10 +208,7 @@ def create_app() -> web.Application:
     app["adapter"] = adapter
     app["agent_app"] = AGENT_APP
     app["echo_service"] = echo_service
-    agent_config = connection_manager.get_default_connection_configuration()
-    if not agent_config:
-        raise ValueError("SERVICE_CONNECTION settings are missing.")
-    app["agent_configuration"] = agent_config
+    app["agent_configuration"] = agents_sdk_config
 
     app.router.add_get("/", _handle_root)
     app.router.add_post("/api/messages", _agent_entry_point)
@@ -273,8 +269,8 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO)
     app = create_app()
 
-    host = environ.get("HOST", "localhost")
-    port = int(environ.get("PORT", "3978"))
+    host = agents_sdk_config.get_str("HOST", default="localhost")
+    port = agents_sdk_config.get_int("PORT", default=3978)
 
     web.run_app(app, host=host, port=port)
 

@@ -15,7 +15,7 @@ def test_empty_maps_disable_routing(items):
 
 @pytest.mark.parametrize("items", ["invalid", [None], {"rule": "invalid"}])
 def test_invalid_map_shapes_raise(items):
-    with pytest.raises(TypeError, match="mapping"):
+    with pytest.raises(ValueError, match="mapping"):
         _ConnectionMap(items)
 
 

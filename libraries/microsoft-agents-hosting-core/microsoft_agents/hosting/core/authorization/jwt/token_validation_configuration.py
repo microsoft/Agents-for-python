@@ -28,7 +28,7 @@ class TokenValidationConfiguration(_Configurable):
         token_validation = configuration.get_section(
             xpath("token_validation"), default=Configuration()
         )
-        audiences = token_validation.get_str_list(xpath("audience"))
+        audiences = token_validation.get_str_list(xpath("audiences"))
         tenant_id = token_validation.get_strn(xpath("tenant_id"))
         anonymous_allowed = token_validation.get_booln(xpath("anonymous_allowed"))
 

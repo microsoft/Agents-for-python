@@ -1,5 +1,3 @@
-import os
-
 import uvicorn
 from fastapi import FastAPI, Request
 
@@ -8,15 +6,13 @@ from microsoft_agents.hosting.fastapi import (
     jwt_authorization_decorator,
 )
 
-from .agent import AGENT_APP, ADAPTER, CONNECTION_MANAGER
+from .agent import AGENT_APP, ADAPTER, agents_sdk_config
 
 
 if __name__ == "__main__":
 
     app = FastAPI(title="Handling Attachments Agent", version="1.0.0")
-    app.state.agent_configuration = (
-        CONNECTION_MANAGER.get_default_connection_configuration()
-    )
+    app.state.agent_configuration = agents_sdk_config
 
     @app.post("/api/messages")
     @jwt_authorization_decorator
@@ -31,5 +27,5 @@ if __name__ == "__main__":
            ADAPTER,
         )
 
-    port = int(os.environ.get("PORT", 3978))
+    port = agents_sdk_config.get_int("PORT", default=3978)
     uvicorn.run(app, host="127.0.0.1", port=port)

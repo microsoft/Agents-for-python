@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import warnings
+
 import pytest
 from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
@@ -13,6 +15,7 @@ from microsoft_agents.hosting.core import (
     ClaimsIdentity,
     ConnectionManager,
     ConnectionSettingsBase,
+    JwtTokenValidator,
 )
 from microsoft_agents.hosting.core.authorization._helpers import (
     _CallableTokenCredential,
@@ -140,6 +143,90 @@ def test_legacy_provider_config_fallback_preserves_base_fields():
     assert settings.scopes == ["scope"]
 
 
+@pytest.mark.parametrize("nested", [False, True])
+@pytest.mark.parametrize("use_kwargs", [False, True])
+def test_modern_factory_receives_settings_with_the_original_diagnostic_path(
+    nested, use_kwargs
+):
+    values = {"client_id": "client", "scopes": ["scope"]}
+    section = {"settings": values} if nested else values
+    root = {"connections": {"SERVICE_CONNECTION": section}}
+    manager = (
+        ConnectionManager(ConfiguredProvider, **root)
+        if use_kwargs
+        else ConnectionManager(ConfiguredProvider, config=Configuration(root))
+    )
+    provider = manager.get_default_connection()
+
+    assert provider.config.client_id == "client"
+    assert provider.config.scopes == ["scope"]
+    assert provider.received_config._base_path == (
+        "connections::SERVICE_CONNECTION::settings"
+        if nested
+        else "connections::SERVICE_CONNECTION"
+    )
+    assert root["connections"]["SERVICE_CONNECTION"] == section
+
+
+@pytest.mark.parametrize("explicit_instances", [False, True])
+def test_legacy_manager_preserves_all_connection_audiences(explicit_instances):
+    configs = {
+        "SERVICE_CONNECTION": AgentAuthConfiguration(client_id="service"),
+        "OTHER": AgentAuthConfiguration(client_id="other"),
+    }
+    if explicit_instances:
+        manager = ConnectionManager(FakeProvider, connections_configurations=configs)
+    else:
+        manager = ConnectionManager(
+            FakeProvider,
+            connections_map=[],
+            CONNECTIONS={
+                name: {"SETTINGS": {"CLIENTID": config.CLIENT_ID}}
+                for name, config in configs.items()
+            },
+        )
+    legacy = manager.get_default_connection_configuration()
+    policy = JwtTokenValidator(legacy).config
+
+    assert policy.audiences == ["service", "other"]
+    assert set(policy.connections) == {"SERVICE_CONNECTION", "OTHER"}
+    assert (
+        manager.get_connection("OTHER").configuration._connections
+        is legacy._connections
+    )
+    assert manager.get_default_connection().configuration is legacy
+
+
+def test_legacy_manager_entry_points_emit_deprecation_warnings():
+    with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration is deprecated"):
+        legacy = AgentAuthConfiguration(client_id="client")
+    with pytest.warns(DeprecationWarning, match="connections_configurations"):
+        manager = ConnectionManager(
+            FakeProvider, connections_configurations={"SERVICE_CONNECTION": legacy}
+        )
+    with pytest.warns(
+        DeprecationWarning,
+        match=r"ConnectionManager\.get_default_connection_configuration",
+    ):
+        assert manager.get_default_connection_configuration() is legacy
+
+
+def test_modern_configuration_binding_does_not_use_deprecated_apis():
+    with warnings.catch_warnings(record=True) as captured:
+        warnings.simplefilter("always", DeprecationWarning)
+        config = Configuration(
+            connections={"SERVICE_CONNECTION": {"settings": {"client_id": "client"}}}
+        )
+        manager = ConnectionManager(ConfiguredProvider, config=config)
+        policy = JwtTokenValidator(config).config
+
+    assert manager.get_default_connection().config.client_id == "client"
+    assert policy.audiences == ["client"]
+    assert not [
+        item for item in captured if issubclass(item.category, DeprecationWarning)
+    ]
+
+
 @pytest.mark.asyncio
 async def test_fake_provider_get_token_credential_is_synchronous():
     provider = FakeProvider(AgentAuthConfiguration())
@@ -188,7 +275,9 @@ ALT_BLUEPRINT_CONFIG = {
 
 class TestGenericConnectionManager:
     def _make(self, **kwargs):
-        return ConnectionManager(provider_factory=FakeProvider, **kwargs)
+        return ConnectionManager(
+            provider_factory=FakeProvider, connections_configurations={}, **kwargs
+        )
 
     def _activity(
         self,

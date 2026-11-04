@@ -3,7 +3,7 @@
 
 import pytest
 
-from microsoft_agents.activity.config import Configuration
+from microsoft_agents.activity.config import Configuration, load_configuration_from_env
 from microsoft_agents.authentication.msal import (
     MsalAuth,
     MsalConnectionManager,
@@ -54,6 +54,99 @@ def test_msal_settings_bind_aliases_and_round_trip_legacy_fields_without_mutatio
     assert restored.provider_settings["custom_option"] == "value"
     assert settings.extras == before
     assert "_connections" not in settings.extras
+    assert "_configured_issuers" not in settings.extras
+
+
+@pytest.mark.parametrize(
+    "auth_type, credential",
+    [
+        (AuthTypes.certificate, {"cert_pfx_file": "certificate.pfx"}),
+        (AuthTypes.federated_credentials, {"federated_client_id": "identity"}),
+        (AuthTypes.workload_identity, {"federated_token_file": "token-file"}),
+    ],
+)
+def test_settings_bind_required_credentials_from_configuration(auth_type, credential):
+    settings = MsalConnectionSettings.from_mapping(auth_type=auth_type, **credential)
+    auth = MsalAuth(settings)
+
+    assert auth.config.auth_type == auth_type
+    assert getattr(auth.config, next(iter(credential))) == next(
+        iter(credential.values())
+    )
+
+
+@pytest.mark.parametrize(
+    "values, field, expected",
+    [
+        ({"SENDX5C": "false"}, "send_x5c", False),
+        ({"SENDX5C": "true"}, "send_x5c", True),
+        ({"AZUREREGION": "eastus"}, "azure_region", "eastus"),
+        ({"REGIONALAUTHORITY": "westus"}, "azure_region", "westus"),
+        (
+            {"AZUREREGION": "eastus", "REGIONALAUTHORITY": "westus"},
+            "azure_region",
+            "eastus",
+        ),
+        (
+            {"AUTHORITY": "https://primary", "AUTHORITYENDPOINT": "https://secondary"},
+            "authority",
+            "https://primary",
+        ),
+        ({"AUTHORITYENDPOINT": "https://authority"}, "authority", "https://authority"),
+        (
+            {"ALT_BLUEPRINT_NAME": "legacy", "ALTERNATEBLUEPRINTCONNECTIONNAME": "new"},
+            "alternate_blueprint_connection_name",
+            "legacy",
+        ),
+        (
+            {"IDPMRESOURCE": "https://resource/.default"},
+            "idpm_resource",
+            "https://resource/.default",
+        ),
+    ],
+)
+def test_settings_bind_legacy_aliases_and_precedence(values, field, expected):
+    settings = MsalConnectionSettings.from_mapping(values)
+
+    assert getattr(settings, field) == expected
+
+
+def test_msal_settings_bind_environment_fields_without_exposing_credentials_in_extras():
+    config = load_configuration_from_env(
+        {
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "client",
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID": "tenant",
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET": "test-secret",
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__SENDX5C": "false",
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__SCOPES__2": "scope2",
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__SCOPES__0": "scope1",
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CUSTOM_OPTION": "custom",
+        }
+    )
+    manager = MsalConnectionManager(config=config)
+    settings = manager.get_default_connection().config
+
+    assert (settings.client_id, settings.tenant_id, settings.client_secret) == (
+        "client",
+        "tenant",
+        "test-secret",
+    )
+    assert settings.send_x5c is False
+    assert settings.scopes == ["scope1", "scope2"]
+    assert settings.extras["CUSTOM_OPTION"] == "custom"
+    assert "CLIENTSECRET" not in settings.extras
+    assert "test-secret" not in repr(settings)
+
+
+def test_legacy_msal_provider_and_compatibility_view_emit_deprecations():
+    with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration is deprecated"):
+        legacy = AgentAuthConfiguration(client_id="client")
+    with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration is deprecated"):
+        auth = MsalAuth(legacy)
+    with pytest.warns(
+        DeprecationWarning, match="Accessing the deprecated configuration"
+    ):
+        assert auth.configuration is legacy
 
 
 @pytest.mark.parametrize("bound", [False, True])

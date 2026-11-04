@@ -34,17 +34,16 @@ log = logging.getLogger(__name__)
 load_dotenv(path.join(path.dirname(__file__), ".env"))
 agents_sdk_config = load_configuration_from_env(environ)
 
-APP_BASE_URL = environ.get("APP_BASE_URL", "http://localhost:3978")
+APP_BASE_URL = agents_sdk_config.get_str("APP_BASE_URL", default="http://localhost:3978")
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE,
     authorization=AUTHORIZATION,
-    **agents_sdk_config,
 )
 TEAMS = TeamsAgentExtension[TurnState](AGENT_APP)
 
@@ -276,5 +275,5 @@ if __name__ == "__main__":
     start_server(
         agent_application=AGENT_APP,
         adapter=ADAPTER,
-        auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
+        config=agents_sdk_config,
     )

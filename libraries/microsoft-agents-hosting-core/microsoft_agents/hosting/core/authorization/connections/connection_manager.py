@@ -5,11 +5,11 @@ import re
 import logging
 import warnings
 
-from typing import cast
+from typing import cast, TypeVar
 from collections.abc import Callable
 
 from microsoft_agents.activity import Activity
-from microsoft_agents.activity.config import Configuration, xpath, _get
+from microsoft_agents.activity.config import Configuration, xpath, _get, path
 
 from .agent_auth_configuration import AgentAuthConfiguration
 from ..access_token_provider_base import AccessTokenProviderBase
@@ -21,14 +21,7 @@ from .connections_map import _ConnectionMap
 
 logger = logging.getLogger(__name__)
 
-
-def _factory(
-    func: Callable[[AgentAuthConfiguration], AccessTokenProviderBase],
-) -> Callable[[Configuration], AccessTokenProviderBase]:
-    def wrapper(config: Configuration) -> AccessTokenProviderBase:
-        return func(AgentAuthConfiguration(**config))
-
-    return wrapper
+ConfigT = TypeVar("ConfigT", Configuration, AgentAuthConfiguration)
 
 
 class ConnectionManager(Connections):
@@ -87,6 +80,11 @@ class ConnectionManager(Connections):
                 stacklevel=2,
             )
 
+            provider_factory = cast(
+                Callable[[AgentAuthConfiguration], AccessTokenProviderBase],
+                provider_factory,
+            )
+
             if config is not None:
                 raise ValueError(
                     "Cannot provide both 'config' and deprecated connection configurations."
@@ -113,14 +111,25 @@ class ConnectionManager(Connections):
                     self._config_map[connection_name] = Configuration(
                         **agent_auth_config.__dict__
                     )
-                    self._connections[connection_name] = self._provider_factory(
+                    self._connections[connection_name] = provider_factory(
                         agent_auth_config
                     )
             else:
                 raw_configurations: dict[str, dict] = kwargs.get("CONNECTIONS", {})
-                self._parse_raw_configurations(
-                    raw_configurations, self._provider_factory
-                )
+                for connection_name, connection_settings in raw_configurations.items():
+                    parsed_config = Configuration(
+                        **_get(connection_settings, *xpath("SETTINGS"), default={}),
+                        _base_path=path("CONNECTIONS", connection_name, "SETTINGS"),
+                    )
+                    auth_config = AgentAuthConfiguration.from_dict(parsed_config)
+                    self._connections[connection_name] = provider_factory(auth_config)
+                    self._config_map[connection_name] = parsed_config
+                    self._deprecated_config_map[connection_name] = auth_config
+
+            for legacy_config in self._deprecated_config_map.values():
+                # in legacy usage, this assignment is fine.
+                legacy_config._connections = self._deprecated_config_map
+
         else:
             self._provider_factory = cast(
                 Callable[[Configuration], AccessTokenProviderBase], provider_factory
@@ -128,35 +137,24 @@ class ConnectionManager(Connections):
             config = Configuration.from_config(config, **kwargs)
 
             raw_connections_map = config.get(xpath("connections_map"), [])
-            raw_configurations = config.get(xpath("connections"), {})
-            self._parse_raw_configurations(raw_configurations, self._provider_factory)
+            connection_configs = config.get_sections(*xpath("connections::*"))
+
+            for section in connection_configs:
+                connection_name = section.key
+                parsed_config = section.get_section(xpath("settings"), default=section)
+                # parsed_config = Configuration(**_get(connection_settings, *xpath("SETTINGS"), default={}))
+                self._connections[connection_name] = self._provider_factory(
+                    parsed_config
+                )
+                self._config_map[connection_name] = parsed_config
+                self._deprecated_config_map[connection_name] = None
 
         self._connections_map = _ConnectionMap(raw_connections_map)
-
-        # JWT-patch - propagate the connections map to each agent auth configuration
-        for sub_config in self._config_map.values():
-            sub_config["_connections"] = self._config_map
 
         if not self._connections.get("SERVICE_CONNECTION", None):
             raise ValueError("No service connection configuration provided.")
 
         _log_config(logger, self._config_map, self._connections_map)
-
-    def _parse_raw_configurations(
-        self,
-        raw_configurations: dict[str, dict],
-        provider_factory: (
-            Callable[[Configuration], AccessTokenProviderBase]
-            | Callable[[AgentAuthConfiguration], AccessTokenProviderBase]
-        ),
-    ) -> None:
-        for connection_name, connection_settings in raw_configurations.items():
-            parsed_config = Configuration(
-                **_get(connection_settings, *xpath("SETTINGS"), default={})
-            )
-            self._connections[connection_name] = provider_factory(parsed_config)
-            self._config_map[connection_name] = parsed_config
-            self._deprecated_config_map[connection_name] = None
 
     def get_connection(self, connection_name: str | None) -> AccessTokenProviderBase:
         """
@@ -280,7 +278,8 @@ class ConnectionManager(Connections):
         :rtype: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
         """
         warnings.warn(
-            "This method is deprecated and will be removed in a future release.",
+            "ConnectionManager.get_default_connection_configuration() is deprecated; "
+            "use get_default_connection().config instead.",
             DeprecationWarning,
             stacklevel=2,
         )

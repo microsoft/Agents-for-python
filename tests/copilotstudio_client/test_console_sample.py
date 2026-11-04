@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.copilotstudio.client import PowerPlatformCloud
 
 
@@ -34,11 +35,15 @@ def test_sample_uses_configured_scope_and_interactive_fallback(
     sample, mocker, cloud, cached
 ):
     settings = sample.McsConnectionSettings(
-        app_client_id="client",
-        tenant_id="tenant",
-        environment_id="environment",
-        agent_identifier="agent",
-        cloud=cloud,
+        Configuration(
+            {
+                "APP_CLIENT_ID": "client",
+                "TENANT_ID": "tenant",
+                "ENVIRONMENT_ID": "environment",
+                "AGENT_IDENTIFIER": "agent",
+                "CLOUD": cloud.name,
+            }
+        )
     )
     mocker.patch.object(sample, "get_msal_token_cache")
     application = mocker.patch.object(sample, "PublicClientApplication").return_value
@@ -66,11 +71,15 @@ def test_sample_uses_configured_scope_and_interactive_fallback(
 
 def test_sample_signs_in_interactively_without_cached_accounts(sample, mocker):
     settings = sample.McsConnectionSettings(
-        app_client_id="client",
-        tenant_id="tenant",
-        environment_id="environment",
-        agent_identifier="agent",
-        cloud=PowerPlatformCloud.TEST,
+        Configuration(
+            {
+                "APP_CLIENT_ID": "client",
+                "TENANT_ID": "tenant",
+                "ENVIRONMENT_ID": "environment",
+                "AGENT_IDENTIFIER": "agent",
+                "CLOUD": "TEST",
+            }
+        )
     )
     mocker.patch.object(sample, "get_msal_token_cache")
     application = mocker.patch.object(sample, "PublicClientApplication").return_value

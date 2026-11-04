@@ -38,12 +38,11 @@ class ConnectionSettingsBase(_Configurable):
 
     @classmethod
     def _from_agent_auth_config(cls, agent_auth_config: AgentAuthConfiguration) -> Self:
-        attrs = {}
-        for attr in agent_auth_config.__dict__:
-            if attr == "provider_settings":
-                attrs.update(getattr(agent_auth_config, attr))
-            else:
-                attrs[attr] = getattr(agent_auth_config, attr)
+        attrs = dict(vars(agent_auth_config))
+        attrs.pop("_connections", None)
+        attrs.pop("_configured_issuers", None)
+        attrs.update(attrs.pop("provider_settings", {}))
+        attrs["ISSUERS"] = agent_auth_config.ISSUERS
         return cls.from_mapping(attrs)
 
     @classmethod

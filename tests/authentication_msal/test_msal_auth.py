@@ -1,7 +1,7 @@
 import pytest
 from msal import ManagedIdentityClient, ConfidentialClientApplication
 
-from microsoft_agents.authentication.msal import MsalAuth
+from microsoft_agents.authentication.msal import MsalAuth, MsalConnectionSettings
 from microsoft_agents.hosting.core import Connections
 from microsoft_agents.hosting.core.authorization import (
     AgentAuthConfiguration,
@@ -242,15 +242,15 @@ class TestMsalAuthAzureRegion:
     """
 
     def test_resolve_azure_region_when_configured(self):
-        config = AgentAuthConfiguration(azure_region="westus")
+        config = MsalConnectionSettings(azure_region="westus")
         assert MsalAuth._resolve_azure_region(config) == "westus"
 
     def test_resolve_azure_region_none_when_unset(self):
-        config = AgentAuthConfiguration()
+        config = MsalConnectionSettings()
         assert MsalAuth._resolve_azure_region(config) is None
 
     def test_resolve_azure_region_none_when_whitespace(self):
-        config = AgentAuthConfiguration(azure_region="   ")
+        config = MsalConnectionSettings(azure_region="   ")
         assert MsalAuth._resolve_azure_region(config) is None
 
     def test_create_client_application_passes_azure_region(self, mocker):
@@ -363,7 +363,7 @@ class TestMsalAuthIdentityProxyManager:
     """
 
     def test_resolve_idpm_resource_defaults_when_unset(self):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.identity_proxy_manager,
             client_id="test-client-id",
         )
@@ -373,7 +373,7 @@ class TestMsalAuthIdentityProxyManager:
         )
 
     def test_resolve_idpm_resource_uses_custom_resource(self):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.identity_proxy_manager,
             client_id="test-client-id",
             idpm_resource="https://custom-resource/.default",
@@ -384,7 +384,7 @@ class TestMsalAuthIdentityProxyManager:
         )
 
     def test_resolve_idpm_resource_raises_on_invalid_uri(self):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.identity_proxy_manager,
             client_id="test-client-id",
             idpm_resource="not-a-valid-uri",

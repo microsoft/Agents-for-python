@@ -158,14 +158,17 @@ async def test_fastapi_decorator_stores_claims_and_calls_handler():
     async def route(request: Request):
         return {"aud": request.state.claims_identity.claims["aud"]}
 
+    scope = _scope(auth_config, "Bearer token")
     with patch(
         "microsoft_agents.hosting.fastapi.jwt_authorization_middleware._authorize_request",
         new=AsyncMock(return_value=claims),
     ) as authorize:
-        response = await route(Request(_scope(auth_config, "Bearer token")))
+        response = await route(Request(scope))
 
     assert response == {"aud": "decorator-app"}
-    authorize.assert_awaited_once_with("Bearer token", auth_config)
+    authorize.assert_awaited_once_with(
+        "Bearer token", auth_config, cache_key=scope["app"]
+    )
 
 
 @pytest.mark.asyncio
@@ -176,6 +179,7 @@ async def test_fastapi_decorator_converts_http_response():
     async def route(request: Request):
         return {"called": True}
 
+    scope = _scope(auth_config)
     with patch(
         "microsoft_agents.hosting.fastapi.jwt_authorization_middleware._authorize_request",
         new=AsyncMock(
@@ -185,11 +189,11 @@ async def test_fastapi_decorator_converts_http_response():
             )
         ),
     ) as authorize:
-        response = await route(Request(_scope(auth_config)))
+        response = await route(Request(scope))
 
     assert response.status_code == 401
     assert response.body == b'{"error":"Authorization header not found"}'
-    authorize.assert_awaited_once_with(None, auth_config)
+    authorize.assert_awaited_once_with(None, auth_config, cache_key=scope["app"])
 
 
 def test_fastapi_decorator_preserves_route_signature():

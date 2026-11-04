@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from microsoft_agents.activity.config import Configuration, xpath
 from microsoft_agents.activity._model_utils import pick_model_dict, SkipNone
 
-from .connections import _ConnectionMap
+from .connections.connections_map import _ConnectionMap
 
 _REDACTION_PEEK_LENGTH = 3
 _REDACTION_THRESH = _REDACTION_PEEK_LENGTH + 6
@@ -114,7 +114,11 @@ def _summarize_auth_configs(config_map: dict[str, Configuration]) -> str:
                     _redact_str_or_none(get_strn("TENANT_ID"), peek=True)
                 ),
                 CLIENTSECRET=SkipNone(_redact_str_or_none(get_strn("CLIENT_SECRET"))),
-                AUTHORITY=SkipNone(_redact_url_or_none(get_strn("AUTHORITY"))),
+                AUTHORITY=SkipNone(
+                    _redact_url_or_none(
+                        config.get_strn(xpath("authority"), xpath("authorityendpoint"))
+                    )
+                ),
                 SCOPES=SkipNone(_redact_scopes(config.get_scopes(xpath("SCOPES")))),
                 FEDERATED_CLIENT_ID=SkipNone(
                     _redact_str_or_none(get_strn("FEDERATED_CLIENT_ID"), peek=True)
