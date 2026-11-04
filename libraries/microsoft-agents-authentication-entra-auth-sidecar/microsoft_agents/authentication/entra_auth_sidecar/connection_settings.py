@@ -24,7 +24,7 @@ from .constants import (
 )
 
 
-def _or_default(s: str, default: str) -> str:
+def _or_default(s: str | None, default: str) -> str:
     return (s.strip() if s else None) or default
 
 
@@ -49,6 +49,13 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
     bypass_local_network_restriction: bool = False
     request_timeout: float = DEFAULT_REQUEST_TIMEOUT_SECONDS
     retry_count: int = DEFAULT_RETRY_COUNT
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "bypass_local_network_restriction",
+            bool(self.bypass_local_network_restriction),
+        )
 
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:

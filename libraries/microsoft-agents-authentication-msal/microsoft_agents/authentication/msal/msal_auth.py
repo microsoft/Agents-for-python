@@ -52,21 +52,25 @@ async def _async_acquire_token_for_client(msal_auth_client, *args, **kwargs):
 class MsalAuth(AccessTokenProviderBase):
 
     def __init__(
-        self, config: Configuration | MsalConnectionSettings | AgentAuthConfiguration
+        self,
+        msal_configuration: (
+            Configuration | MsalConnectionSettings | AgentAuthConfiguration
+        ),
     ):
         """Initializes the MsalAuth class with the given configuration.
 
-        :param config: Raw Configuration or bound MsalConnectionSettings.
+        :param msal_configuration: Raw Configuration or bound MsalConnectionSettings.
             AgentAuthConfiguration remains accepted for deprecated compatibility.
             Do not mutate settings or their nested values after passing them in.
         :type config: Configuration | MsalConnectionSettings | AgentAuthConfiguration
         """
+        config = msal_configuration
         if isinstance(config, MsalConnectionSettings):
             self._deprecated_config = None
-            msal_configuration = config
+            _msal_configuration = config
         elif isinstance(config, Configuration):
             self._deprecated_config = None
-            msal_configuration = MsalConnectionSettings.from_configuration(config)
+            _msal_configuration = MsalConnectionSettings.from_configuration(config)
         else:
             warnings.warn(
                 "AgentAuthConfiguration is deprecated and will be removed in future versions. "
@@ -75,9 +79,9 @@ class MsalAuth(AccessTokenProviderBase):
                 stacklevel=2,
             )
             self._deprecated_config = config
-            msal_configuration = MsalConnectionSettings._from_agent_auth_config(config)
+            _msal_configuration = MsalConnectionSettings._from_agent_auth_config(config)
 
-        self._msal_configuration = msal_configuration
+        self._msal_configuration = _msal_configuration
         self._msal_auth_client_map: dict[
             str, ConfidentialClientApplication | ManagedIdentityClient
         ] = {}
