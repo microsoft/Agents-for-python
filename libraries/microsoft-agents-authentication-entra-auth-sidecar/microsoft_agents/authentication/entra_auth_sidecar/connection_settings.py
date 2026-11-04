@@ -9,6 +9,7 @@ from typing_extensions import Self
 
 from microsoft_agents.activity.config import (
     Configuration,
+    coerce_bool,
     xpath,
 )
 from microsoft_agents.hosting.core.authorization.connections import (
@@ -54,7 +55,7 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
         object.__setattr__(
             self,
             "bypass_local_network_restriction",
-            bool(self.bypass_local_network_restriction),
+            coerce_bool(self.bypass_local_network_restriction),
         )
 
     @classmethod
