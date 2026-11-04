@@ -141,7 +141,7 @@ class Authorization:
         :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandlerSettings`]
         """
         for name, settings in self._handler_settings.items():
-            auth_type = settings.auth_type
+            auth_type = settings.auth_type.lower()
             if auth_type not in AUTHORIZATION_TYPE_MAP:
                 raise ValueError(f"Auth type {auth_type} not recognized.")
 

@@ -162,6 +162,33 @@ class TestAuthorizationSetup(TestEnv):
             ("ConnectorUserAuthorization", ConnectorUserAuthorization),
         ],
     )
+    def test_init_with_directly_constructed_settings(
+        self, connection_manager, storage, auth_type, handler_class
+    ):
+        settings = AuthHandlerSettings(
+            name="graph",
+            title="Sign in",
+            text="Continue",
+            abs_oauth_connection_name="bot-connection",
+            obo_connection_name="obo-connection",
+            auth_type=auth_type,
+            scopes=["User.Read"],
+        )
+
+        auth = Authorization(
+            storage, connection_manager, auth_handlers={"graph": settings}
+        )
+
+        assert isinstance(auth._resolve_handler("graph"), handler_class)
+
+    @pytest.mark.parametrize(
+        "auth_type, handler_class",
+        [
+            ("UserAuthorization", _UserAuthorization),
+            ("AgenticUserAuthorization", AgenticUserAuthorization),
+            ("ConnectorUserAuthorization", ConnectorUserAuthorization),
+        ],
+    )
     @pytest.mark.parametrize("as_mapping", [False, True])
     @pytest.mark.parametrize("positional", [False, True])
     def test_init_with_settings(
