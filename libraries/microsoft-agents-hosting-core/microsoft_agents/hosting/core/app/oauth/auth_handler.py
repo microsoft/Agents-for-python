@@ -3,15 +3,57 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Optional
+import warnings
+
+from dataclasses import dataclass, field
+
+from microsoft_agents.activity.config import (
+    _Configurable,
+    Configuration,
+    xpath,
+)
 
 logger = logging.getLogger(__name__)
 
 
-# name due to compat.
-# see AuthorizationHandler for a class that does work.
-class AuthHandler:
+def _or_default(s: str | None, default: str) -> str:
+    return (s.strip() if s else None) or default
+
+
+def _create_kwargs(
+    name: str | None = None,
+    title: str | None = None,
+    text: str | None = None,
+    abs_oauth_connection_name: str | None = None,
+    obo_connection_name: str | None = None,
+    auth_type: str | None = None,
+    scopes: list[str] | None = None,
+    **kwargs,
+) -> dict:
+    c = Configuration(kwargs)
+    return dict(
+        name=_or_default(name, c.get_str(xpath("name"), default="")),
+        title=_or_default(title, c.get_str(xpath("title"), default="")),
+        text=_or_default(text, c.get_str(xpath("text"), default="")),
+        abs_oauth_connection_name=_or_default(
+            abs_oauth_connection_name,
+            c.get_str(xpath("azurebotoauthconnectionname"), default=""),
+        ),
+        obo_connection_name=_or_default(
+            obo_connection_name, c.get_str(xpath("oboconnectionname"), default="")
+        ),
+        auth_type=_or_default(
+            auth_type, c.get_str(xpath("type"), default="UserAuthorization")
+        ).lower(),
+        scopes=Configuration.format_scopes(scopes or c.get(xpath("scopes"))),
+    )
+
+
+@dataclass
+class AuthHandlerSettings(_Configurable):
     """
     Interface defining an authorization handler for OAuth flows.
     """
@@ -22,53 +64,11 @@ class AuthHandler:
     abs_oauth_connection_name: str
     obo_connection_name: str
     auth_type: str
-    scopes: list[str]
+    scopes: list[str] = field(default_factory=list)
 
-    def __init__(
-        self,
-        name: str = "",
-        title: str = "",
-        text: str = "",
-        abs_oauth_connection_name: str = "",
-        obo_connection_name: str = "",
-        auth_type: str = "",
-        scopes: Optional[list[str]] = None,
-        **kwargs,
-    ):
-        """
-        Initializes a new instance of AuthHandler.
-
-        :param name: The name of the handler. This is how it is accessed programatically
-            in this library.
-        :type name: str
-        :param title: Title for the OAuth card.
-        :type title: str
-        :param text: Text for the OAuth button.
-        :type text: str
-        :param abs_oauth_connection_name: The name of the Azure Bot Service OAuth connection.
-        :type abs_oauth_connection_name: str
-        :param obo_connection_name: The name of the On-Behalf-Of connection.
-        :type obo_connection_name: str
-        :param auth_type: The authorization variant used. This is likely to change in the future
-            to accept a class that implements AuthorizationVariant.
-        :type auth_type: str
-        """
-        self.name = name or kwargs.get("NAME", "")
-        self.title = title or kwargs.get("TITLE", "")
-        self.text = text or kwargs.get("TEXT", "")
-        self.abs_oauth_connection_name = abs_oauth_connection_name or kwargs.get(
-            "AZUREBOTOAUTHCONNECTIONNAME", ""
-        )
-        self.obo_connection_name = obo_connection_name or kwargs.get(
-            "OBOCONNECTIONNAME", ""
-        )
-        self.auth_type = auth_type or kwargs.get("TYPE", "UserAuthorization")
-        self.auth_type = self.auth_type.lower()
-        if scopes:
-            self.scopes = list(scopes)
-        else:
-            self.scopes = AuthHandler._format_scopes(kwargs.get("SCOPES", ""))
-        self._alt_blueprint_name = kwargs.get("ALT_BLUEPRINT_NAME", None)
+    @classmethod
+    def _from_configuration(cls, config: Configuration) -> AuthHandlerSettings:
+        return AuthHandlerSettings(**_create_kwargs(**config))
 
     @staticmethod
     def _format_scopes(scopes: str | list[str]) -> list[str]:
@@ -78,25 +78,16 @@ class AuthHandler:
             lst = scopes
         return [s for s in lst if s]
 
-    @staticmethod
-    def _from_settings(settings: dict):
-        """
-        Creates an AuthHandler instance from a settings dictionary.
 
-        :param settings: The settings dictionary containing configuration for the AuthHandler.
-        :type settings: dict
-        :return: An instance of AuthHandler configured with the provided settings.
-        :rtype: AuthHandler
-        """
-        if not settings:
-            raise ValueError("Settings dictionary is required to create AuthHandler")
+class AuthHandler(AuthHandlerSettings):
+    """Deprecated. Use AuthHandlerSettings instead."""
 
-        return AuthHandler(
-            name=settings.get("NAME", ""),
-            title=settings.get("TITLE", ""),
-            text=settings.get("TEXT", ""),
-            abs_oauth_connection_name=settings.get("AZUREBOTOAUTHCONNECTIONNAME", ""),
-            obo_connection_name=settings.get("OBOCONNECTIONNAME", ""),
-            auth_type=settings.get("TYPE", ""),
-            scopes=AuthHandler._format_scopes(settings.get("SCOPES", "")),
+    def __init__(self, **kwargs):
+        """Initialize the deprecated AuthHandler class."""
+
+        warnings.warn(
+            "AuthHandler is deprecated. Please use AuthHandlerSettings instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        super().__init__(**_create_kwargs(**kwargs))

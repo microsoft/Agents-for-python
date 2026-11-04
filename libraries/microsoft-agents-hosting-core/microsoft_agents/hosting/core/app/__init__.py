@@ -17,7 +17,7 @@ from ._type_defs import RouteHandler, RouteSelector, StateT
 # Auth
 from .oauth import (
     Authorization,
-    AuthHandler,
+    AuthHandlerSettings,
     AgenticUserAuthorization,
 )
 
@@ -58,7 +58,7 @@ __all__ = [
     "TurnState",
     "TempState",
     "Authorization",
-    "AuthHandler",
+    "AuthHandlerSettings",
     "AgenticUserAuthorization",
     # Proactive
     "Conversation",

@@ -28,7 +28,7 @@ from ...storage import Storage
 from ...authorization import Connections
 from ..._oauth import _FlowStateTag
 from ..state import TurnState
-from .auth_handler import AuthHandler
+from .auth_handler import AuthHandlerSettings
 from ._sign_in_state import _SignInState
 from ._sign_in_response import _SignInResponse
 from ._handlers import (
@@ -67,7 +67,7 @@ class Authorization:
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handlers: dict[str, AuthHandler] | None = None,
+        auth_handlers: dict[str, AuthHandlerSettings] | None = None,
         auto_sign_in: bool = False,
         *,
         use_cache: bool = False,
@@ -85,7 +85,7 @@ class Authorization:
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections`
         :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`], Optional
+        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandlerSettings`], Optional
         :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:
@@ -111,7 +111,7 @@ class Authorization:
             # get from config
             handlers_config = auth_configuration.get(xpath("handlers"), default={})
             auth_handlers = {
-                handler_name: AuthHandler(
+                handler_name: AuthHandlerSettings(
                     name=handler_name,
                     auth_type=_get_str(config, *xpath("type"), default=""),
                     **_get(config, *xpath("settings"), default={}),
@@ -136,17 +136,17 @@ class Authorization:
         it initializes an instance of each variant that is referenced.
 
         :param auth_handlers: A dictionary of auth handler configurations.
-        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`]
+        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandlerSettings`]
         """
-        for name, auth_handler in self._handler_settings.items():
-            auth_type = auth_handler.auth_type
+        for name, settings in self._handler_settings.items():
+            auth_type = settings.auth_type
             if auth_type not in AUTHORIZATION_TYPE_MAP:
                 raise ValueError(f"Auth type {auth_type} not recognized.")
 
             self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
                 connection_manager=self._connection_manager,
-                auth_handler=auth_handler,
+                settings=settings,
             )
 
     @property

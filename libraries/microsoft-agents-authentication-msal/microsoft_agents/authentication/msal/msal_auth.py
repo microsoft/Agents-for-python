@@ -10,7 +10,6 @@ import time
 import jwt
 import warnings
 
-from typing import Any
 from urllib.parse import urlparse, ParseResult as URI
 from msal import (
     ConfidentialClientApplication,
