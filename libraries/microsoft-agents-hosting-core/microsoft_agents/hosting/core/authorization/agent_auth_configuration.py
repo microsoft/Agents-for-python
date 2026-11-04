@@ -25,6 +25,9 @@ _RECOGNIZED_CONFIG_KEYS = frozenset(
         "TENANTID",
         "CLIENTSECRET",
         "CERTPFXFILE",
+        "CERTSUBJECTNAME",
+        "CERTSTORENAME",
+        "VALIDCERTIFICATEONLY",
         "SENDX5C",
         "CONNECTIONNAME",
         "FEDERATEDCLIENTID",
@@ -64,6 +67,9 @@ class AgentAuthConfiguration:
     AUTH_TYPE: The type of authentication to use (microsoft_agents.hosting.core.authorization.auth_types.AuthTypes).
     CLIENT_SECRET: The client secret for the Azure AD application (if using client secret authentication).
     CERT_PFX_FILE: The path to the PFX certificate file (if using certificate authentication).
+    CERT_SUBJECT_NAME: The subject employed to locate a certificate for certificate subject name authentication.
+    CERT_STORE_NAME: The certificate store to search when resolving a certificate (default "My").
+    VALID_CERTIFICATE_ONLY: Requires the certificate to have a valid chain (default True).
     SEND_X5C: Whether to include the public certificate in the x5c header for certificate authentication.
     CONNECTION_NAME: The name of the connection
     FEDERATED_CLIENT_ID: The client ID for federated credentials (if using federated credentials authentication).
@@ -93,6 +99,9 @@ class AgentAuthConfiguration:
     CLIENT_ID: str | None
     CLIENT_SECRET: str | None
     CERT_PFX_FILE: str | None
+    CERT_SUBJECT_NAME: str | None
+    CERT_STORE_NAME: str = "My"
+    VALID_CERTIFICATE_ONLY: bool = True
     SEND_X5C: bool = False
     CONNECTION_NAME: str | None
     FEDERATED_CLIENT_ID: str | None
@@ -128,6 +137,9 @@ class AgentAuthConfiguration:
         client_secret: str | None = None,
         *,
         cert_pfx_file: str | None = None,
+        cert_subject_name: str | None = None,
+        cert_store_name: str | None = None,
+        valid_certificate_only: bool | None = None,
         connection_name: str | None = None,
         federated_client_id: str | None = None,
         authority: str | None = None,
@@ -154,6 +166,19 @@ class AgentAuthConfiguration:
         self.TENANT_ID = tenant_id or kwargs.get("TENANTID", None)
         self.CLIENT_SECRET = client_secret or kwargs.get("CLIENTSECRET", None)
         self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
+        self.CERT_SUBJECT_NAME = cert_subject_name or kwargs.get(
+            "CERTSUBJECTNAME", None
+        )
+        self.CERT_STORE_NAME = cert_store_name or kwargs.get("CERTSTORENAME", "My")
+        self.VALID_CERTIFICATE_ONLY = coerce_bool(
+            (
+                valid_certificate_only
+                if valid_certificate_only is not None
+                else kwargs.get("VALIDCERTIFICATEONLY", True)
+            ),
+            default=True,
+            name="VALIDCERTIFICATEONLY",
+        )
         self.SEND_X5C = coerce_bool(
             send_x5c if send_x5c is not None else kwargs.get("SENDX5C", False),
             default=False,
@@ -255,6 +280,13 @@ class AgentAuthConfiguration:
         ):
             raise ValueError(
                 "FEDERATED_TOKEN_FILE is required for workload_identity authentication."
+            )
+        if (
+            self.AUTH_TYPE == AuthTypes.certificate_subject_name
+            and not self.CERT_SUBJECT_NAME
+        ):
+            raise ValueError(
+                "CERT_SUBJECT_NAME is required for certificate_subject_name authentication."
             )
 
     @property

@@ -99,6 +99,9 @@ class TestAuthorizationConfiguration:
         assert auth_config.CLIENT_ID is None
         assert auth_config.CLIENT_SECRET is None
         assert auth_config.CERT_PFX_FILE is None
+        assert auth_config.CERT_SUBJECT_NAME is None
+        assert auth_config.CERT_STORE_NAME == "My"
+        assert auth_config.VALID_CERTIFICATE_ONLY is True
         assert auth_config.SEND_X5C is False
         assert auth_config.FEDERATED_CLIENT_ID is None
         assert auth_config.CONNECTION_NAME is None
@@ -123,6 +126,13 @@ class TestAuthorizationConfiguration:
                 "FEDERATED_TOKEN_FILE is required for "
                 "workload_identity authentication.",
             ),
+            (
+                AuthTypes.certificate_subject_name,
+                (
+                    "CERT_SUBJECT_NAME is required for "
+                    "certificate_subject_name authentication."
+                ),
+            ),
         ],
     )
     def test_auth_type_requires_credential_setting(self, auth_type, expected_message):
@@ -140,6 +150,10 @@ class TestAuthorizationConfiguration:
             (
                 AuthTypes.workload_identity,
                 {"federated_token_file": "test-token-file"},
+            ),
+            (
+                AuthTypes.certificate_subject_name,
+                {"cert_subject_name": "CN=test-agent"},
             ),
         ],
     )
@@ -186,6 +200,54 @@ class TestAuthorizationConfiguration:
             SENDX5C="true",
         )
         assert auth_config.SEND_X5C is False
+
+    def test_certificate_subject_name_from_parameter(self):
+        auth_config = AgentAuthConfiguration(
+            auth_type=AuthTypes.certificate_subject_name,
+            cert_subject_name="CN=test-agent",
+        )
+        assert auth_config.CERT_SUBJECT_NAME == "CN=test-agent"
+
+    def test_certificate_subject_name_from_kwargs(self):
+        auth_config = AgentAuthConfiguration(
+            AUTHTYPE="CertificateSubjectName",
+            CERTSUBJECTNAME="CN=test-agent",
+        )
+        assert auth_config.CERT_SUBJECT_NAME == "CN=test-agent"
+        assert "CERTSUBJECTNAME" not in auth_config.provider_settings
+
+    def test_certificate_store_name_defaults_my(self):
+        auth_config = AgentAuthConfiguration()
+        assert auth_config.CERT_STORE_NAME == "My"
+
+    def test_certificate_store_name_from_parameter(self):
+        auth_config = AgentAuthConfiguration(cert_store_name="Root")
+        assert auth_config.CERT_STORE_NAME == "Root"
+
+    def test_certificate_store_name_from_kwargs(self):
+        auth_config = AgentAuthConfiguration(CERTSTORENAME="Root")
+        assert auth_config.CERT_STORE_NAME == "Root"
+        assert "CERTSTORENAME" not in auth_config.provider_settings
+
+    def test_valid_certificate_only_defaults_true(self):
+        auth_config = AgentAuthConfiguration()
+        assert auth_config.VALID_CERTIFICATE_ONLY is True
+
+    def test_valid_certificate_only_false_from_parameter(self):
+        auth_config = AgentAuthConfiguration(valid_certificate_only=False)
+        assert auth_config.VALID_CERTIFICATE_ONLY is False
+
+    def test_valid_certificate_only_from_kwargs(self):
+        auth_config = AgentAuthConfiguration(VALIDCERTIFICATEONLY="false")
+        assert auth_config.VALID_CERTIFICATE_ONLY is False
+        assert "VALIDCERTIFICATEONLY" not in auth_config.provider_settings
+
+    def test_valid_certificate_only_explicit_false_overrides_kwarg(self):
+        auth_config = AgentAuthConfiguration(
+            valid_certificate_only=False,
+            VALIDCERTIFICATEONLY="true",
+        )
+        assert auth_config.VALID_CERTIFICATE_ONLY is False
 
     def test_azure_region_from_parameter(self):
         auth_config = AgentAuthConfiguration(azure_region="westus")

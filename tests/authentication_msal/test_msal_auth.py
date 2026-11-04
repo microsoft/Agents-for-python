@@ -321,6 +321,49 @@ class TestMsalAuthSendX5C:
         }
 
 
+class TestMsalAuthCertificateSubjectName:
+    def test_create_client_application_certificate_subject_name(self, mocker):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.certificate_subject_name,
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+            client_id="test-client-id",
+            cert_subject_name="CN=test-agent",
+            cert_store_name="Root",
+            valid_certificate_only=False,
+            send_x5c=True,
+        )
+
+        mock_credential_class = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth."
+            "_CertificateStoreClientAssertion",
+        )
+        mock_credential = mock_credential_class.return_value
+
+        mock_cca = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth."
+            "ConfidentialClientApplication"
+        )
+        mock_cca.return_value.authority.token_endpoint = (
+            "https://resolved.example/token"
+        )
+
+        MsalAuth(config)._create_client_application()
+
+        mock_credential_class.assert_called_once_with(
+            subject_name="CN=test-agent",
+            store_name="Root",
+            valid_only=False,
+            send_x5c=True,
+            client_id="test-client-id",
+        )
+        assert mock_cca.call_args.kwargs["client_credential"] == {
+            "client_assertion": mock_credential,
+        }
+        mock_credential.bind_audience.assert_called_once_with(
+            "https://resolved.example/token"
+        )
+
+
 class TestMsalAuthWorkloadIdentity:
     def test_create_client_application_reads_projected_token(self, mocker, tmp_path):
         token_file = tmp_path / "workload-token"
