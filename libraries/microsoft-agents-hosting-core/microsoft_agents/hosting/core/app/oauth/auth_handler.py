@@ -31,6 +31,7 @@ def _create_kwargs(
     obo_connection_name: str | None = None,
     auth_type: str | None = None,
     scopes: list[str] | None = None,
+    _alt_blueprint_name: str | None = None,
     **kwargs,
 ) -> dict:
     c = Configuration(kwargs)
@@ -49,6 +50,8 @@ def _create_kwargs(
             auth_type, c.get_str(xpath("type"), default="UserAuthorization")
         ).lower(),
         scopes=Configuration.format_scopes(scopes or c.get(xpath("scopes"))),
+        _alt_blueprint_name=_alt_blueprint_name
+        or c.get_strn(xpath("alt_blueprint_name")),
     )
 
 
@@ -65,6 +68,7 @@ class AuthHandlerSettings(_Configurable):
     obo_connection_name: str
     auth_type: str
     scopes: list[str] = field(default_factory=list)
+    _alt_blueprint_name: str | None = None
 
     @classmethod
     def _from_configuration(cls, config: Configuration) -> AuthHandlerSettings:
@@ -82,7 +86,7 @@ class AuthHandlerSettings(_Configurable):
 class AuthHandler(AuthHandlerSettings):
     """Deprecated. Use AuthHandlerSettings instead."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize the deprecated AuthHandler class."""
 
         warnings.warn(
@@ -90,4 +94,4 @@ class AuthHandler(AuthHandlerSettings):
             DeprecationWarning,
             stacklevel=2,
         )
-        super().__init__(**_create_kwargs(**kwargs))
+        super().__init__(**_create_kwargs(*args, **kwargs))

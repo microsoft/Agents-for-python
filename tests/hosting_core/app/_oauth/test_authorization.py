@@ -10,6 +10,7 @@ from microsoft_agents.activity import (
     SignInConstants,
     TokenResponse,
 )
+from microsoft_agents.activity.config import Configuration
 
 from microsoft_agents.hosting.core.app.oauth import (
     _SignInResponse,
@@ -17,12 +18,14 @@ from microsoft_agents.hosting.core.app.oauth import (
     _UserAuthorization,
     Authorization,
     AgenticUserAuthorization,
+    ConnectorUserAuthorization,
 )
 
 from microsoft_agents.hosting.core._oauth import _FlowStateTag
 
 from microsoft_agents.hosting.core import (
     AuthHandler,
+    AuthHandlerSettings,
     MemoryStorage,
 )
 
@@ -151,6 +154,134 @@ class TestEnv(FlowStateFixtures):
 
 
 class TestAuthorizationSetup(TestEnv):
+    @pytest.mark.parametrize(
+        "auth_type, handler_class",
+        [
+            ("UserAuthorization", _UserAuthorization),
+            ("AgenticUserAuthorization", AgenticUserAuthorization),
+            ("ConnectorUserAuthorization", ConnectorUserAuthorization),
+        ],
+    )
+    @pytest.mark.parametrize("as_mapping", [False, True])
+    @pytest.mark.parametrize("positional", [False, True])
+    def test_init_with_settings(
+        self,
+        connection_manager,
+        storage,
+        auth_type,
+        handler_class,
+        as_mapping,
+        positional,
+    ):
+        settings = AuthHandlerSettings.from_mapping(
+            {
+                "name": "graph",
+                "auth_type": auth_type,
+                "scopes": ["User.Read"],
+                "_alt_blueprint_name": "blueprint",
+            }
+        )
+        value = vars(settings) if as_mapping else settings
+        handler = (
+            handler_class(storage, connection_manager, value)
+            if positional
+            else handler_class(storage, connection_manager, settings=value)
+        )
+
+        assert handler._id == "graph"
+        assert handler._handler == settings
+        if not as_mapping:
+            assert handler._handler is settings
+        if isinstance(handler, AgenticUserAuthorization):
+            assert handler._alt_blueprint_name == "blueprint"
+
+        auth = Authorization(
+            storage, connection_manager, auth_handlers={"graph": settings}
+        )
+        assert isinstance(auth._resolve_handler("graph"), handler_class)
+
+    @pytest.mark.parametrize(
+        "auth_type, handler_class",
+        [
+            ("UserAuthorization", _UserAuthorization),
+            ("AgenticUserAuthorization", AgenticUserAuthorization),
+            ("ConnectorUserAuthorization", ConnectorUserAuthorization),
+        ],
+    )
+    @pytest.mark.parametrize("config_argument", ["config", "kwargs"])
+    @pytest.mark.parametrize("type_in_settings", [False, True])
+    def test_init_from_configuration(
+        self,
+        connection_manager,
+        storage,
+        auth_type,
+        handler_class,
+        config_argument,
+        type_in_settings,
+    ):
+        handler_config = {
+            "SETTINGS": {
+                "TITLE": "Sign in",
+                "TEXT": "Continue",
+                "AZUREBOTOAUTHCONNECTIONNAME": "bot-connection",
+                "OBOCONNECTIONNAME": "obo-connection",
+                "SCOPES": "User.Read, Mail.Read",
+                "ALT_BLUEPRINT_NAME": "blueprint",
+            }
+        }
+        if type_in_settings:
+            handler_config["SETTINGS"]["TYPE"] = auth_type
+        else:
+            handler_config["TYPE"] = auth_type
+        config = Configuration(
+            {
+                "AGENTAPPLICATION": {
+                    "USERAUTHORIZATION": {"HANDLERS": {"graph": handler_config}}
+                }
+            }
+        )
+
+        auth = (
+            Authorization(storage, connection_manager, config=config)
+            if config_argument == "config"
+            else Authorization(storage, connection_manager, **config)
+        )
+        handler = auth._resolve_handler("graph")
+
+        assert isinstance(handler, handler_class)
+        assert handler._handler == AuthHandlerSettings(
+            name="graph",
+            title="Sign in",
+            text="Continue",
+            abs_oauth_connection_name="bot-connection",
+            obo_connection_name="obo-connection",
+            auth_type=auth_type.lower(),
+            scopes=["User.Read", "Mail.Read"],
+            _alt_blueprint_name="blueprint",
+        )
+
+    @pytest.mark.parametrize(
+        "handler_class",
+        [_UserAuthorization, AgenticUserAuthorization, ConnectorUserAuthorization],
+    )
+    @pytest.mark.parametrize(
+        "legacy_argument", ["auth_handler", "auth_handler_settings"]
+    )
+    def test_legacy_settings_arguments_warn(
+        self, connection_manager, storage, legacy_argument, handler_class
+    ):
+        settings = AuthHandlerSettings.from_mapping({"name": "graph"})
+        value = settings if legacy_argument == "auth_handler" else vars(settings)
+
+        with pytest.warns(
+            DeprecationWarning, match="auth_handler and auth_handler_settings"
+        ):
+            handler = handler_class(
+                storage, connection_manager, **{legacy_argument: value}
+            )
+
+        assert handler._handler == settings
+
     def test_init_user_auth(self, connection_manager, storage, env_dict):
         auth = Authorization(storage, connection_manager, **env_dict)
         assert auth._resolve_handler(DEFAULTS.auth_handler_id) is not None
@@ -260,7 +391,8 @@ class TestAuthorizationUsage(TestEnv):
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "initial_cache, final_cache, auth_handler_id, expected_auth_handler_id, initial_sign_in_state, final_sign_in_state, sign_in_response",
+        "initial_cache, final_cache, auth_handler_id, expected_auth_handler_id, "
+        "initial_sign_in_state, final_sign_in_state, sign_in_response",
         [
             [
                 {DEFAULTS.auth_handler_id: "old_token"},

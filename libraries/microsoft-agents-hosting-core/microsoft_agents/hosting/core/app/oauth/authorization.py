@@ -111,10 +111,12 @@ class Authorization:
             # get from config
             handlers_config = auth_configuration.get(xpath("handlers"), default={})
             auth_handlers = {
-                handler_name: AuthHandlerSettings(
-                    name=handler_name,
-                    auth_type=_get_str(config, *xpath("type"), default=""),
-                    **_get(config, *xpath("settings"), default={}),
+                handler_name: AuthHandlerSettings.from_mapping(
+                    dict(
+                        name=handler_name,
+                        auth_type=_get_str(config, *xpath("type"), default=""),
+                        **_get(config, *xpath("settings"), default={}),
+                    )
                 )
                 for handler_name, config in handlers_config.items()
             }

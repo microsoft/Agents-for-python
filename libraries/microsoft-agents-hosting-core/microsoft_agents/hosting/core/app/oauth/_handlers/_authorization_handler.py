@@ -66,16 +66,15 @@ class _AuthorizationHandler(ABC):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        if not auth_handler and not auth_handler_settings:
-            raise ValueError(
-                "At least one of auth_handler or auth_handler_settings is required."
-            )
 
         self._storage = storage
         self._connection_manager = connection_manager
 
         if settings:
-            self._handler = AuthHandlerSettings.from_mapping(settings)
+            if isinstance(settings, AuthHandlerSettings):
+                self._handler = settings
+            else:
+                self._handler = AuthHandlerSettings.from_mapping(settings)
         elif auth_handler:  # deprecated
             self._handler = auth_handler
         else:  # deprecated

@@ -15,7 +15,7 @@ from .._sign_in_response import _SignInResponse
 from ._authorization_handler import _AuthorizationHandler
 from ....storage import Storage
 from ....authorization import Connections
-from ..auth_handler import AuthHandler
+from ..auth_handler import AuthHandlerSettings
 from ..telemetry import spans
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         settings: Mapping | AuthHandlerSettings | None = None,
         *,
         auth_handler_id: str | None = None,
-        auth_handler: AuthHandler | None = None,
+        auth_handler: AuthHandlerSettings | None = None,
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
@@ -55,7 +55,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             auth_handler_settings=auth_handler_settings,
             **kwargs,
         )
-        self._alt_blueprint_name = self._handler.alt_blueprint_name  # TODO
+        self._alt_blueprint_name = self._handler._alt_blueprint_name
 
     async def get_agentic_instance_token(self, context: TurnContext) -> TokenResponse:
         """Gets the agentic instance token for the current agent instance.
@@ -211,6 +211,6 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             return await self.get_agentic_user_token(context, exchange_scopes)
 
     async def sign_out(
-        self, context: TurnContext, auth_handler_id: Optional[str] = None
+        self, context: TurnContext, auth_handler_id: str | None = None
     ) -> None:
         """Nothing to do for agentic sign out."""
