@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from microsoft_agents.hosting.core.storage import Storage
+from microsoft_agents.hosting.core.storage import StorageProvider
 
 from ..turn_context import TurnContext
 from .agent_state import AgentState
@@ -16,7 +16,7 @@ class UserState(AgentState):
         "UserState: channel_id and/or conversation missing from context.activity."
     )
 
-    def __init__(self, storage: Storage, namespace=""):
+    def __init__(self, storage: StorageProvider, namespace=""):
         """
         Creates a new UserState instance.
         :param storage:

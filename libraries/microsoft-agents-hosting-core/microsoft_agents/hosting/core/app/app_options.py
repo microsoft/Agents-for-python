@@ -10,7 +10,7 @@ from typing import Callable, Optional
 
 from microsoft_agents.hosting.core.app.oauth import AuthHandler
 from microsoft_agents.hosting.core.authorization import Connections
-from microsoft_agents.hosting.core.storage import Storage
+from microsoft_agents.hosting.core.storage import StorageProvider
 
 # from .auth import AuthOptions
 from .typing_indicator import TypingOptions
@@ -33,7 +33,7 @@ class ApplicationOptions:
     Optional. `AgentApplication` ID of the bot.
     """
 
-    storage: Optional[Storage] = None
+    storage: Optional[StorageProvider] = None
     """
     Optional. `Storage` provider to use for the application.
     """

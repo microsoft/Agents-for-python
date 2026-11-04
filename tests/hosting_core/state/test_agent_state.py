@@ -16,7 +16,16 @@ from microsoft_agents.hosting.core.state.agent_state import (
 from microsoft_agents.hosting.core.state.user_state import UserState
 from microsoft_agents.hosting.core.app.state.conversation_state import ConversationState
 from microsoft_agents.hosting.core.turn_context import TurnContext
-from microsoft_agents.hosting.core.storage import Storage, StoreItem, MemoryStorage
+from microsoft_agents.hosting.core.storage import (
+    Storage,
+    StorageV2,
+    StorageOperationStatus,
+    StorageWriteResult,
+    StorageWriteResults,
+    StoreItem,
+    MemoryStorage,
+    MemoryStorageV2,
+)
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
@@ -174,7 +183,7 @@ class TestAgentState:
         await self.user_state.load(self.context)
 
         # Save without making changes - should not call storage
-        storage_mock = MagicMock(spec=Storage)
+        storage_mock = MagicMock(spec=StorageV2)
         storage_mock.write = AsyncMock()
         self.user_state._storage = storage_mock
 
@@ -208,8 +217,16 @@ class TestAgentState:
         await self.user_state.load(self.context)
 
         # Use a mock storage to verify write is called even without changes
-        storage_mock = MagicMock(spec=Storage)
-        storage_mock.write = AsyncMock()
+        storage_mock = MagicMock(spec=StorageV2)
+        storage_key = self.user_state.get_storage_key(self.context)
+        write_results = StorageWriteResults(
+            {
+                storage_key: StorageWriteResult(
+                    key=storage_key, status=StorageOperationStatus.SUCCEEDED
+                )
+            }
+        )
+        storage_mock.write = AsyncMock(return_value=write_results)
         self.user_state._storage = storage_mock
 
         await self.user_state.save(self.context, force=True)
@@ -476,6 +493,64 @@ class TestAgentState:
 
         assert storage_key in stored_data
         assert stored_data[storage_key] is not None
+
+    @pytest.mark.asyncio
+    async def test_memory_storage_v2_integration(self):
+        memory_storage = MemoryStorageV2()
+        user_state = UserState(memory_storage)
+
+        await user_state.load(self.context)
+        property_accessor = user_state.create_property("memory_test")
+        await property_accessor.set(self.context, _MockTestDataItem("memory_value"))
+        await user_state.save(self.context)
+
+        storage_key = user_state.get_storage_key(self.context)
+        stored_data = await memory_storage.read(
+            [storage_key], target_cls=CachedAgentState
+        )
+
+        assert stored_data[storage_key].value is not None
+
+    @pytest.mark.asyncio
+    async def test_stale_state_save_does_not_overwrite_newer_state(self):
+        """Reject a stale turn after a newer turn saves the same state record."""
+        storage = MemoryStorageV2()
+
+        seed_state = UserState(storage)
+        await seed_state.load(self.context)
+        seed_property = seed_state.create_property("writer")
+        await seed_property.set(self.context, _MockTestDataItem("seed"))
+        await seed_state.save(self.context)
+
+        slow_context = TurnContext(self.adapter, self.activity)
+        fast_context = TurnContext(self.adapter, self.activity)
+        slow_state = UserState(storage)
+        fast_state = UserState(storage)
+        slow_property = slow_state.create_property("writer")
+        fast_property = fast_state.create_property("writer")
+
+        await slow_state.load(slow_context)
+        await fast_state.load(fast_context)
+        await slow_property.set(slow_context, _MockTestDataItem("slow"))
+        await fast_property.set(fast_context, _MockTestDataItem("fast"))
+
+        await fast_state.save(fast_context)
+        expected_error = (
+            "AgentState 'Internal.UserState' could not save key "
+            "'test-channel/users/test-user' because another turn updated the state "
+            "first (status: ConditionNotMet). This turn's state changes were not saved."
+        )
+        with pytest.raises(RuntimeError) as error:
+            await slow_state.save(slow_context)
+        assert str(error.value) == expected_error
+
+        final_context = TurnContext(self.adapter, self.activity)
+        final_state = UserState(storage)
+        final_property = final_state.create_property("writer")
+        await final_state.load(final_context)
+        value = await final_property.get(final_context, target_cls=_MockTestDataItem)
+
+        assert value.value == "fast"
 
     @pytest.mark.asyncio
     async def test_state_property_accessor_error_conditions(self):
