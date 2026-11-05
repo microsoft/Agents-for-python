@@ -6,13 +6,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from microsoft_agents.activity.config import Configuration, _RootConfigurable, xpath
+from microsoft_agents.activity.config import Configuration, _Configurable, xpath
 
 from .jwt_connection_settings import JwtConnectionSettings
 
 
 @dataclass(frozen=True)
-class TokenValidationConfiguration(_RootConfigurable):
+class TokenValidationConfiguration(_Configurable):
 
     tenant_id: str | None = None
     audiences: list[str] = field(default_factory=list)
@@ -21,24 +21,25 @@ class TokenValidationConfiguration(_RootConfigurable):
     connections: dict[str, JwtConnectionSettings] = field(default_factory=dict)
 
     @classmethod
-    def _from_root_configuration(cls, configuration: Configuration) -> TokenValidationConfiguration:
-        return cls._from_scoped_configuration(
-            configuration.get_section(
-                xpath("token_validation"), default=Configuration()
-            )
-        )
-
-    @classmethod
-    def _from_scoped_configuration(
+    def _from_configuration(
         cls, configuration: Configuration
     ) -> TokenValidationConfiguration:
 
-        audiences = configuration.get_str_list(xpath("audiences"))
-        tenant_id = configuration.get_strn(xpath("tenant_id"))
-        anonymous_allowed = configuration.get_booln(xpath("anonymous_allowed"))
+        token_validation: Configuration = configuration
+        connection_raw_items = {}
+
+        if configuration._is_root_config:
+            token_validation = configuration.get_section(
+                xpath("token_validation"), default=Configuration()
+            )
+            connection_raw_items = configuration.get_items(xpath("connections"))
+
+        audiences = token_validation.get_str_list(xpath("audiences"))
+        tenant_id = token_validation.get_strn(xpath("tenant_id"))
+        anonymous_allowed = token_validation.get_booln(xpath("anonymous_allowed"))
 
         connections: dict[str, JwtConnectionSettings] = {}
-        for name, conf in configuration.get_items(xpath("connections")):
+        for name, conf in connection_raw_items:
             connections[name] = JwtConnectionSettings.from_mapping(conf)
 
         update_audiences = not audiences

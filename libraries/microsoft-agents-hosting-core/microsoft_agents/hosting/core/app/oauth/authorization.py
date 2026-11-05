@@ -6,6 +6,8 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import logging
+import warnings
+
 from typing import (
     Awaitable,
     Callable,
@@ -24,6 +26,7 @@ from microsoft_agents.activity import (
     SignInConstants,
     TokenResponse,
 )
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.activity.activity_types import ActivityTypes
 
 from microsoft_agents.hosting.core.authorization._helpers import (
@@ -63,6 +66,7 @@ class _AuthInterceptResult:
     should_replay: bool
     continuation_activity: Activity | None = None
 
+
 class Authorization:
     """Class responsible for managing authorization flows."""
 
@@ -77,7 +81,7 @@ class Authorization:
         auth_handlers: dict[str, AuthHandlerSettings] | None = None,
         auto_sign_in: bool = False,
         *,
-        settings: Mapping | None = None,
+        settings: Configuration | AuthorizationSettings | None = None,
         use_cache: bool = False,
         **kwargs,
     ):
@@ -108,9 +112,28 @@ class Authorization:
             Callable[[TurnContext, TurnState, str | None], Awaitable[None]]
         ] = None
 
-        self._handlers = {}
+        if kwargs:
+            warnings.warn(
+                "Passing configuration via kwargs is deprecated. "
+                "Use the 'settings' parameter instead.",
+                DeprecationWarning,
+            )
+            if settings is not None:
+                logger.warning(
+                    "Both 'settings' and 'kwargs' are provided. 'kwargs' will be ignored in favor of 'settings'."
+                )
 
-        auth_settings = AuthorizationSettings.from_mapping(settings, **kwargs)
+        auth_settings: AuthorizationSettings
+        if settings is None:
+            auth_settings = AuthorizationSettings.from_configuration(
+                Configuration(kwargs, _is_root_config=True)
+            )
+        elif isinstance(settings, Mapping):
+            auth_settings = AuthorizationSettings.from_mapping(settings)
+        elif isinstance(settings, AuthorizationSettings):
+            auth_settings = settings
+
+        self._handlers = {}
 
         self._handler_settings = auth_handlers or auth_settings.handlers
         self._auto_sign_in = auto_sign_in or auth_settings.auto_sign_in

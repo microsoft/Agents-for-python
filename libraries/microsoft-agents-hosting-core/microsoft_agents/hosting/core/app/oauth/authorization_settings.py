@@ -16,6 +16,7 @@ from microsoft_agents.activity.config import (
 )
 from .auth_handler import AuthHandlerSettings
 
+
 @dataclass(frozen=True)
 class AuthorizationSettings(_RootConfigurable):
 
@@ -44,6 +45,7 @@ class AuthorizationSettings(_RootConfigurable):
     def _from_root_configuration(cls, config: Configuration) -> AuthorizationSettings:
         return cls._from_scoped_configuration(
             config.get_section(
-                xpath("agent_application", "authorization"), default=Configuration()
+                xpath("agent_application", "user_authorization"),
+                default=Configuration(),
             )
         )

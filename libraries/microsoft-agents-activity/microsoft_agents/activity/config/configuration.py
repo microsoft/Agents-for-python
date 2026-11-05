@@ -6,7 +6,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import (
     Any,
-    Callable,
     Iterable,
     Mapping,
     TypeVar,
@@ -40,6 +39,7 @@ _ConfigurationProtocolT = TypeVar(
     "_ConfigurationProtocolT", bound=_ConfigurationProtocol
 )
 
+
 class Configuration(dict, _ConfigurationProtocol):
     """Dictionary-backed configuration with path lookup and typed conversion.
 
@@ -64,10 +64,9 @@ class Configuration(dict, _ConfigurationProtocol):
             raise ValueError("Cannot provide both 'original' and keyword arguments.")
         super().__init__(original or kwargs)
         self._base_path = _base_path or ""
-        if _is_root_config is None and _base_path == "":
-            self._is_root_config = True
-        else:
-            self._is_root_config = _is_root_config or False
+        if isinstance(original, Configuration) and _is_root_config is None:
+            _is_root_config = original._is_root_config
+        self._is_root_config = _is_root_config or False
         self._key = None
 
     @property
@@ -89,11 +88,26 @@ class Configuration(dict, _ConfigurationProtocol):
         return self._key
 
     @classmethod
+    def resolve(
+        cls,
+        primary: Mapping | None = None,
+        defaults: Mapping | None = None,
+        *,
+        _base_path: str | None = None,
+        _is_root_config: bool | None = None,
+    ) -> Configuration:
+        resolved = _resolve(primary or {}, defaults or {})
+        return Configuration(
+            resolved, _base_path=_base_path, _is_root_config=_is_root_config
+        )
+
+    @classmethod
     def from_mapping(
         cls,
         _mapping: Mapping | None = None,
         _base_path: str | None = None,
-       **kwargs
+        _is_root_config: bool | None = None,
+        **kwargs,
     ) -> Configuration:
         """Create configuration, using keyword arguments as fallback values.
 
@@ -104,6 +118,7 @@ class Configuration(dict, _ConfigurationProtocol):
             isinstance(_mapping, Configuration)
             and not kwargs
             and (_base_path is None or _base_path == _mapping._base_path)
+            and (_is_root_config is None or _is_root_config == _mapping._is_root_config)
         ):
             return _mapping
         if kwargs:
@@ -113,16 +128,23 @@ class Configuration(dict, _ConfigurationProtocol):
                 resolved = _resolve(_mapping, kwargs, path_transformer=lambda x: x)
         else:
             resolved = _mapping
-        return cls(resolved, _base_path=_base_path)
+
+        if _is_root_config is None:
+            if isinstance(_mapping, Configuration):
+                _is_root_config = _mapping._is_root_config
+        return cls(resolved, _base_path=_base_path, _is_root_config=_is_root_config)
 
     @classmethod
-    def from_config(self, base: Configuration | None, **kwargs) -> Configuration:
+    def from_config(cls, base: Configuration | None, **kwargs) -> Configuration:
         """Create a new Configuration instance by forking the current configuration with additional key-value pairs."""
         if base is None:
-            return Configuration(**kwargs)
+            return Configuration(**kwargs, _is_root_config=False)
         new_config = base.copy()
         return Configuration.from_mapping(
-            new_config, _base_path=base._base_path, _is_root_config=base._is_root_config, **kwargs
+            new_config,
+            _base_path=base._base_path,
+            _is_root_config=base._is_root_config,
+            **kwargs,
         )
 
     def _resolve_path(self, key: str) -> str:
@@ -441,6 +463,7 @@ class Configuration(dict, _ConfigurationProtocol):
             return [s for s in lst if s]
         return scopes
 
+
 class _Configurable(ABC):
 
     @classmethod
@@ -452,12 +475,15 @@ class _Configurable(ABC):
     def _from_configuration(cls, config: Configuration) -> Self: ...
 
     @classmethod
-    def from_configuration(cls, config: Configuration | Self) -> Self:
+    def from_configuration(cls, config: Configuration | Self | None) -> Self:
+        if config is None:
+            config = Configuration()
         if isinstance(config, cls):
             return config
         if isinstance(config, Configuration):
             return cls._from_configuration(config)
         raise TypeError(f"Cannot create {cls.__name__} from {type(config).__name__}")
+
 
 class _RootConfigurable(_Configurable, ABC):
 

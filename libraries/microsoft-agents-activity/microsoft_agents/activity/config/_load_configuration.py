@@ -6,8 +6,6 @@ from typing import Any, Mapping
 from .configuration import Configuration
 
 from ._logging import _configure_logging
-from ._utils import _xpath
-from ._resolve import _resolve
 
 
 def load_configuration_from_env(
@@ -20,9 +18,6 @@ def load_configuration_from_env(
     :param defaults: A mapping of default configuration values.
     :return: A Configuration object containing the resolved configuration.
     """
-    local_vars = dict(env_vars)
-
-    resolved = _resolve(local_vars, defaults or {})
-    config = Configuration(resolved, _is_root_config=True)
+    config = Configuration.resolve(env_vars, defaults or {}, _is_root_config=True)
     _configure_logging(config)
     return config

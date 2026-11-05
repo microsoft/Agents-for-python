@@ -79,7 +79,12 @@ class JwtTokenValidator:
 
     _jwk_client_manager = _JwkClientManager()
 
-    def __init__(self, configuration: AgentAuthConfiguration | Configuration):
+    def __init__(
+        self,
+        configuration: (
+            AgentAuthConfiguration | Configuration | TokenValidationConfiguration
+        ),
+    ):
         """Initializes the JwtTokenValidator with the given configuration.
 
         :param configuration: Application Configuration used to bind
