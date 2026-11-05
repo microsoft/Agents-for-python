@@ -40,7 +40,6 @@ _ConfigurationProtocolT = TypeVar(
     "_ConfigurationProtocolT", bound=_ConfigurationProtocol
 )
 
-
 class Configuration(dict, _ConfigurationProtocol):
     """Dictionary-backed configuration with path lookup and typed conversion.
 
@@ -50,18 +49,30 @@ class Configuration(dict, _ConfigurationProtocol):
     """
 
     def __init__(
-        self, _original: Mapping | None = None, _base_path: str | None = None, **kwargs
+        self,
+        original: Mapping | None = None,
+        _base_path: str | None = None,
+        _is_root_config: bool | None = None,
+        **kwargs,
     ):
         """Initialize a Configuration instance.
 
-        :param _original: The original mapping to initialize the configuration from.
+        :param original: The original mapping to initialize the configuration from.
         :param _base_path: The base path for resolving nested configuration keys.
         """
-        if _original is not None and kwargs:
-            raise ValueError("Cannot provide both '_original' and keyword arguments.")
-        super().__init__(_original or kwargs)
+        if original is not None and kwargs:
+            raise ValueError("Cannot provide both 'original' and keyword arguments.")
+        super().__init__(original or kwargs)
         self._base_path = _base_path or ""
+        if _is_root_config is None and _base_path == "":
+            self._is_root_config = True
+        else:
+            self._is_root_config = _is_root_config or False
         self._key = None
+
+    @property
+    def is_root_config(self) -> bool:
+        return self._is_root_config
 
     @property
     def base_path(self) -> str:
@@ -79,7 +90,10 @@ class Configuration(dict, _ConfigurationProtocol):
 
     @classmethod
     def from_mapping(
-        cls, _mapping: Mapping | None = None, _base_path: str | None = None, **kwargs
+        cls,
+        _mapping: Mapping | None = None,
+        _base_path: str | None = None,
+       **kwargs
     ) -> Configuration:
         """Create configuration, using keyword arguments as fallback values.
 
@@ -108,7 +122,7 @@ class Configuration(dict, _ConfigurationProtocol):
             return Configuration(**kwargs)
         new_config = base.copy()
         return Configuration.from_mapping(
-            new_config, _base_path=base._base_path, **kwargs
+            new_config, _base_path=base._base_path, _is_root_config=base._is_root_config, **kwargs
         )
 
     def _resolve_path(self, key: str) -> str:
@@ -427,7 +441,6 @@ class Configuration(dict, _ConfigurationProtocol):
             return [s for s in lst if s]
         return scopes
 
-
 class _Configurable(ABC):
 
     @classmethod
@@ -445,3 +458,19 @@ class _Configurable(ABC):
         if isinstance(config, Configuration):
             return cls._from_configuration(config)
         raise TypeError(f"Cannot create {cls.__name__} from {type(config).__name__}")
+
+class _RootConfigurable(_Configurable, ABC):
+
+    @classmethod
+    def _from_configuration(cls, config: Configuration) -> Self:
+        if config._is_root_config:
+            return cls._from_root_configuration(config)
+        return cls._from_scoped_configuration(config)
+
+    @classmethod
+    @abstractmethod
+    def _from_scoped_configuration(cls, config: Configuration) -> Self: ...
+
+    @classmethod
+    @abstractmethod
+    def _from_root_configuration(cls, config: Configuration) -> Self: ...

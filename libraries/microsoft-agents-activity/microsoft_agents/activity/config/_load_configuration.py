@@ -23,8 +23,6 @@ def load_configuration_from_env(
     local_vars = dict(env_vars)
 
     resolved = _resolve(local_vars, defaults or {})
-    config = Configuration(resolved)
-    _configure_logging(
-        config.get_section(_xpath("logging"), default=None) or Configuration()
-    )
+    config = Configuration(resolved, _is_root_config=True)
+    _configure_logging(config)
     return config

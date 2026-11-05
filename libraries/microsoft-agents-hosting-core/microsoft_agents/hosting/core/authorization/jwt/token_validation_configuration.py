@@ -6,13 +6,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from microsoft_agents.activity.config import Configuration, _Configurable, xpath
+from microsoft_agents.activity.config import Configuration, _RootConfigurable, xpath
 
 from .jwt_connection_settings import JwtConnectionSettings
 
 
 @dataclass(frozen=True)
-class TokenValidationConfiguration(_Configurable):
+class TokenValidationConfiguration(_RootConfigurable):
 
     tenant_id: str | None = None
     audiences: list[str] = field(default_factory=list)
@@ -21,16 +21,21 @@ class TokenValidationConfiguration(_Configurable):
     connections: dict[str, JwtConnectionSettings] = field(default_factory=dict)
 
     @classmethod
-    def _from_configuration(
+    def _from_root_configuration(cls, configuration: Configuration) -> TokenValidationConfiguration:
+        return cls._from_scoped_configuration(
+            configuration.get_section(
+                xpath("token_validation"), default=Configuration()
+            )
+        )
+
+    @classmethod
+    def _from_scoped_configuration(
         cls, configuration: Configuration
     ) -> TokenValidationConfiguration:
 
-        token_validation = configuration.get_section(
-            xpath("token_validation"), default=Configuration()
-        )
-        audiences = token_validation.get_str_list(xpath("audiences"))
-        tenant_id = token_validation.get_strn(xpath("tenant_id"))
-        anonymous_allowed = token_validation.get_booln(xpath("anonymous_allowed"))
+        audiences = configuration.get_str_list(xpath("audiences"))
+        tenant_id = configuration.get_strn(xpath("tenant_id"))
+        anonymous_allowed = configuration.get_booln(xpath("anonymous_allowed"))
 
         connections: dict[str, JwtConnectionSettings] = {}
         for name, conf in configuration.get_items(xpath("connections")):

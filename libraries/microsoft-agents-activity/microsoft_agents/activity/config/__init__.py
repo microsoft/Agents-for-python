@@ -2,7 +2,11 @@
 # Licensed under the MIT License.
 
 from ._load_configuration import load_configuration_from_env
-from .configuration import Configuration, _Configurable
+from .configuration import (
+    Configuration,
+    _Configurable,
+    _RootConfigurable
+)
 from ._configuration_protocol import _ConfigurationProtocol, _DictConfigurable
 from ._resolve import _resolve
 from ._utils import (
@@ -31,6 +35,7 @@ __all__ = [
     "_try_set",
     "_resolve",
     "_Configurable",
+    "_RootConfigurable",
     "_DictConfigurable",
     "coerce_bool",
     "coerce_int",

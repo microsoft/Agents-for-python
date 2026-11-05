@@ -3,8 +3,16 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Optional, Callable, Awaitable, cast
+from typing import (
+    Awaitable,
+    Callable,
+    cast,
+    Optional,
+    Mapping,
+)
 from dataclasses import dataclass
 
 from azure.core.credentials_async import AsyncTokenCredential
@@ -17,7 +25,6 @@ from microsoft_agents.activity import (
     TokenResponse,
 )
 from microsoft_agents.activity.activity_types import ActivityTypes
-from microsoft_agents.activity.config import Configuration, xpath, _get, _get_str
 
 from microsoft_agents.hosting.core.authorization._helpers import (
     _CallableTokenCredential,
@@ -37,6 +44,7 @@ from ._handlers import (
     _UserAuthorization,
     _AuthorizationHandler,
 )
+from .authorization_settings import AuthorizationSettings
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +63,6 @@ class _AuthInterceptResult:
     should_replay: bool
     continuation_activity: Activity | None = None
 
-
 class Authorization:
     """Class responsible for managing authorization flows."""
 
@@ -70,8 +77,8 @@ class Authorization:
         auth_handlers: dict[str, AuthHandlerSettings] | None = None,
         auto_sign_in: bool = False,
         *,
+        settings: Mapping | None = None,
         use_cache: bool = False,
-        config: Configuration | None = None,
         **kwargs,
     ):
         """
@@ -103,28 +110,10 @@ class Authorization:
 
         self._handlers = {}
 
-        auth_configuration = Configuration.from_mapping(config, **kwargs).get_section(
-            xpath("agent_application", "user_authorization"), default=Configuration()
-        )
+        auth_settings = AuthorizationSettings.from_mapping(settings, **kwargs)
 
-        if not auth_handlers:
-            # get from config
-            handlers_config = auth_configuration.get(xpath("handlers"), default={})
-            auth_handlers = {
-                handler_name: AuthHandlerSettings.from_mapping(
-                    dict(
-                        name=handler_name,
-                        auth_type=_get_str(config, *xpath("type"), default=""),
-                        **_get(config, *xpath("settings"), default={}),
-                    )
-                )
-                for handler_name, config in handlers_config.items()
-            }
-
-        self._handler_settings = auth_handlers
-        self._auto_sign_in = auto_sign_in or auth_configuration.get_bool(
-            xpath("auto_sign_in"), default=False
-        )
+        self._handler_settings = auth_handlers or auth_settings.handlers
+        self._auto_sign_in = auto_sign_in or auth_settings.auto_sign_in
 
         # operations default to the first handler if none specified
         if self._handler_settings:

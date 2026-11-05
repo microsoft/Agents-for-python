@@ -61,12 +61,12 @@ class AuthHandlerSettings(_Configurable):
     Interface defining an authorization handler for OAuth flows.
     """
 
-    name: str
-    title: str
-    text: str
-    abs_oauth_connection_name: str
-    obo_connection_name: str
-    auth_type: str
+    name: str = ""
+    title: str = ""
+    text: str = ""
+    abs_oauth_connection_name: str = ""
+    obo_connection_name: str = ""
+    auth_type: str = "userauthorization"
     scopes: list[str] = field(default_factory=list)
     _alt_blueprint_name: str | None = None
 
