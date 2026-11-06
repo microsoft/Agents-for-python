@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 import logging
-import json
 from os import environ, path
 import re
 
@@ -42,34 +41,36 @@ agents_sdk_config = load_configuration_from_env(environ)
 STORAGE = MemoryStorage()
 CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, settings=agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
+AUTH_HANDLER_IDS = ("GRAPH", "GITHUB", "MCS")
 
 
 @AGENT_APP.message(re.compile(r"^/(status|auth status|check status)", re.IGNORECASE))
 async def status(context: TurnContext, state: TurnState):
-    """
-    Internal method to check authorization status for all configured handlers.
-    Returns True if at least one handler has a valid token.
-    """
-    await context.send_activity(MessageFactory.text("Welcome to the auto-signin demo"))
-    tok_graph = await AGENT_APP.auth.get_token(context, "GRAPH")
-    tok_github = await AGENT_APP.auth.get_token(context, "GITHUB")
-    status_graph = tok_graph.token is not None
-    status_github = tok_github.token is not None
-    await context.send_activity(
-        MessageFactory.text(
-            f"Graph status: {'Connected' if status_graph else 'Not connected'}\n"
-            f"GitHub status: {'Connected' if status_github else 'Not connected'}"
+    """Report token availability without starting a sign-in flow."""
+    status_messages = []
+    for handler_id in AUTH_HANDLER_IDS:
+        token_response = await AGENT_APP.auth.get_token(context, handler_id)
+        connected = bool(token_response and token_response.token)
+        status_messages.append(
+            f"{handler_id}: {'Connected' if connected else 'Not connected'}"
         )
+    await context.send_activity(
+        MessageFactory.text("Authorization Status:\n" + "\n".join(status_messages))
     )
+
+
+@AGENT_APP.message("/login", auth_handlers=["GRAPH", "GITHUB"])
+async def login(context: TurnContext, state: TurnState) -> None:
+    await context.send_activity("You are signed in to Graph and GitHub.")
 
 
 @AGENT_APP.message("/logout")
 async def logout(context: TurnContext, state: TurnState) -> None:
-    await AGENT_APP.auth.sign_out(context, "GRAPH")
-    await AGENT_APP.auth.sign_out(context, "GITHUB")
+    for handler_id in AUTH_HANDLER_IDS:
+        await AGENT_APP.auth.sign_out(context, handler_id)
     await context.send_activity(MessageFactory.text("You have been logged out."))
 
 
@@ -78,13 +79,15 @@ async def logout(context: TurnContext, state: TurnState) -> None:
 )
 async def profile_request(context: TurnContext, state: TurnState) -> None:
     user_token_response = await AGENT_APP.auth.get_token(context, "GRAPH")
-    if user_token_response:
+    if user_token_response and user_token_response.token:
         user_info = await get_user_info(user_token_response.token)
         activity = MessageFactory.attachment(create_profile_card(user_info))
         await context.send_activity(activity)
     else:
         await context.send_activity(
-            MessageFactory.text('Token not available. Enter "login" to sign in.')
+            MessageFactory.text(
+                "Graph token not available. Send '/profile' to sign in again."
+            )
         )
 
 
@@ -93,38 +96,24 @@ async def profile_request(context: TurnContext, state: TurnState) -> None:
 )
 async def pull_requests(context: TurnContext, state: TurnState) -> None:
     user_token_response = await AGENT_APP.auth.get_token(context, "GITHUB")
-    if user_token_response and user_token_response is not None:
+    if user_token_response and user_token_response.token:
         gh_prof = await get_current_profile(user_token_response.token)
         await context.send_activity(
             MessageFactory.attachment(create_profile_card(gh_prof))
         )
 
-        # prs = await get_pull_requests("microsoft", "agents", user_token_response.token)
-        # as suggested by Copilot, using a public repository without SAML enforcement
         prs = await get_pull_requests(
             "octocat", "Hello-World", user_token_response.token
         )
+        if not prs:
+            await context.send_activity("No open pull requests found.")
         for pr in prs:
             card = create_pr_card(pr)
             await context.send_activity(MessageFactory.attachment(card))
     else:
-        token_response = await AGENT_APP.auth.begin_or_continue_flow(
-            context, state, "GITHUB"
+        await context.send_activity(
+            "GitHub token not available. Send '/prs' to sign in again."
         )
-        logger.warning(f"GitHub token: {json.dumps(token_response)}")
-        if token_response and token_response.token is not None:
-            await context.send_activity(
-                MessageFactory.text(f"GitHub token length: {len(token_response.token)}")
-            )
-        else:
-            await context.send_activity(
-                MessageFactory.text("Failed to obtain GitHub token.")
-            )
-
-
-@AGENT_APP.activity(ActivityTypes.invoke)
-async def invoke(context: TurnContext, state: TurnState) -> None:
-    await context.send_activity(MessageFactory.text("Invoke activity received."))
 
 
 @AGENT_APP.activity(ActivityTypes.message)
@@ -132,6 +121,15 @@ async def message(context: TurnContext, state: TurnState) -> None:
     await context.send_activity(
         MessageFactory.text(f"You said: {context.activity.text}")
     )
+
+
+@AGENT_APP.error
+async def on_error(context: TurnContext, error: Exception) -> None:
+    logger.error(
+        "Authorization request failed",
+        exc_info=(type(error), error, error.__traceback__),
+    )
+    await context.send_activity("The agent encountered an error. Please try again.")
 
 
 # Create FastAPI app

@@ -4,7 +4,7 @@
 import pytest
 
 from microsoft_agents.activity import load_configuration_from_env
-from microsoft_agents.activity.config import Configuration, _resolve
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import AgentAuthConfiguration
 from microsoft_agents.hosting.core.authorization.jwt import (
     JwtTokenValidator,
@@ -30,7 +30,8 @@ def _root(**token_validation):
                 },
             },
             "token_validation": token_validation,
-        }
+        },
+        _is_root_config=True,
     )
 
 
@@ -44,6 +45,33 @@ def test_absent_policy_uses_service_connection_and_all_connection_audiences():
     assert policy.default_jwt_settings is policy.connections["SERVICE_CONNECTION"]
     assert policy.get_connection_settings("MCS-CLIENT") is policy.connections["MCS"]
     assert policy.get_connection_settings("unmatched") is policy.default_jwt_settings
+
+
+@pytest.mark.parametrize("source", ["mapping", "configuration", "section", "bound"])
+def test_scoped_policy_and_bound_settings_initialization(source):
+    values = {
+        "audiences": "explicit-client other-client",
+        "tenant_id": "explicit-tenant",
+        "anonymous_allowed": "true",
+    }
+    bound = TokenValidationConfiguration(
+        audiences=["explicit-client", "other-client"],
+        tenant_id="explicit-tenant",
+        anonymous_allowed=True,
+    )
+    if source == "mapping":
+        policy = TokenValidationConfiguration.from_mapping(values)
+    else:
+        config = {
+            "configuration": Configuration(values),
+            "section": _root(**values).get_section("token_validation"),
+            "bound": bound,
+        }[source]
+        policy = JwtTokenValidator(config).config
+
+    assert policy == bound
+    if source == "bound":
+        assert policy is bound
 
 
 @pytest.mark.parametrize(
@@ -203,16 +231,14 @@ async def test_empty_configuration_rejects_tokens_without_jwks_lookup(monkeypatc
 def test_normalized_environment_policy_overrides_service_defaults(
     audience_config, expected
 ):
-    config = Configuration(
-        _resolve(
-            {
-                **audience_config,
-                "TOKENVALIDATION__TENANTID": "explicit-tenant",
-                "TOKENVALIDATION__ANONYMOUSALLOWED": "false",
-                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "service-client",
-                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__ANONYMOUSALLOWED": "true",
-            }
-        )
+    config = load_configuration_from_env(
+        {
+            **audience_config,
+            "TOKENVALIDATION__TENANTID": "explicit-tenant",
+            "TOKENVALIDATION__ANONYMOUSALLOWED": "false",
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "service-client",
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__ANONYMOUSALLOWED": "true",
+        }
     )
     policy = TokenValidationConfiguration.from_configuration(config)
     assert policy.audiences == expected
@@ -248,7 +274,9 @@ def test_no_service_connection_has_no_default_route_or_inherited_anonymous_acces
 )
 def test_invalid_configuration_reports_full_path(config, path, error_type):
     with pytest.raises(error_type) as error:
-        TokenValidationConfiguration.from_mapping(config)
+        TokenValidationConfiguration.from_configuration(
+            Configuration(config, _is_root_config=True)
+        )
     assert path in str(error.value)
     assert "invalid" not in str(error.value)
 
@@ -258,7 +286,9 @@ def test_invalid_configuration_reports_full_path(config, path, error_type):
 async def test_missing_routing_settings_reject_before_fetching_keys(
     monkeypatch, with_connection
 ):
-    config = Configuration(token_validation={"audiences": ["explicit-client"]})
+    config = Configuration(
+        token_validation={"audiences": ["explicit-client"]}, _is_root_config=True
+    )
     if with_connection:
         config["connections"] = {"MCS": {"settings": {"client_id": "mcs-client"}}}
     validator = JwtTokenValidator(config)

@@ -214,7 +214,8 @@ def test_modern_configuration_binding_does_not_use_deprecated_apis():
     with warnings.catch_warnings(record=True) as captured:
         warnings.simplefilter("always", DeprecationWarning)
         config = Configuration(
-            connections={"SERVICE_CONNECTION": {"settings": {"client_id": "client"}}}
+            connections={"SERVICE_CONNECTION": {"settings": {"client_id": "client"}}},
+            _is_root_config=True,
         )
         manager = ConnectionManager(ConfiguredProvider, config=config)
         policy = JwtTokenValidator(config).config

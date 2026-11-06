@@ -79,12 +79,22 @@ class JwtTokenValidator:
 
     _jwk_client_manager = _JwkClientManager()
 
-    def __init__(self, configuration: AgentAuthConfiguration | Configuration):
-        """Initializes the JwtTokenValidator with the given configuration.
+    def __init__(
+        self,
+        configuration: (
+            AgentAuthConfiguration | Configuration | TokenValidationConfiguration
+        ),
+    ):
+        """Initialize JWT validation from configuration or a bound policy.
 
-        :param configuration: Application Configuration used to bind
-            TokenValidationConfiguration. AgentAuthConfiguration is accepted
-            through a legacy conversion path.
+        Root Configuration input binds ``token_validation`` plus sibling
+        ``connections``. Scoped input binds policy fields only, without routing
+        defaults. A bound TokenValidationConfiguration is reused unchanged and
+        can supply connection routing directly.
+
+        :param configuration: Root/scoped Configuration, bound
+            TokenValidationConfiguration, or legacy AgentAuthConfiguration.
+            Legacy input is converted into the same policy and routing model.
         """
         if isinstance(configuration, AgentAuthConfiguration):
             self._config = TokenValidationConfiguration(

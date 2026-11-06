@@ -3,8 +3,18 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Optional, Callable, Awaitable, cast
+import warnings
+
+from typing import (
+    Awaitable,
+    Callable,
+    cast,
+    Optional,
+    Mapping,
+)
 from dataclasses import dataclass
 
 from azure.core.credentials_async import AsyncTokenCredential
@@ -16,8 +26,8 @@ from microsoft_agents.activity import (
     SignInConstants,
     TokenResponse,
 )
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.activity.activity_types import ActivityTypes
-from microsoft_agents.activity.config import Configuration, xpath, _get, _get_str
 
 from microsoft_agents.hosting.core.authorization._helpers import (
     _CallableTokenCredential,
@@ -28,7 +38,7 @@ from ...storage import Storage
 from ...authorization import Connections
 from ..._oauth import _FlowStateTag
 from ..state import TurnState
-from .auth_handler import AuthHandler
+from .auth_handler import AuthHandlerSettings
 from ._sign_in_state import _SignInState
 from ._sign_in_response import _SignInResponse
 from ._handlers import (
@@ -37,6 +47,7 @@ from ._handlers import (
     _UserAuthorization,
     _AuthorizationHandler,
 )
+from .authorization_settings import AuthorizationSettings
 
 logger = logging.getLogger(__name__)
 
@@ -67,26 +78,40 @@ class Authorization:
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handlers: dict[str, AuthHandler] | None = None,
+        auth_handlers: dict[str, AuthHandlerSettings] | None = None,
         auto_sign_in: bool = False,
         *,
+        settings: Configuration | AuthorizationSettings | None = None,
         use_cache: bool = False,
-        config: Configuration | None = None,
         **kwargs,
     ):
-        """
-        Creates a new instance of Authorization.
+        """Create authorization flows from explicit or configured settings.
 
-        Handlers defined in the configuration (passed in via kwargs) will be used
-        only if auth_handlers is empty or None.
+        Prefer settings containing a root Configuration from
+        ``load_configuration_from_env``, a scoped authorization section/mapping,
+        or a bound AuthorizationSettings instance. Root input reads
+        ``agent_application::user_authorization``; scoped input reads
+        ``handlers`` and ``auto_sign_in`` directly.
+
+        A nonempty auth_handlers mapping replaces configured handlers. Otherwise
+        the handlers from settings are used, with the first handler as the
+        default. Omitting all configuration creates an instance with no handlers.
 
         :param storage: The storage system to use for state management.
         :type storage: :class:`microsoft_agents.hosting.core.storage.Storage`
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections`
-        :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`], Optional
-        :raises ValueError: When storage is None or no auth handlers provided.
+        :param auth_handlers: Optional explicit handler IDs and their settings.
+        :type auth_handlers: dict[str, AuthHandlerSettings] | None
+        :param auto_sign_in: Enable automatic sign-in. False defers to the value
+            in settings; it does not override a configured True.
+        :param settings: Root/scoped configuration or bound authorization settings.
+            When supplied, deprecated kwargs are ignored rather than merged.
+        :param use_cache: Retained for compatibility; currently has no effect.
+        :param kwargs: Deprecated unpacked root configuration. Emits a
+            DeprecationWarning when nonempty, even if settings takes precedence.
+        :raises ValueError: If storage is missing or a selected handler has an
+            unsupported authorization type or invalid settings.
         """
         if not storage:
             raise ValueError("Storage is required for Authorization")
@@ -101,28 +126,31 @@ class Authorization:
             Callable[[TurnContext, TurnState, str | None], Awaitable[None]]
         ] = None
 
+        if kwargs:
+            warnings.warn(
+                "Passing configuration via kwargs is deprecated. "
+                "Use the 'settings' parameter instead.",
+                DeprecationWarning,
+            )
+            if settings is not None:
+                logger.warning(
+                    "Both 'settings' and 'kwargs' are provided. 'kwargs' will be ignored in favor of 'settings'."
+                )
+
+        auth_settings: AuthorizationSettings
+        if settings is None:
+            auth_settings = AuthorizationSettings.from_configuration(
+                Configuration(kwargs, _is_root_config=True)
+            )
+        elif isinstance(settings, Mapping):
+            auth_settings = AuthorizationSettings.from_mapping(settings)
+        elif isinstance(settings, AuthorizationSettings):
+            auth_settings = settings
+
         self._handlers = {}
 
-        auth_configuration = Configuration.from_mapping(config, **kwargs).get_section(
-            xpath("agent_application", "user_authorization"), default=Configuration()
-        )
-
-        if not auth_handlers:
-            # get from config
-            handlers_config = auth_configuration.get(xpath("handlers"), default={})
-            auth_handlers = {
-                handler_name: AuthHandler(
-                    name=handler_name,
-                    auth_type=_get_str(config, *xpath("type"), default=""),
-                    **_get(config, *xpath("settings"), default={}),
-                )
-                for handler_name, config in handlers_config.items()
-            }
-
-        self._handler_settings = auth_handlers
-        self._auto_sign_in = auto_sign_in or auth_configuration.get_bool(
-            xpath("auto_sign_in"), default=False
-        )
+        self._handler_settings = auth_handlers or auth_settings.handlers
+        self._auto_sign_in = auto_sign_in or auth_settings.auto_sign_in
 
         # operations default to the first handler if none specified
         if self._handler_settings:
@@ -136,17 +164,17 @@ class Authorization:
         it initializes an instance of each variant that is referenced.
 
         :param auth_handlers: A dictionary of auth handler configurations.
-        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`]
+        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandlerSettings`]
         """
-        for name, auth_handler in self._handler_settings.items():
-            auth_type = auth_handler.auth_type
+        for name, settings in self._handler_settings.items():
+            auth_type = settings.auth_type.lower()
             if auth_type not in AUTHORIZATION_TYPE_MAP:
                 raise ValueError(f"Auth type {auth_type} not recognized.")
 
             self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
                 connection_manager=self._connection_manager,
-                auth_handler=auth_handler,
+                settings=settings,
             )
 
     @property

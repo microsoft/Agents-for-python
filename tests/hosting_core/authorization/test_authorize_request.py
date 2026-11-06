@@ -7,6 +7,7 @@ from weakref import ref
 
 import pytest
 
+from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core.authorization import (
     AgentAuthConfiguration,
@@ -100,6 +101,7 @@ async def test_root_configuration_anonymous_policy_overrides_service_connection(
             }
         },
         token_validation={"anonymous_allowed": anonymous_allowed},
+        _is_root_config=True,
     )
     result = await _authorize_request(None, config)
     if anonymous_allowed:
@@ -111,10 +113,16 @@ async def test_root_configuration_anonymous_policy_overrides_service_connection(
 
 
 @pytest.mark.asyncio
-async def test_root_configuration_authorizes_signed_token(monkeypatch):
-    config = Configuration(
-        connections={"SERVICE_CONNECTION": {"settings": {"client_id": "client"}}}
+@pytest.mark.parametrize("source", ["environment", "copy", "fork"])
+async def test_root_configuration_authorizes_signed_token(monkeypatch, source):
+    root = load_configuration_from_env(
+        {"CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "client"}
     )
+    config = {
+        "environment": root,
+        "copy": Configuration(root),
+        "fork": Configuration.from_config(root, extra=True),
+    }[source]
     private_key, public_key = generate_rsa_keypair()
 
     async def get_signing_key(uri, header):
@@ -131,13 +139,22 @@ async def test_root_configuration_authorizes_signed_token(monkeypatch):
     assert result.claims["aud"] == "client"
     assert result.allow_anonymous is False
 
+    rejected = await _authorize_request(
+        "Bearer " + make_signed_jwt(private_key, {"aud": "unconfigured-client"}),
+        config,
+    )
+    assert isinstance(rejected, HttpResponse)
+    assert rejected.status_code == 401
+
 
 def test_validator_cache_reuses_same_owner_and_isolates_different_owners():
     class Owner:
         pass
 
     first_owner, second_owner = Owner(), Owner()
-    config = Configuration(token_validation={"anonymous_allowed": True})
+    config = Configuration(
+        token_validation={"anonymous_allowed": True}, _is_root_config=True
+    )
     resolve = _authorize_request_module._resolve_token_validator
     first = resolve(config, first_owner)
     assert resolve(config, first_owner) is first

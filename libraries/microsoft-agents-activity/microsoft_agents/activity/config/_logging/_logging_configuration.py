@@ -7,10 +7,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Mapping
+from typing_extensions import Self
 
 from microsoft_agents.activity.errors import configuration_errors
 
-from ..configuration import Configuration, _Configurable
+from ..configuration import Configuration, _RootConfigurable
 from .._utils import _xpath
 from ._constants import _NAME_TO_LEVEL
 
@@ -35,13 +36,23 @@ class _LogLevelEntry:
 
 
 @dataclass(frozen=True)
-class _LoggingConfiguration(_Configurable):
-    """Configuration class for logging levels."""
+class _LoggingConfiguration(_RootConfigurable):
+    """Bind namespace log levels from root configuration or a logging section.
+
+    Root input reads ``logging::log_level``; scoped input reads ``log_level``
+    directly. Missing entries produce no level overrides.
+    """
 
     log_levels: list[_LogLevelEntry]
 
     @classmethod
-    def _from_configuration(cls, config: Configuration) -> _LoggingConfiguration:
+    def _from_root_configuration(cls, config: Configuration) -> _LoggingConfiguration:
+        return cls._from_scoped_configuration(
+            config.get_section(_xpath("logging"), default=Configuration())
+        )
+
+    @classmethod
+    def _from_scoped_configuration(cls, config: Configuration) -> _LoggingConfiguration:
 
         raw_log_levels = config.get(_xpath("log_level"), default={})
         if not isinstance(raw_log_levels, Mapping):

@@ -103,6 +103,8 @@ def test_load_configuration_from_env():
     input_dict = create_env_var_dict(ENV_RAW)
     config = load_configuration_from_env(input_dict)
     assert config == ENV_DICT
+    assert config.is_root_config is True
+    assert config.get_section("CONNECTIONS").is_root_config is False
 
 
 def test_load_configuration_from_read_only_mapping():
@@ -111,12 +113,14 @@ def test_load_configuration_from_read_only_mapping():
     config = load_configuration_from_env(input_mapping)
 
     assert config == ENV_DICT
+    assert config.is_root_config is True
 
 
 def test_load_configuration_from_empty_mapping():
     config = load_configuration_from_env({})
 
     assert config == {}
+    assert config.is_root_config is True
 
 
 def test_environment_values_override_defaults_and_preserve_custom_sections():
@@ -139,6 +143,7 @@ def test_environment_values_override_defaults_and_preserve_custom_sections():
         "TENANTID": "tenant",
     }
     assert config["CUSTOM"] == {"ENABLED": "false"}
+    assert config.is_root_config is True
     assert (
         defaults["CONNECTIONS"]["SERVICE_CONNECTION"]["SETTINGS"]["CLIENTID"]
         == "default-client"

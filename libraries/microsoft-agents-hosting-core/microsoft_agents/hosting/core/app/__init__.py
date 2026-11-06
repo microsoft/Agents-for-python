@@ -18,6 +18,7 @@ from ._type_defs import RouteHandler, RouteSelector, StateT
 from .oauth import (
     Authorization,
     AuthHandler,
+    AuthHandlerSettings,
     AgenticUserAuthorization,
 )
 
@@ -44,7 +45,6 @@ __all__ = [
     "InputFile",
     "InputFileDownloader",
     "Query",
-    "Route",
     "RouteRank",
     "RouteHandler",
     "TypingChannelStrategy",
@@ -58,9 +58,10 @@ __all__ = [
     "TurnState",
     "TempState",
     "Authorization",
-    "AuthHandler",
+    "AuthHandlerSettings",
     "AgenticUserAuthorization",
     # Proactive
+    "AuthHandler",
     "Conversation",
     "ConversationBuilder",
     "ConversationReferenceBuilder",
