@@ -502,7 +502,7 @@ class Configuration(dict, _ConfigurationProtocol):
             scopes = scopes.replace(",", " ")
             lst = scopes.strip().split()
             return [s for s in lst if s]
-        return scopes
+        return list(scopes)
 
 
 class _Configurable(ABC):

@@ -5,7 +5,7 @@ This folder contains end-to-end samples that resemble production “app-style”
 ## Authorization sample
 
 `authorization_agent.py` loads authorization handlers from the environment through
-`Authorization(config=agents_sdk_config)`. Status and logout use the fixed handler
+`Authorization(settings=agents_sdk_config)`. Status and logout use the fixed handler
 names `GRAPH`, `GITHUB`, and `MCS` defined in `env.TEMPLATE`.
 
 Copy `env.TEMPLATE` to `.env`, configure the Azure Bot OAuth connections and any
