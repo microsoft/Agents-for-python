@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Configuration loading and typed settings binding.
+
+``load_configuration_from_env`` returns a root ``Configuration``. Plain mappings
+and extracted sections are scoped inputs; ``_RootConfigurable`` distinguishes
+these forms using ``Configuration.is_root_config``, not their contents or paths.
+"""
+
 from ._load_configuration import load_configuration_from_env
 from .configuration import Configuration, _Configurable, _RootConfigurable
 from ._configuration_protocol import _ConfigurationProtocol, _DictConfigurable

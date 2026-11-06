@@ -22,6 +22,17 @@ A more complex agent that demonstrates user authentication and authorization usi
 - Authentication status checking
 - Sign-out functionality
 
+This version loads authorization handlers from the environment through
+`Authorization(config=agents_sdk_config)`. Status and logout use the fixed handler
+names `GRAPH`, `GITHUB`, and `MCS` defined in `env.TEMPLATE`.
+
+Copy `env.TEMPLATE` to `.env` and configure the OAuth connections, then use `/login`,
+`/status`, `/profile`, `/prs`, and `/logout`. Protected routes start sign-in
+automatically; the SDK handles OAuth callbacks and verification codes. `/login`
+signs in to Graph and GitHub. `/status` does not start sign-in, and `/logout` signs
+out of all three handlers. `/prs` displays the GitHub profile and pull requests
+from `octocat/Hello-World`.
+
 ## Setup
 
 1. **Install dependencies:**

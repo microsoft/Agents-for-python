@@ -19,6 +19,21 @@ from .auth_handler import AuthHandlerSettings
 
 @dataclass(frozen=True)
 class AuthorizationSettings(_RootConfigurable):
+    """Application-level OAuth options and named handler definitions.
+
+    Root configuration reads ``agent_application::user_authorization``. Scoped
+    configuration reads ``auto_sign_in`` and ``handlers`` directly. A missing
+    section binds the defaults: no handlers and automatic sign-in disabled.
+
+    Construct this dataclass directly with AuthHandlerSettings values, or bind
+    configuration with ``from_mapping`` / ``from_configuration``. In mapped
+    configuration, each handler has a ``settings`` mapping and an optional
+    ``type`` at handler level or inside ``settings``. The handler key supplies
+    its name.
+
+    :param auto_sign_in: Whether to attempt sign-in automatically before routes.
+    :param handlers: Handler IDs mapped to bound AuthHandlerSettings instances.
+    """
 
     auto_sign_in: bool = False
     handlers: dict[str, AuthHandlerSettings] = field(default_factory=dict)

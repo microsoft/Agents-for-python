@@ -38,21 +38,29 @@ class _AuthorizationHandler(ABC):
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
-        """
-        Creates a new instance of Authorization.
+        """Initialize an authorization strategy from handler settings.
+
+        A nonempty settings mapping is bound through AuthHandlerSettings;
+        an AuthHandlerSettings instance is reused. Settings take precedence
+        over the deprecated auth_handler and auth_handler_settings arguments.
+        The handler ID comes from auth_handler_id, or from the settings name.
 
         :param storage: The storage system to use for state management.
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param settings: Optional settings for the auth handler.
+        :param settings: Preferred handler settings, accepted positionally or
+            by keyword.
         :type settings: Mapping | AuthHandlerSettings | None
-        :param auth_handler_id: Optional ID of the auth handler to use.
+        :param auth_handler_id: Optional override of the settings name.
         :type auth_handler_id: str | None
-        :param auth_handler: Optional auth handler settings.
+        :param auth_handler: Deprecated bound settings; use settings instead.
         :type auth_handler: AuthHandlerSettings | None
-        :param auth_handler_settings: Optional dictionary of auth handler settings.
+        :param auth_handler_settings: Deprecated mapping; use settings instead.
         :type auth_handler_settings: dict | None
+        :param kwargs: Accepted for compatibility, not used to bind settings.
+        :raises ValueError: If storage, nonempty settings, or a handler ID is
+            missing.
         """
         if not storage:
             raise ValueError("Storage is required for Authorization")

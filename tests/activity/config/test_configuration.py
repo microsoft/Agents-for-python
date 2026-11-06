@@ -26,7 +26,8 @@ def test_scope_strings_use_shared_whitespace_and_comma_normalization(value, expe
 
 def test_section_uses_matched_alias_and_nested_path():
     config = Configuration(
-        {"Connections": {"Service": {"SETTINGS": {"Enabled": True}}}}
+        {"Connections": {"Service": {"SETTINGS": {"Enabled": True}}}},
+        _is_root_config=True,
     )
 
     connection = config.get_section(["CONNECTIONS", "Connections"])
@@ -34,6 +35,8 @@ def test_section_uses_matched_alias_and_nested_path():
 
     assert connection._base_path == "Connections"
     assert settings._base_path == "Connections::Service::SETTINGS"
+    assert connection.is_root_config is False
+    assert settings.is_root_config is False
     assert settings.get_bool("Enabled") is True
 
 
@@ -49,11 +52,42 @@ def test_existing_configuration_section_is_rebased_without_modifying_original():
     assert original._base_path == "Previous"
 
 
-def test_from_mapping_reuses_configuration_when_base_path_is_unchanged():
-    original = Configuration({"Enabled": True}, _base_path="Service")
+@pytest.mark.parametrize("is_root", [False, True])
+def test_from_mapping_reuses_configuration_when_base_path_is_unchanged(is_root):
+    original = Configuration(
+        {"Enabled": True}, _base_path="Service", _is_root_config=is_root
+    )
 
     assert Configuration.from_mapping(original) is original
     assert Configuration.from_mapping(original, _base_path="Service") is original
+    assert Configuration.from_mapping(original, _is_root_config=is_root) is original
+
+
+@pytest.mark.parametrize("is_root", [False, True])
+@pytest.mark.parametrize("values", [{}, {"Enabled": True}])
+def test_constructor_preserves_root_identity_when_copying_configuration(
+    is_root, values
+):
+    original = Configuration(values, _is_root_config=is_root)
+
+    copy = Configuration(original)
+
+    assert copy is not original
+    assert copy == values
+    assert copy.is_root_config is is_root
+
+
+@pytest.mark.parametrize("factory", [Configuration, Configuration.from_mapping])
+@pytest.mark.parametrize("is_root", [False, True])
+def test_explicit_root_override_does_not_change_original(factory, is_root):
+    original = Configuration({"Enabled": True}, _is_root_config=is_root)
+
+    copy = factory(original, _is_root_config=not is_root)
+
+    assert copy is not original
+    assert copy == original
+    assert copy.is_root_config is not is_root
+    assert original.is_root_config is is_root
 
 
 def test_from_mapping_can_rebase_to_root():
@@ -238,26 +272,33 @@ def test_configuration_is_a_dictionary_with_positional_default_lookup():
     assert config.get(["Missing", "Enabled"], fallback) is False
 
 
-def test_from_mapping_merges_defaults_without_mutating_inputs():
-    primary = {"Settings": {"Enabled": False}}
+@pytest.mark.parametrize("is_root", [False, True])
+def test_from_mapping_merges_defaults_without_mutating_inputs(is_root):
+    primary = Configuration({"Settings": {"Enabled": False}}, _is_root_config=is_root)
     defaults = {"Settings": {"Enabled": True, "Count": 3}}
 
     config = Configuration.from_mapping(primary, **defaults)
     config["Settings"]["Count"] = 4
 
     assert config.get_bool("Settings::Enabled") is False
+    assert config.is_root_config is is_root
     assert primary == {"Settings": {"Enabled": False}}
     assert defaults == {"Settings": {"Enabled": True, "Count": 3}}
 
 
-def test_from_config_forks_top_level_values_and_preserves_base_path():
-    original = Configuration({"Enabled": False}, _base_path="Service")
+@pytest.mark.parametrize("is_root", [False, True])
+def test_from_config_forks_top_level_values_and_preserves_base_path(is_root):
+    original = Configuration(
+        {"Enabled": False}, _base_path="Service", _is_root_config=is_root
+    )
 
     fork = Configuration.from_config(original, Enabled=True, Count=3)
     fork["Enabled"] = True
 
     assert fork is not original
     assert fork._base_path == "Service"
+    assert fork.is_root_config is is_root
+    assert fork == {"Enabled": True, "Count": 3}
     assert fork["Count"] == 3
     assert original["Enabled"] is False
     assert "Count" not in original

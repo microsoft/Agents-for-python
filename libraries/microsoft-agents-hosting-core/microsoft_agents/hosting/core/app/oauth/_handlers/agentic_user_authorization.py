@@ -35,16 +35,26 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
-        """
-        Creates a new instance of Authorization.
+        """Create an agentic authorization strategy.
+
+        Prefer settings containing an AuthHandlerSettings instance or a mapping.
+        The bound settings also supply the optional alternate blueprint
+        connection name. Legacy settings arguments remain accepted but emit a
+        DeprecationWarning.
 
         :param storage: The storage system to use for state management.
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param auth_handler: Configuration for OAuth provider.
-        :type auth_handler: AuthHandler | None
-        :raises ValueError: When storage is None or no auth handlers provided.
+        :param settings: Handler settings, accepted positionally or by keyword.
+        :type settings: Mapping | AuthHandlerSettings | None
+        :param auth_handler_id: Optional override of the settings name.
+        :param auth_handler: Deprecated bound settings; use settings instead.
+        :type auth_handler: AuthHandlerSettings | None
+        :param auth_handler_settings: Deprecated mapping; use settings instead.
+        :param kwargs: Compatibility arguments forwarded to the base handler.
+        :raises ValueError: If storage, nonempty settings, or a handler ID is
+            missing.
         """
         super().__init__(
             storage,

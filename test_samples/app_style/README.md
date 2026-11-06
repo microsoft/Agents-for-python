@@ -2,6 +2,21 @@
 
 This folder contains end-to-end samples that resemble production “app-style” experiences built on the Microsoft 365 Agents Python SDK. The new proactive messaging sample shows how to start a Microsoft Teams conversation or send a proactive message to an existing one.
 
+## Authorization sample
+
+`authorization_agent.py` loads authorization handlers from the environment through
+`Authorization(config=agents_sdk_config)`. Status and logout use the fixed handler
+names `GRAPH`, `GITHUB`, and `MCS` defined in `env.TEMPLATE`.
+
+Copy `env.TEMPLATE` to `.env`, configure the Azure Bot OAuth connections and any
+OBO connection settings, then run `python authorization_agent.py`.
+
+Commands: `login`, `status`, `profile`, `github profile`, `all profiles`, `prs`,
+and `logout`. Protected routes start sign-in automatically; the SDK handles OAuth
+callbacks and verification codes. `login` signs in to Graph and GitHub. `status`
+does not start sign-in, and `logout` signs out of all three handlers. `prs` lists
+open pull requests from `octocat/Hello-World`.
+
 ## Proactive messaging sample
 
 `proactive_messaging_agent.py` hosts two HTTP endpoints:

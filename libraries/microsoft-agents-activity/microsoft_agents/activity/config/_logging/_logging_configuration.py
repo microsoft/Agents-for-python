@@ -37,7 +37,11 @@ class _LogLevelEntry:
 
 @dataclass(frozen=True)
 class _LoggingConfiguration(_RootConfigurable):
-    """Configuration class for logging levels."""
+    """Bind namespace log levels from root configuration or a logging section.
+
+    Root input reads ``logging::log_level``; scoped input reads ``log_level``
+    directly. Missing entries produce no level overrides.
+    """
 
     log_levels: list[_LogLevelEntry]
 

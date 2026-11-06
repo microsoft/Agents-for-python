@@ -57,8 +57,24 @@ def _create_kwargs(
 
 @dataclass
 class AuthHandlerSettings(_Configurable):
-    """
-    Interface defining an authorization handler for OAuth flows.
+    """Settings for one OAuth handler, independent of its runtime strategy.
+
+    Construct with typed field values, or use ``from_mapping`` to bind
+    configuration aliases such as ``AZUREBOTOAUTHCONNECTIONNAME`` and ``TYPE``.
+    Mapping binding normalizes the authorization type and accepts scopes as a
+    list or a comma/whitespace-separated string. Direct construction expects a
+    scope list.
+
+    :param name: Handler identifier; use the corresponding handlers-mapping key.
+    :param title: Sign-in card title.
+    :param text: Sign-in card text.
+    :param abs_oauth_connection_name: Azure Bot OAuth connection name.
+    :param obo_connection_name: SDK connection used for on-behalf-of exchange.
+    :param auth_type: UserAuthorization, AgenticUserAuthorization, or
+        ConnectorUserAuthorization. Authorization selects these case-insensitively.
+    :param scopes: Default scopes for token acquisition or exchange.
+    :param _alt_blueprint_name: Optional alternate connection for agentic user
+        token acquisition.
     """
 
     name: str = ""
@@ -84,10 +100,15 @@ class AuthHandlerSettings(_Configurable):
 
 
 class AuthHandler(AuthHandlerSettings):
-    """Deprecated. Use AuthHandlerSettings instead."""
+    """Deprecated compatibility constructor for AuthHandlerSettings.
+
+    Accepts legacy positional fields and configuration keyword aliases, and
+    emits a DeprecationWarning. Use AuthHandlerSettings for typed construction
+    or ``AuthHandlerSettings.from_mapping`` for configuration binding.
+    """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the deprecated AuthHandler class."""
+        """Bind legacy arguments and emit the constructor deprecation warning."""
 
         warnings.warn(
             "AuthHandler is deprecated. Please use AuthHandlerSettings instead.",

@@ -85,11 +85,16 @@ class JwtTokenValidator:
             AgentAuthConfiguration | Configuration | TokenValidationConfiguration
         ),
     ):
-        """Initializes the JwtTokenValidator with the given configuration.
+        """Initialize JWT validation from configuration or a bound policy.
 
-        :param configuration: Application Configuration used to bind
-            TokenValidationConfiguration. AgentAuthConfiguration is accepted
-            through a legacy conversion path.
+        Root Configuration input binds ``token_validation`` plus sibling
+        ``connections``. Scoped input binds policy fields only, without routing
+        defaults. A bound TokenValidationConfiguration is reused unchanged and
+        can supply connection routing directly.
+
+        :param configuration: Root/scoped Configuration, bound
+            TokenValidationConfiguration, or legacy AgentAuthConfiguration.
+            Legacy input is converted into the same policy and routing model.
         """
         if isinstance(configuration, AgentAuthConfiguration):
             self._config = TokenValidationConfiguration(

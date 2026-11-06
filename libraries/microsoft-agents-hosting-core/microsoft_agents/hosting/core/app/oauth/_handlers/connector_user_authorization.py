@@ -39,19 +39,26 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
-        """
-        Creates a new instance of ConnectorUserAuthorization.
+        """Create a connector authorization strategy.
+
+        Prefer settings containing an AuthHandlerSettings instance or a mapping.
+        Legacy settings arguments remain accepted but emit a DeprecationWarning.
 
         :param storage: The storage system to use for state management.
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param auth_handler: Configuration for OAuth provider.
-        :type auth_handler:     , Optional
-        :param auth_handler_id: Optional ID of the auth handler.
-        :type auth_handler_id: str, Optional
-        :param auth_handler_settings: Optional settings dict for the auth handler.
-        :type auth_handler_settings: dict, Optional
+        :param settings: Handler settings, accepted positionally or by keyword.
+        :type settings: Mapping | AuthHandlerSettings | None
+        :param auth_handler_id: Optional override of the settings name.
+        :type auth_handler_id: str | None
+        :param auth_handler: Deprecated bound settings; use settings instead.
+        :type auth_handler: AuthHandlerSettings | None
+        :param auth_handler_settings: Deprecated mapping; use settings instead.
+        :type auth_handler_settings: dict | None
+        :param kwargs: Compatibility arguments forwarded to the base handler.
+        :raises ValueError: If storage, nonempty settings, or a handler ID is
+            missing.
         """
         super().__init__(
             storage,

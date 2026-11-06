@@ -5,6 +5,7 @@ import logging
 
 import pytest
 
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.activity.config._logging._logging_configuration import (
     _LoggingConfiguration,
 )
@@ -12,6 +13,25 @@ from microsoft_agents.activity.config._logging._logging_configuration import (
 
 def test_missing_logging_configuration_has_no_level_entries():
     assert _LoggingConfiguration.from_mapping({}).log_levels == []
+
+
+@pytest.mark.parametrize("source", ["root", "section", "mapping"])
+def test_root_and_scoped_logging_configuration_bind_the_same_settings(source):
+    root = Configuration(
+        {
+            "logging": {"log_level": {"My.Namespace": "debug"}},
+            "log_level": {"Wrong.Namespace": "error"},
+        },
+        _is_root_config=True,
+    )
+    section = root.get_section("logging")
+    config = {"root": root, "section": section, "mapping": dict(section)}[source]
+
+    settings = _LoggingConfiguration.from_mapping(config)
+
+    assert [(entry.namespace, entry.level) for entry in settings.log_levels] == [
+        ("my.namespace", logging.DEBUG)
+    ]
 
 
 @pytest.mark.parametrize("key", ["log_level", "LOG_LEVEL", "LOGLEVEL"])

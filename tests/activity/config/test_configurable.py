@@ -45,7 +45,13 @@ def test_from_configuration_reuses_bound_instances():
     assert ApplicationSettings.from_configuration(settings) is settings
 
 
-@pytest.mark.parametrize("value", [{}, None, "invalid", 3])
+def test_from_configuration_none_binds_defaults():
+    assert ApplicationSettings.from_configuration(None) == ApplicationSettings(
+        enabled=False, count=0
+    )
+
+
+@pytest.mark.parametrize("value", [{}, "invalid", 3])
 def test_from_configuration_rejects_unbound_values(value):
     with pytest.raises(TypeError, match="ApplicationSettings"):
         ApplicationSettings.from_configuration(value)

@@ -82,8 +82,11 @@ class ApplicationOptions:
 
     authorization_handlers: Optional[dict[str, AuthHandlerSettings]] = None
     """
-    Optional. Authorization handler for OAuth flows.
-    If not provided, no OAuth flows will be supported.
+    Optional mapping of OAuth handler IDs to AuthHandlerSettings.
+    A nonempty mapping overrides configured handlers when AgentApplication
+    creates its Authorization instance. Otherwise handlers may be bound from
+    application configuration. Prefer AuthHandlerSettings over the deprecated
+    AuthHandler constructor.
     """
 
     proactive: Optional[ProactiveOptions] = None

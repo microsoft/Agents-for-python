@@ -1,5 +1,6 @@
 import pytest
 import jwt
+import warnings
 
 from typing import Optional
 
@@ -19,6 +20,9 @@ from microsoft_agents.hosting.core.app.oauth import (
     Authorization,
     AgenticUserAuthorization,
     ConnectorUserAuthorization,
+)
+from microsoft_agents.hosting.core.app.oauth.authorization_settings import (
+    AuthorizationSettings,
 )
 
 from microsoft_agents.hosting.core._oauth import _FlowStateTag
@@ -235,7 +239,9 @@ class TestAuthorizationSetup(TestEnv):
             ("ConnectorUserAuthorization", ConnectorUserAuthorization),
         ],
     )
-    @pytest.mark.parametrize("config_argument", ["config", "kwargs"])
+    @pytest.mark.parametrize(
+        "config_argument", ["root", "section", "mapping", "bound", "kwargs"]
+    )
     @pytest.mark.parametrize("type_in_settings", [False, True])
     def test_init_from_configuration(
         self,
@@ -263,19 +269,35 @@ class TestAuthorizationSetup(TestEnv):
         config = Configuration(
             {
                 "AGENTAPPLICATION": {
-                    "USERAUTHORIZATION": {"HANDLERS": {"graph": handler_config}}
+                    "USERAUTHORIZATION": {
+                        "HANDLERS": {"graph": handler_config},
+                        "AUTOSIGNIN": "true",
+                    }
                 }
-            }
+            },
+            _is_root_config=True,
         )
 
-        auth = (
-            Authorization(storage, connection_manager, config=config)
-            if config_argument == "config"
-            else Authorization(storage, connection_manager, **config)
-        )
+        if config_argument == "kwargs":
+            with pytest.warns(
+                DeprecationWarning, match="Passing configuration via kwargs"
+            ):
+                auth = Authorization(storage, connection_manager, **config)
+        else:
+            section = config.get_section("AGENTAPPLICATION::USERAUTHORIZATION")
+            settings = {
+                "root": config,
+                "section": section,
+                "mapping": dict(section),
+                "bound": AuthorizationSettings.from_configuration(config),
+            }[config_argument]
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", DeprecationWarning)
+                auth = Authorization(storage, connection_manager, settings=settings)
         handler = auth._resolve_handler("graph")
 
         assert isinstance(handler, handler_class)
+        assert auth._auto_sign_in is True
         assert handler._handler == AuthHandlerSettings(
             name="graph",
             title="Sign in",
@@ -286,6 +308,54 @@ class TestAuthorizationSetup(TestEnv):
             scopes=["User.Read", "Mail.Read"],
             _alt_blueprint_name="blueprint",
         )
+
+    @pytest.mark.parametrize("bound", [False, True])
+    def test_explicit_settings_ignore_legacy_kwargs(
+        self, connection_manager, storage, caplog, bound
+    ):
+        scoped = Configuration(
+            handlers={"graph": {"SETTINGS": {"SCOPES": "User.Read"}}},
+            auto_sign_in=False,
+        )
+        settings = AuthorizationSettings.from_configuration(scoped) if bound else scoped
+        legacy = {
+            "AGENTAPPLICATION": {
+                "USERAUTHORIZATION": {
+                    "AUTOSIGNIN": True,
+                    "HANDLERS": {"ignored": {"TYPE": "invalid"}},
+                }
+            }
+        }
+
+        with pytest.warns(DeprecationWarning, match="Passing configuration via kwargs"):
+            auth = Authorization(
+                storage, connection_manager, settings=settings, **legacy
+            )
+
+        assert list(auth._handlers) == ["graph"]
+        assert auth._resolve_handler("graph")._handler.scopes == ["User.Read"]
+        assert auth._auto_sign_in is False
+        assert "'kwargs' will be ignored in favor of 'settings'" in caplog.text
+
+    @pytest.mark.parametrize(
+        "settings",
+        [
+            None,
+            Configuration(unrelated=True, _is_root_config=True),
+            Configuration(),
+            AuthorizationSettings(),
+        ],
+        ids=["omitted", "missing-root-section", "empty-section", "bound-defaults"],
+    )
+    def test_empty_settings_do_not_emit_deprecation_warnings(
+        self, connection_manager, storage, settings
+    ):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            auth = Authorization(storage, connection_manager, settings=settings)
+
+        assert auth._handlers == {}
+        assert auth._auto_sign_in is False
 
     @pytest.mark.parametrize(
         "handler_class",
