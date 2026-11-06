@@ -41,16 +41,22 @@ class AuthorizationSettings(_RootConfigurable):
     @classmethod
     def _from_scoped_configuration(cls, config: Configuration) -> AuthorizationSettings:
         handlers_config = config.get(xpath("handlers"), default={})
-        handlers = {
-            handler_name: AuthHandlerSettings.from_mapping(
+        handlers = {}
+        for handler_name, subconfig in handlers_config.items():
+            extra = dict(_get(subconfig, *xpath("settings"), default={}))
+            if "name" in extra:
+                del extra["name"]
+            handler_type = _get_str(subconfig, *xpath("type"), default="")
+            if "auth_type" in extra:
+                nested_type = extra.pop("auth_type")
+                handler_type = handler_type or nested_type
+            handlers[handler_name] = AuthHandlerSettings.from_mapping(
                 dict(
                     name=handler_name,
-                    auth_type=_get_str(config, *xpath("type"), default=""),
-                    **_get(config, *xpath("settings"), default={}),
+                    auth_type=handler_type,
+                    **extra
                 )
             )
-            for handler_name, config in handlers_config.items()
-        }
         return AuthorizationSettings(
             auto_sign_in=config.get_bool(xpath("auto_sign_in"), default=False),
             handlers=handlers,
