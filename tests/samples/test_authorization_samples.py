@@ -15,7 +15,7 @@ from microsoft_agents.hosting.core import TurnState
 @pytest.fixture(params=["app_style", "fastapi"])
 def sample(request, monkeypatch, mocker):
     sample_path = (
-        Path(__file__).resolve().parents[3].joinpath("test_samples", request.param)
+        Path(__file__).resolve().parents[2].joinpath("test_samples", request.param)
     )
     env = {
         f"AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__{name}__SETTINGS__AZUREBOTOAUTHCONNECTIONNAME": name.lower()
