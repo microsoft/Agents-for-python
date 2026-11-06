@@ -14,7 +14,7 @@ from microsoft_agents.activity import TokenResponse
 from ....turn_context import TurnContext
 from ....storage import Storage
 from ....authorization import Connections
-from ..auth_handler import AuthHandlerSettings
+from ..auth_handler import AuthHandlerConfig
 from .._sign_in_response import _SignInResponse
 
 logger = logging.getLogger(__name__)
@@ -25,23 +25,23 @@ class _AuthorizationHandler(ABC):
 
     _storage: Storage
     _connection_manager: Connections
-    _handler: AuthHandlerSettings
+    _handler: AuthHandlerConfig
 
     def __init__(
         self,
         storage: Storage,
         connection_manager: Connections,
-        settings: Mapping | AuthHandlerSettings | None = None,
+        config: Mapping | AuthHandlerConfig | None = None,
         *,
         auth_handler_id: str | None = None,
-        auth_handler: AuthHandlerSettings | None = None,
+        auth_handler: AuthHandlerConfig | None = None,
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
         """Initialize an authorization strategy from handler settings.
 
-        A nonempty settings mapping is bound through AuthHandlerSettings;
-        an AuthHandlerSettings instance is reused. Settings take precedence
+        A nonempty settings mapping is bound through AuthHandlerConfig;
+        an AuthHandlerConfig instance is reused. Settings take precedence
         over the deprecated auth_handler and auth_handler_settings arguments.
         The handler ID comes from auth_handler_id, or from the settings name.
 
@@ -51,11 +51,11 @@ class _AuthorizationHandler(ABC):
         :type connection_manager: Connections
         :param settings: Preferred handler settings, accepted positionally or
             by keyword.
-        :type settings: Mapping | AuthHandlerSettings | None
+        :type settings: Mapping | AuthHandlerConfig | None
         :param auth_handler_id: Optional override of the settings name.
         :type auth_handler_id: str | None
         :param auth_handler: Deprecated bound settings; use settings instead.
-        :type auth_handler: AuthHandlerSettings | None
+        :type auth_handler: AuthHandlerConfig | None
         :param auth_handler_settings: Deprecated mapping; use settings instead.
         :type auth_handler_settings: dict | None
         :param kwargs: Accepted for compatibility, not used to bind settings.
@@ -64,9 +64,9 @@ class _AuthorizationHandler(ABC):
         """
         if not storage:
             raise ValueError("Storage is required for Authorization")
-        if not settings and not auth_handler and not auth_handler_settings:
+        if not config and not auth_handler and not auth_handler_settings:
             raise ValueError(
-                "At least one of settings, auth_handler, or auth_handler_settings is required."
+                "At least one of config, auth_handler, or auth_handler_settings is required."
             )
         if auth_handler or auth_handler_settings:
             warnings.warn(
@@ -78,11 +78,11 @@ class _AuthorizationHandler(ABC):
         self._storage = storage
         self._connection_manager = connection_manager
 
-        if settings:
-            if isinstance(settings, AuthHandlerSettings):
-                self._handler = settings
+        if config:
+            if isinstance(config, AuthHandlerConfig):
+                self._handler = config
             else:
-                self._handler = AuthHandlerSettings.from_mapping(settings)
+                self._handler = AuthHandlerConfig.from_mapping(config)
         elif auth_handler:  # deprecated
             self._handler = auth_handler
         else:  # deprecated
@@ -90,7 +90,7 @@ class _AuthorizationHandler(ABC):
                 raise ValueError(
                     "auth_handler_settings must be provided if auth_handler is None."
                 )
-            self._handler = AuthHandlerSettings.from_mapping(auth_handler_settings)
+            self._handler = AuthHandlerConfig.from_mapping(auth_handler_settings)
 
         self._id = auth_handler_id or self._handler.name
         if not self._id:

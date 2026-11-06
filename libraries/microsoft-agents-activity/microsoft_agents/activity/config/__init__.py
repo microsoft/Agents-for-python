@@ -23,6 +23,7 @@ from ._utils import (
     _try_set,
 )
 from ._coercion import coerce_bool, coerce_int, coerce_float, _get_str
+from ._metadata import _is_root_config
 
 __all__ = [
     "load_configuration_from_env",
@@ -44,4 +45,5 @@ __all__ = [
     "coerce_int",
     "coerce_float",
     "_get_str",
+    "_is_root_config",
 ]

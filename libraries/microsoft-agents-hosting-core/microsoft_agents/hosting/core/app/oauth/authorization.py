@@ -38,7 +38,7 @@ from ...storage import Storage
 from ...authorization import Connections
 from ..._oauth import _FlowStateTag
 from ..state import TurnState
-from .auth_handler import AuthHandlerSettings
+from .auth_handler import AuthHandlerConfig
 from ._sign_in_state import _SignInState
 from ._sign_in_response import _SignInResponse
 from ._handlers import (
@@ -47,7 +47,7 @@ from ._handlers import (
     _UserAuthorization,
     _AuthorizationHandler,
 )
-from .authorization_settings import AuthorizationSettings
+from .authorization_config import AuthorizationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -78,10 +78,10 @@ class Authorization:
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handlers: dict[str, AuthHandlerSettings] | None = None,
+        auth_handlers: list[AuthHandlerConfig] | dict[str, AuthHandlerConfig] | None = None,
         auto_sign_in: bool = False,
         *,
-        settings: Configuration | AuthorizationSettings | None = None,
+        config: Configuration | AuthHandlerConfig | None = None,
         use_cache: bool = False,
         **kwargs,
     ):
@@ -102,10 +102,10 @@ class Authorization:
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections`
         :param auth_handlers: Optional explicit handler IDs and their settings.
-        :type auth_handlers: dict[str, AuthHandlerSettings] | None
+        :type auth_handlers: dict[str, AuthHandlerConfig] | None
         :param auto_sign_in: Enable automatic sign-in. False defers to the value
             in settings; it does not override a configured True.
-        :param settings: Root/scoped configuration or bound authorization settings.
+        :param config: Root/scoped configuration or bound authorization settings.
             When supplied, deprecated kwargs are ignored rather than merged.
         :param use_cache: Retained for compatibility; currently has no effect.
         :param kwargs: Deprecated unpacked root configuration. Emits a
@@ -132,25 +132,28 @@ class Authorization:
                 "Use the 'settings' parameter instead.",
                 DeprecationWarning,
             )
-            if settings is not None:
+            if config is not None:
                 logger.warning(
                     "Both 'settings' and 'kwargs' are provided. 'kwargs' will be ignored in favor of 'settings'."
                 )
 
-        auth_settings: AuthorizationSettings
-        if settings is None:
-            auth_settings = AuthorizationSettings.from_configuration(
+        auth_config: AuthorizationConfig
+        if config is None:
+            auth_config = AuthorizationConfig.from_configuration(
                 Configuration(kwargs, _is_root_config=True)
             )
-        elif isinstance(settings, Mapping):
-            auth_settings = AuthorizationSettings.from_mapping(settings)
-        elif isinstance(settings, AuthorizationSettings):
-            auth_settings = settings
+        elif isinstance(config, Mapping):
+            auth_config = AuthorizationConfig.from_mapping(config)
+        elif isinstance(config, AuthorizationConfig):
+            auth_config = config
 
         self._handlers = {}
 
-        self._handler_settings = auth_handlers or auth_settings.handlers
-        self._auto_sign_in = auto_sign_in or auth_settings.auto_sign_in
+        if isinstance(auth_handlers, list):
+            auth_handlers = {handler.name: handler for handler in auth_handlers}
+
+        self._handler_settings = auth_handlers or auth_config.handlers
+        self._auto_sign_in = auto_sign_in or auth_config.auto_sign_in
 
         # operations default to the first handler if none specified
         if self._handler_settings:

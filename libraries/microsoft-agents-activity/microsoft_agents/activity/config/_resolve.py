@@ -38,10 +38,10 @@ def _expand_paths(
 
 
 def _normalize(
-    source: Mapping, *, path_transformer: Callable[[str], str] | None = None
+    source: Mapping, *, path_transformer: Callable[[str], str]
 ) -> dict[str, Any]:
     """Expand paths and copy containers, normalizing indexed mappings to lists."""
-    transform = path_transformer or _parse_env_var_name
+    transform = path_transformer
     expanded = _expand_paths(source, transform)
 
     def convert(value: Any) -> Any:
@@ -89,6 +89,7 @@ def _resolve(
     path_transformer: Callable[[str], str] | None = None,
 ) -> dict[str, Any]:
     """Normalize each source independently, then merge with primary precedence."""
+    path_transformer = path_transformer or _parse_env_var_name
     base = _normalize(
         defaults if defaults is not None else {}, path_transformer=path_transformer
     )

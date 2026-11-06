@@ -23,14 +23,19 @@ class JwtConnectionSettings(ConnectionSettingsBase):
     issuers: list[str] = field(default_factory=list)
     anonymous_allowed: bool = False
 
+    def __post_init__(self):
+        if not getattr(self, "issuers", None):
+            object.__setattr__(self, "issuers", default_connection_issuers(
+                self.tenant_id,
+                self.authority,
+            ))
+
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         base = super()._get_init_kwargs(config)
 
         issuers = config.get_str_list(xpath("issuers"))
-        issuers = issuers or default_connection_issuers(
-            base.get("tenant_id"), base.get("authority")
-        )
+        issuers = issuers
         base.update(
             {
                 "validate_issuer": config.get_bool(

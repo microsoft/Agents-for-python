@@ -15,7 +15,7 @@ from .._sign_in_response import _SignInResponse
 from ._authorization_handler import _AuthorizationHandler
 from ....storage import Storage
 from ....authorization import Connections
-from ..auth_handler import AuthHandlerSettings
+from ..auth_handler import AuthHandlerConfig
 from ..telemetry import spans
 
 logger = logging.getLogger(__name__)
@@ -28,16 +28,16 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         self,
         storage: Storage,
         connection_manager: Connections,
-        settings: Mapping | AuthHandlerSettings | None = None,
+        config: Mapping | AuthHandlerConfig | None = None,
         *,
         auth_handler_id: str | None = None,
-        auth_handler: AuthHandlerSettings | None = None,
+        auth_handler: AuthHandlerConfig | None = None,
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
         """Create an agentic authorization strategy.
 
-        Prefer settings containing an AuthHandlerSettings instance or a mapping.
+        Prefer settings containing an AuthHandlerConfig instance or a mapping.
         The bound settings also supply the optional alternate blueprint
         connection name. Legacy settings arguments remain accepted but emit a
         DeprecationWarning.
@@ -47,10 +47,10 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
         :param settings: Handler settings, accepted positionally or by keyword.
-        :type settings: Mapping | AuthHandlerSettings | None
+        :type settings: Mapping | AuthHandlerConfig | None
         :param auth_handler_id: Optional override of the settings name.
         :param auth_handler: Deprecated bound settings; use settings instead.
-        :type auth_handler: AuthHandlerSettings | None
+        :type auth_handler: AuthHandlerConfig | None
         :param auth_handler_settings: Deprecated mapping; use settings instead.
         :param kwargs: Compatibility arguments forwarded to the base handler.
         :raises ValueError: If storage, nonempty settings, or a handler ID is
@@ -59,7 +59,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         super().__init__(
             storage,
             connection_manager,
-            settings,
+            config,
             auth_handler=auth_handler,
             auth_handler_id=auth_handler_id,
             auth_handler_settings=auth_handler_settings,

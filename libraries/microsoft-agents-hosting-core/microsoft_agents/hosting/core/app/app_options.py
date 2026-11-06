@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
-from microsoft_agents.hosting.core.app.oauth import AuthHandlerSettings
+from microsoft_agents.hosting.core.app.oauth import AuthHandlerConfig
 from microsoft_agents.hosting.core.storage import Storage
 
 # from .auth import AuthOptions
@@ -80,12 +80,12 @@ class ApplicationOptions:
     If not provided, the default `TurnState` will be used.
     """
 
-    authorization_handlers: Optional[dict[str, AuthHandlerSettings]] = None
+    authorization_handlers: Optional[dict[str, AuthHandlerConfig]] = None
     """
-    Optional mapping of OAuth handler IDs to AuthHandlerSettings.
+    Optional mapping of OAuth handler IDs to AuthHandlerConfig.
     A nonempty mapping overrides configured handlers when AgentApplication
     creates its Authorization instance. Otherwise handlers may be bound from
-    application configuration. Prefer AuthHandlerSettings over the deprecated
+    application configuration. Prefer AuthHandlerConfig over the deprecated
     AuthHandler constructor.
     """
 

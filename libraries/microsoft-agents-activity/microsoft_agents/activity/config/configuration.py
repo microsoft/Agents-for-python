@@ -32,13 +32,16 @@ from ._utils import (
     _collect_with_paths,
     _is_missing,
     _resolve_keys_arg,
+    _parse_env_var_name,
 )
+from ._metadata import _is_root_config
 
 T = TypeVar("T")
 _ConfigurationProtocolT = TypeVar(
     "_ConfigurationProtocolT", bound=_ConfigurationProtocol
 )
 
+_norm_path_transform = lambda x: _parse_env_var_name(x).lower().replace("_", "")
 
 class Configuration(dict, _ConfigurationProtocol):
     """Dictionary-backed configuration with path lookup and typed conversion.
@@ -57,7 +60,6 @@ class Configuration(dict, _ConfigurationProtocol):
         self,
         original: Mapping | None = None,
         _base_path: str | None = None,
-        _is_root_config: bool | None = None,
         **kwargs,
     ):
         """Initialize a Configuration instance.
@@ -76,15 +78,7 @@ class Configuration(dict, _ConfigurationProtocol):
             raise ValueError("Cannot provide both 'original' and keyword arguments.")
         super().__init__(original or kwargs)
         self._base_path = _base_path or ""
-        if isinstance(original, Configuration) and _is_root_config is None:
-            _is_root_config = original._is_root_config
-        self._is_root_config = _is_root_config or False
         self._key = None
-
-    @property
-    def is_root_config(self) -> bool:
-        """Whether settings binders should treat this as application-level input."""
-        return self._is_root_config
 
     @property
     def base_path(self) -> str:
@@ -109,7 +103,6 @@ class Configuration(dict, _ConfigurationProtocol):
         defaults: Mapping | None = None,
         *,
         _base_path: str | None = None,
-        _is_root_config: bool | None = None,
     ) -> Configuration:
         """Normalize and merge sources, with primary values taking precedence.
 
@@ -124,69 +117,24 @@ class Configuration(dict, _ConfigurationProtocol):
             a Configuration, resolution does not inherit input metadata; the
             result is scoped unless explicitly marked as root.
         """
-        resolved = _resolve(primary or {}, defaults or {})
+        resolved = _resolve(primary or {}, defaults or {}, path_transformer=_norm_path_transform)
         return Configuration(
-            resolved, _base_path=_base_path, _is_root_config=_is_root_config
+            resolved, _base_path=_base_path
         )
 
     @classmethod
-    def from_mapping(
-        cls,
-        _mapping: Mapping | None = None,
-        _base_path: str | None = None,
-        _is_root_config: bool | None = None,
-        **kwargs,
-    ) -> Configuration:
-        """Create configuration, using keyword arguments as fallback values.
-
-        An existing Configuration is reused when no defaults or metadata changes
-        are requested. Otherwise a new instance is constructed. Root identity is
-        inherited from a Configuration unless explicitly overridden; ordinary
-        mappings are scoped by default.
-
-        :param _mapping: Primary values, which take precedence over kwargs.
-        :param _base_path: Diagnostic source path for a new instance. Use
-            ``from_config`` to preserve a source path when adding defaults.
-        :param _is_root_config: Optional override of root/scoped identity.
-        :param kwargs: Fallback configuration entries, not environment variables.
-        """
-        if (
-            isinstance(_mapping, Configuration)
-            and not kwargs
-            and (_base_path is None or _base_path == _mapping._base_path)
-            and (_is_root_config is None or _is_root_config == _mapping._is_root_config)
-        ):
-            return _mapping
-        if kwargs:
-            if not _mapping:
-                resolved = kwargs
-            else:
-                resolved = _resolve(_mapping, kwargs, path_transformer=lambda x: x)
-        else:
-            resolved = _mapping
-
-        if _is_root_config is None:
-            if isinstance(_mapping, Configuration):
-                _is_root_config = _mapping._is_root_config
-        return cls(resolved, _base_path=_base_path, _is_root_config=_is_root_config)
-
-    @classmethod
-    def from_config(cls, base: Configuration | None, **kwargs) -> Configuration:
+    def from_mapping(cls, base: Mapping | None, *, kwargs: Mapping | None = None, _base_path: str | None = None) -> Configuration:
         """Fork configuration, preserving its source path and root identity.
 
         Values in base take precedence; kwargs supply missing defaults rather
         than overwriting existing entries. If base is None, create a scoped
         Configuration from kwargs.
         """
-        if base is None:
-            return Configuration(**kwargs, _is_root_config=False)
-        new_config = base.copy()
-        return Configuration.from_mapping(
-            new_config,
-            _base_path=base._base_path,
-            _is_root_config=base._is_root_config,
-            **kwargs,
-        )
+        kwargs = kwargs or {}
+        if not base:
+            return Configuration(kwargs, _base_path=_base_path)
+        _base_path = _base_path or getattr(base, "_base_path", None)
+        return Configuration(base, _base_path=base._base_path)
 
     def _resolve_path(self, key: str) -> str:
         """Resolve a configuration path by combining the base path and the key."""
@@ -550,7 +498,7 @@ class _RootConfigurable(_Configurable, ABC):
 
     @classmethod
     def _from_configuration(cls, config: Configuration) -> Self:
-        if config._is_root_config:
+        if _is_root_config(config):
             return cls._from_root_configuration(config)
         return cls._from_scoped_configuration(config)
 

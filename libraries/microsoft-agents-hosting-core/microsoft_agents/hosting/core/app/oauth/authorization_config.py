@@ -14,11 +14,11 @@ from microsoft_agents.activity.config import (
     _get,
     _get_str,
 )
-from .auth_handler import AuthHandlerSettings
+from .auth_handler import AuthHandlerConfig
 
 
 @dataclass(frozen=True)
-class AuthorizationSettings(_RootConfigurable):
+class AuthorizationConfig(_RootConfigurable):
     """Application-level OAuth options and named handler definitions.
 
     Root configuration reads ``agent_application::user_authorization``. Scoped
@@ -36,10 +36,10 @@ class AuthorizationSettings(_RootConfigurable):
     """
 
     auto_sign_in: bool = False
-    handlers: dict[str, AuthHandlerSettings] = field(default_factory=dict)
+    handlers: dict[str, AuthHandlerConfig] = field(default_factory=dict)
 
     @classmethod
-    def _from_scoped_configuration(cls, config: Configuration) -> AuthorizationSettings:
+    def _from_scoped_configuration(cls, config: Configuration) -> AuthorizationConfig:
         handlers_config = config.get(xpath("handlers"), default={})
         handlers = {}
         for handler_name, subconfig in handlers_config.items():
@@ -50,16 +50,16 @@ class AuthorizationSettings(_RootConfigurable):
             if "auth_type" in extra:
                 nested_type = extra.pop("auth_type")
                 handler_type = handler_type or nested_type
-            handlers[handler_name] = AuthHandlerSettings.from_mapping(
+            handlers[handler_name] = AuthHandlerConfig.from_mapping(
                 dict(name=handler_name, auth_type=handler_type, **extra)
             )
-        return AuthorizationSettings(
+        return AuthorizationConfig(
             auto_sign_in=config.get_bool(xpath("auto_sign_in"), default=False),
             handlers=handlers,
         )
 
     @classmethod
-    def _from_root_configuration(cls, config: Configuration) -> AuthorizationSettings:
+    def _from_root_configuration(cls, config: Configuration) -> AuthorizationConfig:
         return cls._from_scoped_configuration(
             config.get_section(
                 xpath("agent_application", "user_authorization"),

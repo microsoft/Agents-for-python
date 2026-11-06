@@ -56,7 +56,7 @@ def _create_kwargs(
 
 
 @dataclass
-class AuthHandlerSettings(_Configurable):
+class AuthHandlerConfig(_Configurable):
     """Settings for one OAuth handler, independent of its runtime strategy.
 
     Construct with typed field values, or use ``from_mapping`` to bind
@@ -87,8 +87,8 @@ class AuthHandlerSettings(_Configurable):
     _alt_blueprint_name: str | None = None
 
     @classmethod
-    def _from_configuration(cls, config: Configuration) -> AuthHandlerSettings:
-        return AuthHandlerSettings(**_create_kwargs(**config))
+    def _from_configuration(cls, config: Configuration) -> AuthHandlerConfig:
+        return AuthHandlerConfig(**_create_kwargs(**config))
 
     @staticmethod
     def _format_scopes(scopes: str | list[str]) -> list[str]:
@@ -99,7 +99,7 @@ class AuthHandlerSettings(_Configurable):
         return [s for s in lst if s]
 
 
-class AuthHandler(AuthHandlerSettings):
+class AuthHandler(AuthHandlerConfig):
     """Deprecated compatibility constructor for AuthHandlerSettings.
 
     Accepts legacy positional fields and configuration keyword aliases, and

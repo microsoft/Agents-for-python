@@ -73,6 +73,13 @@ class ConnectionManager(Connections):
         self._provider_factory = provider_factory
         self._deprecated_config_map = {}
 
+        if kwargs:
+            warnings.warn(
+                "Passing in keyword arguments is deprecated and will be removed in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if connections_configurations is not None or connections_map is not None:
             warnings.warn(
                 "The fields 'connections_configurations' and 'connections_map' are deprecated and will be removed in a future version. The corresponding positional arguments will remain until the args' removals, and no other positional arguments after will be added until these fields are removed. Please use `config` instead.",
@@ -134,7 +141,7 @@ class ConnectionManager(Connections):
             self._provider_factory = cast(
                 Callable[[Configuration], AccessTokenProviderBase], provider_factory
             )
-            config = Configuration.from_config(config, **kwargs)
+            config = Configuration.from_mapping(config, kwargs=kwargs)
 
             raw_connections_map = config.get(xpath("connections_map"), [])
             connection_configs = config.get_sections(*xpath("connections::*"))
@@ -291,3 +298,4 @@ class ConnectionManager(Connections):
                 "For Configuration-based managers, use get_default_connection().config instead."
             )
         return config
+    

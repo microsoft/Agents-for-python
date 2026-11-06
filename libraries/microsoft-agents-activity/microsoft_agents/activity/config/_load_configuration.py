@@ -4,12 +4,13 @@
 from typing import Any, Mapping
 
 from .configuration import Configuration
-
 from ._logging import _configure_logging
+from ._resolve import _resolve
+from ._metadata import _set_root_config
 
 
 def load_configuration_from_env(
-    env_vars: Mapping[str, Any], defaults: Mapping[str, Any] | None = None
+    config_dict: Mapping[str, Any]
 ) -> Configuration:
     """Resolve environment values and defaults into root configuration.
 
@@ -22,6 +23,7 @@ def load_configuration_from_env(
     :return: A Configuration with ``is_root_config=True``, suitable for binding
         application-level settings. Extracted sections are scoped configurations.
     """
-    config = Configuration.resolve(env_vars, defaults or {}, _is_root_config=True)
+    config = Configuration(_resolve(config_dict), _is_root_config=True)
+    _set_root_config(config, True)
     _configure_logging(config)
     return config
