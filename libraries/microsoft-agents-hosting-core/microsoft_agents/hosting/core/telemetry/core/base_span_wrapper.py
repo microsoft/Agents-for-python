@@ -7,8 +7,7 @@ import logging
 
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
-from typing import ContextManager
-from typing_extensions import Self
+from typing import ContextManager, Self
 
 from opentelemetry.trace import Span
 

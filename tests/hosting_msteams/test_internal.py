@@ -5,22 +5,14 @@
 
 import pytest
 
-from .helpers import is_supported_version
+from microsoft_teams.api import ApiClient
 
-pytestmark = pytest.mark.skipif(
-    not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
+from microsoft_agents.hosting.msteams._teams_api_client import (
+    _get_teams_api_client,
 )
-
-if is_supported_version:
-    from microsoft_teams.api import ApiClient
-
-    from microsoft_agents.hosting.msteams._teams_api_client import (
-        _get_teams_api_client,
-    )
-    from microsoft_agents.hosting.msteams.errors.error_resources import (
-        TeamsErrorResources,
-    )
+from microsoft_agents.hosting.msteams.errors.error_resources import (
+    TeamsErrorResources,
+)
 
 
 class _FakeServices:

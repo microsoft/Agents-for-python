@@ -8,15 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from microsoft_agents.activity import ActivityTypes
 
-from .helpers import _make_app, _make_context, is_supported_version
+from .helpers import _make_app, _make_context
 
-pytestmark = pytest.mark.skipif(
-    not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
-)
-
-if is_supported_version:
-    from microsoft_agents.hosting.msteams import TeamsAgentExtension
+from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
 _PATCH = "microsoft_agents.hosting.msteams.config.config._send_invoke_response"
 

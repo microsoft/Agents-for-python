@@ -5,8 +5,7 @@
 
 import html
 
-from typing import Literal
-from typing_extensions import Self
+from typing import Literal, Self
 
 from microsoft_teams.api.models import (
     ChannelData,

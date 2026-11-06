@@ -10,20 +10,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 from microsoft_agents.activity import ActivityTypes
 
-from .helpers import _make_app, _make_context, is_supported_version
+from .helpers import _make_app, _make_context
 
-pytestmark = pytest.mark.skipif(
-    not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
+from microsoft_teams.api.activities.event.meeting_end import MeetingEndEventValue
+from microsoft_teams.api.activities.event.meeting_start import (
+    MeetingStartEventValue,
 )
-
-if is_supported_version:
-    from microsoft_teams.api.activities.event.meeting_end import MeetingEndEventValue
-    from microsoft_teams.api.activities.event.meeting_start import (
-        MeetingStartEventValue,
-    )
-    from microsoft_agents.activity.teams import MeetingParticipantsEventDetails
-    from microsoft_agents.hosting.msteams import TeamsAgentExtension
+from microsoft_agents.activity.teams import MeetingParticipantsEventDetails
+from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
 
 def _meeting_start_value() -> dict:

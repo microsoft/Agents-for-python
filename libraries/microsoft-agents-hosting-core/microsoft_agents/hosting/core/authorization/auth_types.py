@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import Enum
+from enum import StrEnum
 
 
-class AuthTypes(str, Enum):
+class AuthTypes(StrEnum):
     certificate = "certificate"
     certificate_subject_name = "CertificateSubjectName"
     client_secret = "ClientSecret"

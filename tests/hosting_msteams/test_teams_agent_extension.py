@@ -5,27 +5,21 @@
 
 import pytest
 
-from .helpers import _make_app, is_supported_version
+from .helpers import _make_app
 
-pytestmark = pytest.mark.skipif(
-    not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
-)
+from microsoft_agents.activity import Activity, Channels
+from microsoft_teams.api import ApiClient
+from microsoft_teams.api.models import ChannelData
 
-if is_supported_version:
-    from microsoft_agents.activity import Activity, Channels
-    from microsoft_teams.api import ApiClient
-    from microsoft_teams.api.models import ChannelData
-
-    from microsoft_agents.hosting.msteams import TeamsAgentExtension
-    from microsoft_agents.hosting.msteams.channel import Channel
-    from microsoft_agents.hosting.msteams.config import Config
-    from microsoft_agents.hosting.msteams.file_consent import FileConsent
-    from microsoft_agents.hosting.msteams.meeting import Meeting
-    from microsoft_agents.hosting.msteams.message import Message
-    from microsoft_agents.hosting.msteams.message_extension import MessageExtension
-    from microsoft_agents.hosting.msteams.task_module import TaskModule
-    from microsoft_agents.hosting.msteams.team import Team
+from microsoft_agents.hosting.msteams import TeamsAgentExtension
+from microsoft_agents.hosting.msteams.channel import Channel
+from microsoft_agents.hosting.msteams.config import Config
+from microsoft_agents.hosting.msteams.file_consent import FileConsent
+from microsoft_agents.hosting.msteams.meeting import Meeting
+from microsoft_agents.hosting.msteams.message import Message
+from microsoft_agents.hosting.msteams.message_extension import MessageExtension
+from microsoft_agents.hosting.msteams.task_module import TaskModule
+from microsoft_agents.hosting.msteams.team import Team
 
 
 class _FakeServiceSet:
