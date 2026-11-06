@@ -51,11 +51,7 @@ class AuthorizationSettings(_RootConfigurable):
                 nested_type = extra.pop("auth_type")
                 handler_type = handler_type or nested_type
             handlers[handler_name] = AuthHandlerSettings.from_mapping(
-                dict(
-                    name=handler_name,
-                    auth_type=handler_type,
-                    **extra
-                )
+                dict(name=handler_name, auth_type=handler_type, **extra)
             )
         return AuthorizationSettings(
             auto_sign_in=config.get_bool(xpath("auto_sign_in"), default=False),
