@@ -102,15 +102,15 @@ class JwtTokenValidator:
                 anonymous_allowed=configuration.ANONYMOUS_ALLOWED,
                 audiences=configuration._get_audiences(),
                 connections={
-                    conn_name: JwtConnectionSettings.from_mapping(conn._to_dict())
+                    conn_name: JwtConnectionSettings.from_config(conn._to_dict())
                     for conn_name, conn in configuration._connections.items()
                 },
-                default_jwt_settings=JwtConnectionSettings.from_mapping(
+                default_jwt_settings=JwtConnectionSettings.from_config(
                     configuration._to_dict()
                 ),
             )
         else:
-            self._config = TokenValidationConfiguration.from_configuration(
+            self._config = TokenValidationConfiguration.from_config(
                 configuration
             )
 

@@ -27,6 +27,7 @@ from microsoft_agents.activity import (
     TokenResponse,
 )
 from microsoft_agents.activity.config import Configuration
+from microsoft_agents.activity.config._metadata import _RootConfigMetadata
 from microsoft_agents.activity.activity_types import ActivityTypes
 
 from microsoft_agents.hosting.core.authorization._helpers import (
@@ -81,7 +82,7 @@ class Authorization:
         auth_handlers: list[AuthHandlerConfig] | dict[str, AuthHandlerConfig] | None = None,
         auto_sign_in: bool = False,
         *,
-        config: Configuration | AuthHandlerConfig | None = None,
+        config: Configuration | AuthorizationConfig | None = None,
         use_cache: bool = False,
         **kwargs,
     ):
@@ -139,11 +140,10 @@ class Authorization:
 
         auth_config: AuthorizationConfig
         if config is None:
-            auth_config = AuthorizationConfig.from_configuration(
-                Configuration(kwargs, _is_root_config=True)
-            )
+            _RootConfigMetadata.set(kwargs, True)
+            auth_config = AuthorizationConfig.from_config(kwargs)
         elif isinstance(config, Mapping):
-            auth_config = AuthorizationConfig.from_mapping(config)
+            auth_config = AuthorizationConfig.from_config(config)
         elif isinstance(config, AuthorizationConfig):
             auth_config = config
 
@@ -177,7 +177,7 @@ class Authorization:
             self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
                 connection_manager=self._connection_manager,
-                settings=settings,
+                config=settings,
             )
 
     @property

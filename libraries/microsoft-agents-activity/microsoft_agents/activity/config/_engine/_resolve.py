@@ -3,7 +3,8 @@
 
 from typing import Any, Callable, Mapping
 
-from ._utils import _MISSING, _get, _parse_env_var_name, _path, _try_set
+from ._missing import _MISSING
+from ._utils import _get, _parse_env_var_name, _path, _try_set
 
 
 def _expand_paths(

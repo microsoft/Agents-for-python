@@ -7,12 +7,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Mapping
-from typing_extensions import Self
 
 from microsoft_agents.activity.errors import configuration_errors
 
 from ..configuration import Configuration, _RootConfigurable
-from .._utils import _xpath
+from .._engine._utils import _xpath
 from ._constants import _NAME_TO_LEVEL
 
 

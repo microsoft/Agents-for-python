@@ -112,5 +112,7 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
         if isinstance(config, AgentAuthConfiguration):
             return cls._from_agent_auth_config(config)
         if isinstance(config, Mapping):
-            config = Configuration.from_mapping(config)
-        return super().from_configuration(config)
+            config = Configuration.from_config(config)
+        return super().from_config(config)
+
+    

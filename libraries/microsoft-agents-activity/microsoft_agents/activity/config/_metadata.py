@@ -1,10 +1,39 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-_IS_ROOT_CONFIG_KEY = "_metadata_is_root_config_"
+from abc import ABC, abstractmethod
+from typing import Generic, TypeVar
+from collections.abc import Mapping, MutableMapping
 
-def _set_root_config(config: dict, is_root: bool) -> None:
-    config[_IS_ROOT_CONFIG_KEY] = is_root
+T = TypeVar("T")
 
-def _is_root_config(config: dict) -> bool:
-    return config.get(_IS_ROOT_CONFIG_KEY, False)
+_METADATA_PREFIX = "#metadata#"
+
+def _META(s: str) -> str:
+    return f"{_METADATA_PREFIX}{s}"
+
+class _Metadata(ABC, Generic[T]):
+
+    @classmethod
+    @abstractmethod
+    def get(cls, mapping: Mapping) -> T: ...
+
+    @classmethod
+    @abstractmethod
+    def set(cls, mapping: MutableMapping, value: T) -> None: ...
+
+    @staticmethod
+    def is_metadata(key: str) -> bool:
+        return key.startswith(_METADATA_PREFIX)
+
+class _RootConfigMetadata(_Metadata[bool]):
+
+    _KEY = _META("isrootconfig")
+
+    @staticmethod
+    def get(mapping: Mapping) -> bool:
+        return mapping.get(_RootConfigMetadata._KEY, False)
+
+    @staticmethod
+    def set(mapping: MutableMapping, value: bool) -> None:
+        mapping[_RootConfigMetadata._KEY] = value

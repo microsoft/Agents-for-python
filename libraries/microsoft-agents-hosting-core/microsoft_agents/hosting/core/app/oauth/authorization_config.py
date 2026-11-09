@@ -50,7 +50,7 @@ class AuthorizationConfig(_RootConfigurable):
             if "auth_type" in extra:
                 nested_type = extra.pop("auth_type")
                 handler_type = handler_type or nested_type
-            handlers[handler_name] = AuthHandlerConfig.from_mapping(
+            handlers[handler_name] = AuthHandlerConfig.from_config(
                 dict(name=handler_name, auth_type=handler_type, **extra)
             )
         return AuthorizationConfig(

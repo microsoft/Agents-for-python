@@ -19,12 +19,8 @@ from typing import (
     overload,
 )
 
-from ._utils import (
-    _MISSING,
-    _MissingType,
-    _get,
-    _is_missing,
-)
+from ._missing import _MISSING, _MissingType, _is_missing
+from ._utils import _get
 
 _TRUTHY = ("1", "true")
 _FALSY = ("0", "false")

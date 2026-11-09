@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 ConfigT = TypeVar("ConfigT", Configuration, AgentAuthConfiguration)
 
-
 class ConnectionManager(Connections):
     """
     Generic, provider-agnostic connection manager.
@@ -116,7 +115,7 @@ class ConnectionManager(Connections):
                 ) in connections_configurations.items():
                     self._deprecated_config_map[connection_name] = agent_auth_config
                     self._config_map[connection_name] = Configuration(
-                        **agent_auth_config.__dict__
+                        agent_auth_config.__dict__
                     )
                     self._connections[connection_name] = provider_factory(
                         agent_auth_config
@@ -125,7 +124,7 @@ class ConnectionManager(Connections):
                 raw_configurations: dict[str, dict] = kwargs.get("CONNECTIONS", {})
                 for connection_name, connection_settings in raw_configurations.items():
                     parsed_config = Configuration(
-                        **_get(connection_settings, *xpath("SETTINGS"), default={}),
+                        _get(connection_settings, *xpath("SETTINGS"), default={}),
                         _base_path=path("CONNECTIONS", connection_name, "SETTINGS"),
                     )
                     auth_config = AgentAuthConfiguration.from_dict(parsed_config)
@@ -141,7 +140,7 @@ class ConnectionManager(Connections):
             self._provider_factory = cast(
                 Callable[[Configuration], AccessTokenProviderBase], provider_factory
             )
-            config = Configuration.from_mapping(config, kwargs=kwargs)
+            config = Configuration._from_config_or_kwargs(config, kwargs, ensure_root_config=True)
 
             raw_connections_map = config.get(xpath("connections_map"), [])
             connection_configs = config.get_sections(*xpath("connections::*"))
@@ -158,7 +157,7 @@ class ConnectionManager(Connections):
 
         self._connections_map = _ConnectionMap(raw_connections_map)
 
-        if not self._connections.get("SERVICE_CONNECTION", None):
+        if not _get(self._connections, *xpath("service_connection"), default=None):
             raise ValueError("No service connection configuration provided.")
 
         _log_config(logger, self._config_map, self._connections_map)
@@ -173,8 +172,8 @@ class ConnectionManager(Connections):
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
         original_name = connection_name
-        connection_name = connection_name or "SERVICE_CONNECTION"
-        connection = self._connections.get(connection_name, None)
+        connection_name = (connection_name or "service_connection").lower()
+        connection = _get(self._connections, *xpath(connection_name), default=None)
         if not connection:
             if original_name:
                 raise ValueError(f"No connection found for '{original_name}'.")
@@ -191,7 +190,7 @@ class ConnectionManager(Connections):
         :return: The default OAuth connection for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
-        connection = self._connections.get("SERVICE_CONNECTION", None)
+        connection = _get(self._connections, *xpath("service_connection"), default=None)
         if not connection:
             raise ValueError(
                 "No default service connection found. Expected 'SERVICE_CONNECTION'."
@@ -290,7 +289,7 @@ class ConnectionManager(Connections):
             DeprecationWarning,
             stacklevel=2,
         )
-        config = self._deprecated_config_map.get("SERVICE_CONNECTION")
+        config = _get(self._deprecated_config_map, *xpath("service_connection"), default=None)
         if not config:
             raise ValueError(
                 "get_default_connection_configuration() is only available for "

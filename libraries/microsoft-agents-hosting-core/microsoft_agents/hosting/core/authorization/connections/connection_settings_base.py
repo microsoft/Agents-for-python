@@ -43,7 +43,7 @@ class ConnectionSettingsBase(_Configurable):
         attrs.pop("_configured_issuers", None)
         attrs.update(attrs.pop("provider_settings", {}))
         attrs["ISSUERS"] = agent_auth_config.ISSUERS
-        return cls.from_mapping(attrs)
+        return cls.from_config(attrs)
 
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:
@@ -81,12 +81,14 @@ class ConnectionSettingsBase(_Configurable):
     def _get_extras(cls, config: Configuration) -> Configuration:
         known_kwargs = cls._known_kwargs()
         base = {k: v for k, v in config.items() if k not in known_kwargs}
-        return Configuration.from_mapping(
-            base, _base_path=config._base_path, **base.pop("extras", {})
-        )
+        extra = {}
+        if "extras" in base:
+            extra = base.pop("extras")
+        base = {**base, **extra}
+        return Configuration.from_config(base, _base_path=config._base_path)
 
     @classmethod
-    def _from_configuration(cls, config: Configuration) -> Self:
+    def _from_config(cls, config: Configuration) -> Self:
         try:
             settings = config.get_section(xpath("settings"))
         except KeyError:

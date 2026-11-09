@@ -69,7 +69,7 @@ class MsalAuth(AccessTokenProviderBase):
             _msal_configuration = config
         elif isinstance(config, Configuration):
             self._deprecated_config = None
-            _msal_configuration = MsalConnectionSettings.from_configuration(config)
+            _msal_configuration = MsalConnectionSettings.from_config(config)
         else:
             warnings.warn(
                 "AgentAuthConfiguration is deprecated and will be removed in future versions. "

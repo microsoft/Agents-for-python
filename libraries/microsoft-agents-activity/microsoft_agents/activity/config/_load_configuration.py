@@ -5,8 +5,8 @@ from typing import Any, Mapping
 
 from .configuration import Configuration
 from ._logging import _configure_logging
-from ._resolve import _resolve
-from ._metadata import _set_root_config
+from ._engine._resolve import _resolve
+from ._metadata import _RootConfigMetadata
 
 
 def load_configuration_from_env(
@@ -23,7 +23,7 @@ def load_configuration_from_env(
     :return: A Configuration with ``is_root_config=True``, suitable for binding
         application-level settings. Extracted sections are scoped configurations.
     """
-    config = Configuration(_resolve(config_dict), _is_root_config=True)
-    _set_root_config(config, True)
+    config = Configuration(_resolve(config_dict))
+    _RootConfigMetadata.set(config, True)
     _configure_logging(config)
     return config

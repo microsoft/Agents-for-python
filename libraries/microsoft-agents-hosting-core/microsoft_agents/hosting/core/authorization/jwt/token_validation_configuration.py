@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from microsoft_agents.activity.config import Configuration, _Configurable, xpath
+from microsoft_agents.activity.config._metadata import _RootConfigMetadata
 
 from .jwt_connection_settings import JwtConnectionSettings
 
@@ -35,14 +36,14 @@ class TokenValidationConfiguration(_Configurable):
     connections: dict[str, JwtConnectionSettings] = field(default_factory=dict)
 
     @classmethod
-    def _from_configuration(
+    def _from_config(
         cls, configuration: Configuration
     ) -> TokenValidationConfiguration:
 
         token_validation: Configuration = configuration
         connection_raw_items = {}
 
-        if configuration._is_root_config:
+        if _RootConfigMetadata.get(configuration):
             token_validation = configuration.get_section(
                 xpath("token_validation"), default=Configuration()
             )
@@ -54,7 +55,7 @@ class TokenValidationConfiguration(_Configurable):
 
         connections: dict[str, JwtConnectionSettings] = {}
         for name, conf in connection_raw_items:
-            connections[name] = JwtConnectionSettings.from_mapping(conf)
+            connections[name] = JwtConnectionSettings.from_config(conf)
 
         update_audiences = not audiences
         update_tenant_id = not tenant_id

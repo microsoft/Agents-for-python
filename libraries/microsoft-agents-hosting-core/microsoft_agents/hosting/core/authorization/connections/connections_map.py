@@ -8,7 +8,6 @@ from typing import Mapping
 
 from microsoft_agents.activity.config import (
     Configuration,
-    _DictConfigurable,
     _get_str,
     xpath,
 )
@@ -23,12 +22,12 @@ class _ConnectionMapItem:
 
 
 @dataclass(frozen=True)
-class _ConnectionMap(_DictConfigurable):
+class _ConnectionMap():
     items: list[_ConnectionMapItem] = field(default_factory=list)
 
     def __init__(
         self,
-        items: list[_ConnectionMapItem] | list[dict] | dict[str, dict] | None = None,
+        items: list[_ConnectionMapItem] | list[dict] | Mapping[str, dict] | None = None,
     ) -> None:
         """Initialize a _ConnectionMap with a list of _ConnectionMapItem, a list of dicts, or a dict of dicts."""
 

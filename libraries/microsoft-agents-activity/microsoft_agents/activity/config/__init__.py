@@ -10,9 +10,9 @@ these forms using ``Configuration.is_root_config``, not their contents or paths.
 
 from ._load_configuration import load_configuration_from_env
 from .configuration import Configuration, _Configurable, _RootConfigurable
-from ._configuration_protocol import _ConfigurationProtocol, _DictConfigurable
-from ._resolve import _resolve
-from ._utils import (
+from ._protocol import _MappingConfigurable
+from ._engine._resolve import _resolve
+from ._engine._utils import (
     _MissingType,
     _MISSING,
     _get,
@@ -22,13 +22,12 @@ from ._utils import (
     _set,
     _try_set,
 )
-from ._coercion import coerce_bool, coerce_int, coerce_float, _get_str
-from ._metadata import _is_root_config
+from ._engine._coercion import coerce_bool, coerce_int, coerce_float, _get_str
 
 __all__ = [
     "load_configuration_from_env",
     "Configuration",
-    "_ConfigurationProtocol",
+    "_MappingConfigurable",
     "_MissingType",
     "_MISSING",
     "_is_missing",
@@ -40,10 +39,8 @@ __all__ = [
     "_resolve",
     "_Configurable",
     "_RootConfigurable",
-    "_DictConfigurable",
     "coerce_bool",
     "coerce_int",
     "coerce_float",
     "_get_str",
-    "_is_root_config",
 ]

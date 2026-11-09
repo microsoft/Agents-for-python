@@ -70,7 +70,7 @@ class SidecarAuth(AccessTokenProviderBase):
             )
         else:
             self._configuration = None
-            self._settings = SidecarConnectionSettings.from_configuration(configuration)
+            self._settings = SidecarConnectionSettings.from_config(configuration)
 
         if sidecar_client is not None:
             self._sidecar_client = sidecar_client

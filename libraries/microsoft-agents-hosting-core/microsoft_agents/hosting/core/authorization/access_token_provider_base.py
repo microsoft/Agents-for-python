@@ -34,7 +34,7 @@ class AccessTokenProviderBase(Protocol):
         # Convert the deprecated configuration to the new connection settings format.
         from .connections.connection_settings_base import ConnectionSettingsBase
 
-        return ConnectionSettingsBase.from_mapping(**self.configuration._to_dict())
+        return ConnectionSettingsBase.from_config(self.configuration._to_dict())
 
     @abstractmethod
     async def get_access_token(

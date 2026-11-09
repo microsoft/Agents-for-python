@@ -87,7 +87,7 @@ class AuthHandlerConfig(_Configurable):
     _alt_blueprint_name: str | None = None
 
     @classmethod
-    def _from_configuration(cls, config: Configuration) -> AuthHandlerConfig:
+    def _from_config(cls, config: Configuration) -> AuthHandlerConfig:
         return AuthHandlerConfig(**_create_kwargs(**config))
 
     @staticmethod

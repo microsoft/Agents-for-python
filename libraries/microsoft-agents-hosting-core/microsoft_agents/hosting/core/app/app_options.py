@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Callable
 
 from microsoft_agents.hosting.core.app.oauth import AuthHandlerConfig
 from microsoft_agents.hosting.core.storage import Storage
@@ -22,7 +22,7 @@ from .proactive.proactive_options import ProactiveOptions
 
 @dataclass
 class ApplicationOptions:
-    adapter: Optional[ChannelServiceAdapter] = None
+    adapter: ChannelServiceAdapter | None = None
     """
     Optional. Options used to initialize your `BotAdapter`
     """
@@ -32,7 +32,7 @@ class ApplicationOptions:
     Optional. `AgentApplication` ID of the bot.
     """
 
-    storage: Optional[Storage] = None
+    storage: Storage | None = None
     """
     Optional. `Storage` provider to use for the application.
     """
@@ -50,7 +50,7 @@ class ApplicationOptions:
     the request. Defaults to true.
     """
 
-    typing: Optional[TypingOptions] = None
+    typing: TypingOptions | None = None
     """
     Optional. Typing indicator timing options. Controls initial delay, interval,
     and per-channel strategies. If not provided, defaults are used when
@@ -73,14 +73,14 @@ class ApplicationOptions:
     Optional. Array of input file download plugins to use. 
     """
 
-    turn_state_factory: Optional[Callable[[], TurnState]] = None
+    turn_state_factory: Callable[[], TurnState] | None = None
     """
     Optional. Factory function to create the turn state.
     This should return an instance of `TurnState` or a subclass.
     If not provided, the default `TurnState` will be used.
     """
 
-    authorization_handlers: Optional[dict[str, AuthHandlerConfig]] = None
+    authorization_handlers: dict[str, AuthHandlerConfig] | None = None
     """
     Optional mapping of OAuth handler IDs to AuthHandlerConfig.
     A nonempty mapping overrides configured handlers when AgentApplication
@@ -89,7 +89,7 @@ class ApplicationOptions:
     AuthHandler constructor.
     """
 
-    proactive: Optional[ProactiveOptions] = None
+    proactive: ProactiveOptions | None = None
     """
     Optional. Options for the proactive messaging subsystem.
     When set, :attr:`microsoft_agents.hosting.core.AgentApplication.proactive` is available for storing

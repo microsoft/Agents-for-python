@@ -82,7 +82,7 @@ class _AuthorizationHandler(ABC):
             if isinstance(config, AuthHandlerConfig):
                 self._handler = config
             else:
-                self._handler = AuthHandlerConfig.from_mapping(config)
+                self._handler = AuthHandlerConfig.from_config(config)
         elif auth_handler:  # deprecated
             self._handler = auth_handler
         else:  # deprecated
@@ -90,7 +90,7 @@ class _AuthorizationHandler(ABC):
                 raise ValueError(
                     "auth_handler_settings must be provided if auth_handler is None."
                 )
-            self._handler = AuthHandlerConfig.from_mapping(auth_handler_settings)
+            self._handler = AuthHandlerConfig.from_config(auth_handler_settings)
 
         self._id = auth_handler_id or self._handler.name
         if not self._id:

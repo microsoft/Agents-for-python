@@ -7,23 +7,26 @@ from abc import ABC, abstractmethod
 from typing import (
     Any,
     Iterable,
+    Sequence,
     Mapping,
+    MutableMapping,
     TypeVar,
     overload,
 )
 from typing_extensions import Self
 
-from ._configuration_protocol import _ConfigurationProtocol
+from ._protocol import _MappingConfigurable
 from ._constants import _PATH_SEPARATOR
-from ._resolve import _resolve
-from ._coercion import (
+from ._engine._resolve import _resolve
+from ._engine._coercion import (
     _handle_bool,
     _handle_int,
     _handle_float,
     _handle_str,
     _handle_str_list,
 )
-from ._utils import (
+from ._engine import (
+    _Path,
     _MissingType,
     _MISSING,
     _get,
@@ -31,19 +34,25 @@ from ._utils import (
     _collect,
     _collect_with_paths,
     _is_missing,
-    _resolve_keys_arg,
+    _resolve_path,
     _parse_env_var_name,
 )
-from ._metadata import _is_root_config
-
-T = TypeVar("T")
-_ConfigurationProtocolT = TypeVar(
-    "_ConfigurationProtocolT", bound=_ConfigurationProtocol
+from ._metadata import (
+    _Metadata,
+    _RootConfigMetadata,
 )
 
-_norm_path_transform = lambda x: _parse_env_var_name(x).lower().replace("_", "")
+_PathType = str | Sequence[str] | _Path
 
-class Configuration(dict, _ConfigurationProtocol):
+T = TypeVar("T")
+_MappingConfigurableT = TypeVar(
+    "_MappingConfigurableT", bound=_MappingConfigurable
+)
+
+def _norm_path_transform(path: str) -> str:
+    return _parse_env_var_name(path).lower()
+
+class Configuration(dict, _MappingConfigurable):
     """Dictionary-backed configuration with path lookup and typed conversion.
 
     Paths use ``::`` separators. Alternative paths are tried in the supplied
@@ -59,25 +68,18 @@ class Configuration(dict, _ConfigurationProtocol):
     def __init__(
         self,
         original: Mapping | None = None,
-        _base_path: str | None = None,
-        **kwargs,
+        _base_path: str | None = None
     ):
         """Initialize a Configuration instance.
 
         :param original: The original mapping to initialize the configuration from.
         :param _base_path: Source path used in diagnostics; defaults to an empty
             path, even when copying another Configuration.
-        :param _is_root_config: Whether this is application-level configuration.
-            When omitted, inherit the flag from an original Configuration;
-            otherwise default to False. Explicit False overrides an inherited
-            root flag.
         :param kwargs: Configuration entries when no original mapping is supplied.
         :raises ValueError: If both original and keyword entries are supplied.
         """
-        if original is not None and kwargs:
-            raise ValueError("Cannot provide both 'original' and keyword arguments.")
-        super().__init__(original or kwargs)
-        self._base_path = _base_path or ""
+        super().__init__(original or {})
+        self._base_path = _base_path or getattr(original, "_base_path", "")
         self._key = None
 
     @property
@@ -113,9 +115,6 @@ class Configuration(dict, _ConfigurationProtocol):
         :param primary: Values that override defaults.
         :param defaults: Optional fallback values.
         :param _base_path: Diagnostic source path for the result.
-        :param _is_root_config: Mark the result as root when True. Unlike copying
-            a Configuration, resolution does not inherit input metadata; the
-            result is scoped unless explicitly marked as root.
         """
         resolved = _resolve(primary or {}, defaults or {}, path_transformer=_norm_path_transform)
         return Configuration(
@@ -123,61 +122,60 @@ class Configuration(dict, _ConfigurationProtocol):
         )
 
     @classmethod
-    def from_mapping(cls, base: Mapping | None, *, kwargs: Mapping | None = None, _base_path: str | None = None) -> Configuration:
+    def from_config(cls, base: Mapping | None, *, _base_path: str | None = None) -> Configuration:
         """Fork configuration, preserving its source path and root identity.
 
         Values in base take precedence; kwargs supply missing defaults rather
         than overwriting existing entries. If base is None, create a scoped
         Configuration from kwargs.
         """
-        kwargs = kwargs or {}
-        if not base:
-            return Configuration(kwargs, _base_path=_base_path)
         _base_path = _base_path or getattr(base, "_base_path", None)
-        return Configuration(base, _base_path=base._base_path)
+        return Configuration(base, _base_path=_base_path)
 
-    def _resolve_path(self, key: str) -> str:
+    def _resolve_path(self, path: _Path) -> str:
         """Resolve a configuration path by combining the base path and the key."""
-        return f"{self._base_path}{_PATH_SEPARATOR}{key}" if self._base_path else key
+        if not self._base_path:
+            return str(path)
+        return f"{self._base_path}::{str(path)}"
 
     def _get_with_path(
-        self, *_keys: str | list[str], default: Any = _MISSING, skip_none: bool = False
-    ) -> tuple[Any, list[str]]:
+        self, _path: _PathType, default: Any = _MISSING, skip_none: bool = False
+    ) -> tuple[Any, _Path]:
         """Return a value and its matched path segments, relative to this section."""
-        keys = _resolve_keys_arg(*_keys)
-        res, path = _get_with_path(self, *keys, default=_MISSING, skip_none=skip_none)
+        path = _resolve_path(_path)
+        res, path = _get_with_path(self, path, default=_MISSING, skip_none=skip_none)
         if _is_missing(res):
             if _is_missing(default):
-                raise KeyError(self._resolve_path(keys[0]))
+                raise KeyError(path)
             return default, path
         return res, path
 
     def _get(
-        self, *_keys: str | list[str], default: Any = _MISSING, skip_none: bool = False
+        self, path: _PathType, default: Any = _MISSING, skip_none: bool = False
     ) -> Any:
         """Return the first matched value, raising if absent and no default is given."""
-        val, _ = self._get_with_path(*_keys, default=default, skip_none=skip_none)
+        val, _ = self._get_with_path(path, default=default, skip_none=skip_none)
         return val
 
     def get(
-        self, key: str | list[str], default: Any = None, skip_none: bool = False
+        self, key: _PathType, default: Any = None, skip_none: bool = False
     ) -> Any:
         """Retrieve a value from the configuration by key, returning the default if not found."""
-        keys = _resolve_keys_arg(key)
+        path = _resolve_path(key)
         try:
-            return self._get(*keys, default=default, skip_none=skip_none)
+            return self._get(path, default=default, skip_none=skip_none)
         except KeyError:
             return default
 
-    def has(self, *keys: str | list[str]) -> bool:
+    def has(self, path: _PathType) -> bool:
         """Check if the configuration contains the specified keys.
 
         :param keys: The keys to check.
         :return: True if the keys exist in the configuration, False otherwise.
         """
-        resolved_keys = _resolve_keys_arg(*keys)
+        path = _resolve_path(path)
         try:
-            self._get(*resolved_keys)
+            self._get(path)
             return True
         except KeyError:
             return False
@@ -185,16 +183,16 @@ class Configuration(dict, _ConfigurationProtocol):
     @overload
     def get_section(
         self,
-        *section: str | list[str],
+        section: _PathType,
         default: Configuration | _MissingType = _MISSING,
     ) -> Configuration: ...
     @overload
     def get_section(
-        self, *section: str | list[str], default: None
+        self, section: _PathType, default: None
     ) -> Configuration | None: ...
     def get_section(
         self,
-        *section: str | list[str],
+        section: _PathType,
         default: Configuration | None | _MissingType = _MISSING,
     ) -> Configuration | None:
         """Retrieve a section of the configuration, returning it as a Configuration object.
@@ -205,26 +203,27 @@ class Configuration(dict, _ConfigurationProtocol):
         :raises KeyError: If the section is not found and no default is provided.
         :raises TypeError: If the section is found but is not a mapping.
         """
-        keys = _resolve_keys_arg(*section)
-        val, path = self._get_with_path(*keys, default=default)
-        if not path:
+        path = _resolve_path(section)
+        val, found_path = self._get_with_path(path, default=default)
+        if not found_path:
             return val
-        base_path = self._resolve_path(_PATH_SEPARATOR.join(path))
+        base_path = self._resolve_path(found_path)
 
         if isinstance(val, Mapping):
-            return Configuration.from_mapping(val, _base_path=base_path)
+            return Configuration.from_config(val, _base_path=base_path)
         if val is None and not _is_missing(default):
             return default
         raise TypeError(f"Section {base_path} is not a mapping")
 
-    def get_sections(self, *section: str) -> list[Configuration]:
+    def get_sections(self, section: _PathType) -> list[Configuration]:
         """Retrieve all subsections of the specified section as Configuration objects.
 
         :param section: The names of the nested sections to retrieve.
         :return: A list of Configuration objects representing the subsections.
         :raises TypeError: If the section is not a mapping.
         """
-        map = _collect_with_paths(self, *section)
+        path = _resolve_path(section)
+        map = _collect_with_paths(self, path)
 
         if not map:
             return []
@@ -236,20 +235,20 @@ class Configuration(dict, _ConfigurationProtocol):
                 )
 
         return [
-            Configuration.from_mapping(v, _base_path=self._resolve_path(base_path))
+            Configuration.from_config(v, _base_path=self._resolve_path(base_path))
             for base_path, v in map.items()
         ]
 
     @overload
     def get_bool(
-        self, *_keys: str | list[str], default: bool | _MissingType = _MISSING
+        self, _path: _PathType, default: bool | _MissingType = _MISSING
     ) -> bool: ...
     @overload
     def get_bool(
-        self, *_keys: str | list[str], default: None = None
+        self, _path: _PathType, default: None = None
     ) -> bool | None: ...
     def get_bool(
-        self, *_keys: str | list[str], default: bool | None | _MissingType = _MISSING
+        self, _path: _PathType, default: bool | None | _MissingType = _MISSING
     ) -> bool | None:
         """Retrieve a boolean value from the configuration.
 
@@ -257,13 +256,12 @@ class Configuration(dict, _ConfigurationProtocol):
         :param default: The default value to return if the key is not found.
         :return: The retrieved boolean value or the default value if not found.
         """
-        keys = _resolve_keys_arg(*_keys)
-        val, path = self._get_with_path(*keys, default=default, skip_none=True)
-        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
-        return _handle_bool(val, default, name)
+        path = _resolve_path(_path)
+        val, found_path = self._get_with_path(path, default=default, skip_none=True)
+        return _handle_bool(val, default, found_path.last)
 
     def get_booln(
-        self, *_keys: str | list[str], default: bool | None = None
+        self, path: _PathType, default: bool | None = None
     ) -> bool | None:
         """Retrieve a boolean value from the configuration, allowing None as default.
 
@@ -271,16 +269,16 @@ class Configuration(dict, _ConfigurationProtocol):
         :param default: The default value to return if the key is not found.
         :return: The retrieved boolean value or the default value if not found.
         """
-        return self.get_bool(*_keys, default=default)
+        return self.get_bool(path, default=default)
 
     @overload
-    def get_int(self, *_keys: str | list[str], default: None = None) -> int | None: ...
+    def get_int(self, _path: _PathType, default: None = None) -> int | None: ...
     @overload
     def get_int(
-        self, *_keys: str | list[str], default: int | _MissingType = _MISSING
+        self, _path: _PathType, default: int | _MissingType = _MISSING
     ) -> int: ...
     def get_int(
-        self, *_keys: str | list[str], default: int | None | _MissingType = _MISSING
+        self, _path: _PathType, default: int | None | _MissingType = _MISSING
     ) -> int | None:
         """Retrieve an integer value from the configuration.
 
@@ -288,13 +286,12 @@ class Configuration(dict, _ConfigurationProtocol):
         :param default: The default value to return if the key is not found.
         :return: The retrieved integer value or the default value if not found.
         """
-        keys = _resolve_keys_arg(*_keys)
-        val, path = self._get_with_path(*keys, default=default, skip_none=True)
-        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
-        return _handle_int(val, default, name)
+        path = _resolve_path(_path)
+        val, found_path = self._get_with_path(path, default=default, skip_none=True)
+        return _handle_int(val, default, found_path.last)
 
     def get_intn(
-        self, *_keys: str | list[str], default: int | None = None
+        self, path: _PathType, default: int | None = None
     ) -> int | None:
         """Retrieve an integer value from the configuration, allowing None as default.
 
@@ -302,18 +299,18 @@ class Configuration(dict, _ConfigurationProtocol):
         :param default: The default value to return if the key is not found.
         :return: The retrieved integer value or the default value if not found.
         """
-        return self.get_int(*_keys, default=default)
+        return self.get_int(path, default=default)
 
     @overload
     def get_float(
-        self, *_keys: str | list[str], default: None = None
+        self, _path: _PathType, default: None = None
     ) -> float | None: ...
     @overload
     def get_float(
-        self, *_keys: str | list[str], default: float | _MissingType = _MISSING
+        self, _path: _PathType, default: float | _MissingType = _MISSING
     ) -> float: ...
     def get_float(
-        self, *_keys: str | list[str], default: float | None | _MissingType = _MISSING
+        self, _path: _PathType, default: float | None | _MissingType = _MISSING
     ) -> float | None:
         """Retrieve a float value from the configuration.
 
@@ -321,13 +318,12 @@ class Configuration(dict, _ConfigurationProtocol):
         :param default: The default value to return if the key is not found.
         :return: The retrieved float value or the default value if not found.
         """
-        keys = _resolve_keys_arg(*_keys)
-        val, path = self._get_with_path(*keys, default=default, skip_none=True)
-        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
-        return _handle_float(val, default, name)
+        path = _resolve_path(_path)
+        val, found_path = self._get_with_path(path, default=default, skip_none=True)
+        return _handle_float(val, default, found_path.last)
 
     def get_floatn(
-        self, *_keys: str | list[str], default: float | None = None
+        self, path: _PathType, default: float | None = None
     ) -> float | None:
         """Retrieve a float value from the configuration, allowing None as default.
 
@@ -335,16 +331,16 @@ class Configuration(dict, _ConfigurationProtocol):
         :param default: The default value to return if the key is not found.
         :return: The retrieved float value or the default value if not found.
         """
-        return self.get_float(*_keys, default=default)
+        return self.get_float(path, default=default)
 
     @overload
-    def get_str(self, *_keys: str | list[str], default: None) -> str | None: ...
+    def get_str(self, _path: _PathType, default: None) -> str | None: ...
     @overload
     def get_str(
-        self, *_keys: str | list[str], default: str | _MissingType = _MISSING
+        self, _path: _PathType, default: str | _MissingType = _MISSING
     ) -> str: ...
     def get_str(
-        self, *_keys: str | list[str], default: str | None | _MissingType = _MISSING
+        self, _path: _PathType, default: str | None | _MissingType = _MISSING
     ) -> str | None:
         """Retrieve a string value from the configuration.
 
@@ -352,22 +348,21 @@ class Configuration(dict, _ConfigurationProtocol):
         :param default: The default value to return if the key is not found.
         :return: The retrieved string value or the default value if not found.
         """
-        keys = _resolve_keys_arg(*_keys)
-        val, path = self._get_with_path(*keys, default=default, skip_none=True)
-        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
-        return _handle_str(val, default, name)
+        path = _resolve_path(_path)
+        val, found_path = self._get_with_path(path, default=default, skip_none=True)
+        return _handle_str(val, default, found_path.last)
 
-    def get_strn(self, *_keys: str | list[str], default: str | None = None):
+    def get_strn(self, path: _PathType, default: str | None = None):
         """Retrieve a string, allowing None as the default.
 
         :param keys: The keys of the value to retrieve.
         :param default: The default value to return if the key is not found.
         :return: The retrieved string or the default value if not found.
         """
-        return self.get_str(*_keys, default=default)
+        return self.get_str(path, default=default)
 
     def get_str_list(
-        self, *_keys: str | list[str], default: list[str] | None = None
+        self, _path: _PathType, default: list[str] | None = None
     ) -> list[str]:
         """Retrieve a list of strings from the configuration.
 
@@ -375,22 +370,20 @@ class Configuration(dict, _ConfigurationProtocol):
         :param default: The default value to return if the key is not found.
         :return: The retrieved list of strings or the default value if not found.
         """
-        keys = _resolve_keys_arg(*_keys)
-        val, path = self._get_with_path(*keys, default=default, skip_none=True)
+        path = _resolve_path(_path)
+        val, found_path = self._get_with_path(path, default=default, skip_none=True)
         if val is None:
             if default is None:
                 return []
             return default
         if isinstance(val, list):
-            name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
-            return _handle_str_list(val, default, name)
+            return _handle_str_list(val, default, found_path.last)
         elif isinstance(val, Mapping):
             raise ValueError(
-                f"Invalid list value for {self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])}"
+                f"Invalid list value for {str(found_path)}"
             )
         elif not isinstance(val, Mapping):
-            name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
-            before_split = _handle_str(val, None, name)
+            before_split = _handle_str(val, None, found_path.last)
             if before_split is None:
                 return default if default is not None else []
             if "," in before_split:
@@ -398,7 +391,7 @@ class Configuration(dict, _ConfigurationProtocol):
             return [s.strip() for s in before_split.strip().split()]
 
     def get_items(
-        self, *_keys: str | list[str], default: dict | None = None
+        self, _path: _PathType, default: dict | None = None
     ) -> Iterable[tuple[Any, Any]]:
         """Retrieve items from a dictionary in the configuration.
 
@@ -406,40 +399,38 @@ class Configuration(dict, _ConfigurationProtocol):
         :param default: The default value to return if the key is not found.
         :return: The retrieved items as a list of key-value tuples or the default value if not found.
         """
-        keys = _resolve_keys_arg(*_keys)
-        base = _get(self, *keys, default=default)
+        path = _resolve_path(_path)
+        base = _get(self, path, default=default)
         if isinstance(base, Mapping):
             return base.items()
         elif isinstance(base, list):
             return enumerate(base)
         return []
 
-    def collect(self, *_keys: str | list[str]) -> list[Any]:
-        keys = _resolve_keys_arg(*_keys)
-        return _collect(self, *keys)
+    def collect(self, path: _PathType) -> list[Any]:
+        return _collect(self, _resolve_path(path))
 
-    def collect_str(self, *_keys: str | list[str]) -> list[str]:
-        keys = _resolve_keys_arg(*_keys)
-        vals = _collect(self, *keys)
-        vals = [_handle_str(v, None, keys[0]) for v in vals if v is not None]
+    def collect_str(self, _path: _PathType) -> list[str]:
+        path = _resolve_path(_path)
+        vals = _collect(self, _resolve_path(path))
+        vals = [_handle_str(v, None, path.last) for v in vals if v is not None]
         return [v for v in vals if v is not None]
 
-    def get_scopes(self, *_keys: str | list[str]) -> list[str]:
+    def get_scopes(self, _path: _PathType) -> list[str]:
         """Retrieve a list of scopes from the configuration.
 
-        :param keys: The keys of the scopes value to retrieve.
+        :param path: The path of the scopes value to retrieve.
         :return: The scopes as a list, or an empty list if absent.
         """
-        keys = _resolve_keys_arg(*_keys)
-        val, path = self._get_with_path(*keys, default=None, skip_none=True)
+        path = _resolve_path(_path)
+        val = self._get(path, default=None, skip_none=True)
         if val is None:
             return []
         if isinstance(val, list):
             return val
         if isinstance(val, str):
             return Configuration.format_scopes(val)
-        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
-        raise ValueError(f"Invalid scopes value for {name}")
+        raise ValueError(f"Invalid scopes value for {path.last}")
 
     @staticmethod
     def format_scopes(scopes: str | list[str] | None) -> list[str]:
@@ -452,25 +443,24 @@ class Configuration(dict, _ConfigurationProtocol):
             return [s for s in lst if s]
         return list(scopes)
 
+    @staticmethod
+    def _from_config_or_kwargs(primary_config: Mapping | None, kwargs: MutableMapping, *, ensure_root_config: bool = False) -> Configuration:
+        if primary_config is None:
+            if ensure_root_config:
+                _RootConfigMetadata.set(kwargs, True)
+            return Configuration.from_config(kwargs)
+        return Configuration.from_config(primary_config)
+
 
 class _Configurable(ABC):
     """Bind typed settings from a Configuration or reuse an already-bound object."""
 
     @classmethod
-    def from_mapping(cls, _mapping: Mapping | None = None, **kwargs) -> Self:
-        """Bind mapping values, using kwargs as fallbacks for missing entries.
-
-        Configuration inputs preserve their root identity. Ordinary mappings
-        are scoped; use a marked root Configuration for application-level input.
-        """
-        return cls.from_configuration(Configuration.from_mapping(_mapping, **kwargs))
-
-    @classmethod
     @abstractmethod
-    def _from_configuration(cls, config: Configuration) -> Self: ...
+    def _from_config(cls, config: Configuration) -> Self: ...
 
     @classmethod
-    def from_configuration(cls, config: Configuration | Self | None) -> Self:
+    def from_config(cls, config: Mapping | Self | None) -> Self:
         """Bind a Configuration, reuse a settings instance, or bind defaults.
 
         None binds an empty scoped Configuration. Plain mappings must instead
@@ -478,12 +468,16 @@ class _Configurable(ABC):
 
         :raises TypeError: If config is not a supported input type.
         """
-        if config is None:
-            config = Configuration()
+
         if isinstance(config, cls):
             return config
+
+        if config is None:
+            config = Configuration()
+        elif isinstance(config, Mapping) and not isinstance(config, Configuration):
+            config = Configuration.from_config(config)
         if isinstance(config, Configuration):
-            return cls._from_configuration(config)
+            return cls._from_config(config)
         raise TypeError(f"Cannot create {cls.__name__} from {type(config).__name__}")
 
 
@@ -497,8 +491,8 @@ class _RootConfigurable(_Configurable, ABC):
     """
 
     @classmethod
-    def _from_configuration(cls, config: Configuration) -> Self:
-        if _is_root_config(config):
+    def _from_config(cls, config: Configuration) -> Self:
+        if _RootConfigMetadata.get(config):
             return cls._from_root_configuration(config)
         return cls._from_scoped_configuration(config)
 
