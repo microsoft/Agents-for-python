@@ -11,7 +11,7 @@ from typing import Mapping
 from microsoft_agents.activity.errors import configuration_errors
 
 from ..configuration import Configuration, _RootConfigurable
-from .._engine._utils import _xpath
+from .._utils import _legpath as legpath
 from ._constants import _NAME_TO_LEVEL
 
 
@@ -47,13 +47,13 @@ class _LoggingConfiguration(_RootConfigurable):
     @classmethod
     def _from_root_configuration(cls, config: Configuration) -> _LoggingConfiguration:
         return cls._from_scoped_configuration(
-            config.get_section(_xpath("logging"), default=Configuration())
+            config.get_section(legpath("logging"), default=Configuration())
         )
 
     @classmethod
     def _from_scoped_configuration(cls, config: Configuration) -> _LoggingConfiguration:
 
-        raw_log_levels = config.get(_xpath("log_level"), default={})
+        raw_log_levels = config.get(legpath("log_level"), default={})
         if not isinstance(raw_log_levels, Mapping):
             raise ValueError(
                 configuration_errors.InvalidLoggingConfiguration.format(

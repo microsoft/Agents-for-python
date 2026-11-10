@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass, field
 
-from microsoft_agents.activity.config import Configuration, xpath
+from microsoft_agents.activity.config import Configuration, _legpath as legpath
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     AuthTypes,
@@ -51,18 +51,16 @@ class MsalConnectionSettings(ConnectionSettingsBase):
         base.update(
             {
                 "auth_type": config.get_str(
-                    xpath("auth_type"), default=AuthTypes.client_secret
+                    legpath("auth_type"), default=AuthTypes.client_secret
                 ),
-                "client_secret": config.get_strn(xpath("client_secret")),
-                "cert_pfx_file": config.get_strn(xpath("cert_pfx_file")),
-                "send_x5c": config.get_bool(xpath("send_x5c"), default=False),
-                "connection_name": config.get_strn(xpath("connection_name")),
-                "federated_client_id": config.get_strn(xpath("federated_client_id")),
-                "federated_token_file": config.get_strn(xpath("federated_token_file")),
-                "idpm_resource": config.get_strn(xpath("idpm_resource")),
-                "azure_region": config.get_strn(
-                    xpath("azure_region"), xpath("regional_authority")
-                ),
+                "client_secret": config.get_strn(legpath("client_secret")),
+                "cert_pfx_file": config.get_strn(legpath("cert_pfx_file")),
+                "send_x5c": config.get_bool(legpath("send_x5c"), default=False),
+                "connection_name": config.get_strn(legpath("connection_name")),
+                "federated_client_id": config.get_strn(legpath("federated_client_id")),
+                "federated_token_file": config.get_strn(legpath("federated_token_file")),
+                "idpm_resource": config.get_strn(legpath("idpm_resource")),
+                "azure_region": config.get_strn(legpath("azure_region")) or config.get_strn(legpath("regional_authority")),
             }
         )
         return base

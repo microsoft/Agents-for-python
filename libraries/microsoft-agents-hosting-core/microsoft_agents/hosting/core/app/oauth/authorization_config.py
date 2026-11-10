@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from microsoft_agents.activity.config import (
     Configuration,
     _RootConfigurable,
-    xpath,
+    _legpath as legpath,
     _get,
     _get_str,
 )
@@ -40,13 +40,13 @@ class AuthorizationConfig(_RootConfigurable):
 
     @classmethod
     def _from_scoped_configuration(cls, config: Configuration) -> AuthorizationConfig:
-        handlers_config = config.get(xpath("handlers"), default={})
+        handlers_config = config.get(legpath("handlers"), default={})
         handlers = {}
         for handler_name, subconfig in handlers_config.items():
-            extra = dict(_get(subconfig, *xpath("settings"), default={}))
+            extra = dict(_get(subconfig, legpath("settings"), default={}))
             if "name" in extra:
                 del extra["name"]
-            handler_type = _get_str(subconfig, *xpath("type"), default="")
+            handler_type = _get_str(subconfig, legpath("type"), default="")
             if "auth_type" in extra:
                 nested_type = extra.pop("auth_type")
                 handler_type = handler_type or nested_type
@@ -54,7 +54,7 @@ class AuthorizationConfig(_RootConfigurable):
                 dict(name=handler_name, auth_type=handler_type, **extra)
             )
         return AuthorizationConfig(
-            auto_sign_in=config.get_bool(xpath("auto_sign_in"), default=False),
+            auto_sign_in=config.get_bool(legpath("auto_sign_in"), default=False),
             handlers=handlers,
         )
 
@@ -62,7 +62,7 @@ class AuthorizationConfig(_RootConfigurable):
     def _from_root_configuration(cls, config: Configuration) -> AuthorizationConfig:
         return cls._from_scoped_configuration(
             config.get_section(
-                xpath("agent_application", "user_authorization"),
+                legpath("agent_application", "user_authorization"),
                 default=Configuration(),
             )
         )

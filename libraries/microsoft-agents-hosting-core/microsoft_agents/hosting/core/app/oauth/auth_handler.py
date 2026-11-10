@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from microsoft_agents.activity.config import (
     _Configurable,
     Configuration,
-    xpath,
+    _legpath as legpath,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,22 +36,22 @@ def _create_kwargs(
 ) -> dict:
     c = Configuration(kwargs)
     return dict(
-        name=_or_default(name, c.get_str(xpath("name"), default="")),
-        title=_or_default(title, c.get_str(xpath("title"), default="")),
-        text=_or_default(text, c.get_str(xpath("text"), default="")),
+        name=_or_default(name, c.get_str(legpath("name"), default="")),
+        title=_or_default(title, c.get_str(legpath("title"), default="")),
+        text=_or_default(text, c.get_str(legpath("text"), default="")),
         abs_oauth_connection_name=_or_default(
             abs_oauth_connection_name,
-            c.get_str(xpath("azurebotoauthconnectionname"), default=""),
+            c.get_str(legpath("azurebotoauthconnectionname"), default=""),
         ),
         obo_connection_name=_or_default(
-            obo_connection_name, c.get_str(xpath("oboconnectionname"), default="")
+            obo_connection_name, c.get_str(legpath("oboconnectionname"), default="")
         ),
         auth_type=_or_default(
-            auth_type, c.get_str(xpath("type"), default="UserAuthorization")
+            auth_type, c.get_str(legpath("type"), default="UserAuthorization")
         ).lower(),
-        scopes=Configuration.format_scopes(scopes or c.get(xpath("scopes"))),
+        scopes=Configuration.format_scopes(scopes or c.get(legpath("scopes"))),
         _alt_blueprint_name=_alt_blueprint_name
-        or c.get_strn(xpath("alt_blueprint_name")),
+        or c.get_strn(legpath("alt_blueprint_name")),
     )
 
 

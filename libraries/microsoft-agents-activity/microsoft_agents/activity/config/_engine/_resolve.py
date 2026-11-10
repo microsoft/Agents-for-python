@@ -4,8 +4,12 @@
 from typing import Any, Callable, Mapping
 
 from ._missing import _MISSING
-from ._utils import _get, _parse_env_var_name, _path, _try_set
+from ._path import _get, _try_set
+from ._utils import _parse_env_var_name
 
+
+def _path(*parts: str) -> str:
+    return "::".join(parts)
 
 def _expand_paths(
     source: Mapping, path_transformer: Callable[[str], str]

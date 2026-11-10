@@ -9,7 +9,7 @@ from typing import Mapping
 from microsoft_agents.activity.config import (
     Configuration,
     _get_str,
-    xpath,
+    _legpath as legpath,
 )
 
 
@@ -53,10 +53,10 @@ class _ConnectionMap():
                 final_items.append(
                     _ConnectionMapItem(
                         service_url=val_config.get_str(
-                            *xpath("service_url"), default=""
+                            legpath("service_url"), default=""
                         ),
-                        audience=val_config.get_str(*xpath("audience"), default=""),
-                        connection=val_config.get_str(*xpath("connection"), default=""),
+                        audience=val_config.get_str("audience", default=""),
+                        connection=val_config.get_str("connection", default=""),
                     )
                 )
 

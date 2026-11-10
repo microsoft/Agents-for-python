@@ -6,7 +6,7 @@ import json
 from logging import Logger
 from urllib.parse import urlparse
 
-from microsoft_agents.activity.config import Configuration, xpath
+from microsoft_agents.activity.config import Configuration, _legpath as legpath
 from microsoft_agents.activity._model_utils import pick_model_dict, SkipNone
 
 from .connections.connections_map import _ConnectionMap
@@ -100,7 +100,7 @@ def _summarize_auth_configs(config_map: dict[str, Configuration]) -> str:
     :return: A string summarizing the authentication configuration.
     :rtype: str
     """
-    get_strn = lambda key: config.get_strn(xpath(key))
+    get_strn = lambda key: config.get_strn(legpath(key))
     summary = []
     for connection_name, config in config_map.items():
         summary.append(
@@ -116,10 +116,10 @@ def _summarize_auth_configs(config_map: dict[str, Configuration]) -> str:
                 CLIENTSECRET=SkipNone(_redact_str_or_none(get_strn("CLIENT_SECRET"))),
                 AUTHORITY=SkipNone(
                     _redact_url_or_none(
-                        config.get_strn(xpath("authority"), xpath("authorityendpoint"))
+                        config.get_strn(legpath("authority")) or config.get_strn(legpath("authorityendpoint"))
                     )
                 ),
-                SCOPES=SkipNone(_redact_scopes(config.get_scopes(xpath("SCOPES")))),
+                SCOPES=SkipNone(_redact_scopes(config.get_scopes(legpath("SCOPES")))),
                 FEDERATED_CLIENT_ID=SkipNone(
                     _redact_str_or_none(get_strn("FEDERATED_CLIENT_ID"), peek=True)
                 ),
@@ -129,7 +129,7 @@ def _summarize_auth_configs(config_map: dict[str, Configuration]) -> str:
                 ),
                 IDPM_RESOURCE=SkipNone(_redact_url_or_none(get_strn("IDPM_RESOURCE"))),
                 AZURE_REGION=SkipNone(_redact_url_or_none(get_strn("AZURE_REGION"))),
-                ANONYMOUS_ALLOWED=str(config.get_booln(xpath("ANONYMOUS_ALLOWED"))),
+                ANONYMOUS_ALLOWED=str(config.get_booln(legpath("ANONYMOUS_ALLOWED"))),
             )
         )
     return json.dumps(summary, indent=2)

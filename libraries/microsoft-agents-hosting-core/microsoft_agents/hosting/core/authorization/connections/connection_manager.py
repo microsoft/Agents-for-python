@@ -9,7 +9,9 @@ from typing import cast, TypeVar
 from collections.abc import Callable
 
 from microsoft_agents.activity import Activity
-from microsoft_agents.activity.config import Configuration, xpath, _get, path
+from microsoft_agents.activity.config import (
+    Configuration, _legpath as legpath, _get
+)
 
 from .agent_auth_configuration import AgentAuthConfiguration
 from ..access_token_provider_base import AccessTokenProviderBase
@@ -124,8 +126,8 @@ class ConnectionManager(Connections):
                 raw_configurations: dict[str, dict] = kwargs.get("CONNECTIONS", {})
                 for connection_name, connection_settings in raw_configurations.items():
                     parsed_config = Configuration(
-                        _get(connection_settings, *xpath("SETTINGS"), default={}),
-                        _base_path=path("CONNECTIONS", connection_name, "SETTINGS"),
+                        _get(connection_settings, legpath("SETTINGS"), default={}),
+                        _base_path=("CONNECTIONS", connection_name, "SETTINGS"),
                     )
                     auth_config = AgentAuthConfiguration.from_dict(parsed_config)
                     self._connections[connection_name] = provider_factory(auth_config)
@@ -142,13 +144,13 @@ class ConnectionManager(Connections):
             )
             config = Configuration._from_config_or_kwargs(config, kwargs, ensure_root_config=True)
 
-            raw_connections_map = config.get(xpath("connections_map"), [])
-            connection_configs = config.get_sections(*xpath("connections::*"))
+            raw_connections_map = config.get(legpath("connections_map"), [])
+            connection_configs = config.get_sections(legpath("connections", "*"))
 
             for section in connection_configs:
                 connection_name = section.key
-                parsed_config = section.get_section(xpath("settings"), default=section)
-                # parsed_config = Configuration(**_get(connection_settings, *xpath("SETTINGS"), default={}))
+                parsed_config = section.get_section(legpath("settings"), default=section)
+                # parsed_config = Configuration(**_get(connection_settings, *legpath("SETTINGS"), default={}))
                 self._connections[connection_name] = self._provider_factory(
                     parsed_config
                 )
@@ -157,7 +159,7 @@ class ConnectionManager(Connections):
 
         self._connections_map = _ConnectionMap(raw_connections_map)
 
-        if not _get(self._connections, *xpath("service_connection"), default=None):
+        if not _get(self._connections, legpath("service_connection"), default=None):
             raise ValueError("No service connection configuration provided.")
 
         _log_config(logger, self._config_map, self._connections_map)
@@ -173,7 +175,7 @@ class ConnectionManager(Connections):
         """
         original_name = connection_name
         connection_name = (connection_name or "service_connection").lower()
-        connection = _get(self._connections, *xpath(connection_name), default=None)
+        connection = _get(self._connections, legpath(connection_name), default=None)
         if not connection:
             if original_name:
                 raise ValueError(f"No connection found for '{original_name}'.")
@@ -190,7 +192,7 @@ class ConnectionManager(Connections):
         :return: The default OAuth connection for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
-        connection = _get(self._connections, *xpath("service_connection"), default=None)
+        connection = _get(self._connections, legpath("service_connection"), default=None)
         if not connection:
             raise ValueError(
                 "No default service connection found. Expected 'SERVICE_CONNECTION'."
@@ -289,7 +291,7 @@ class ConnectionManager(Connections):
             DeprecationWarning,
             stacklevel=2,
         )
-        config = _get(self._deprecated_config_map, *xpath("service_connection"), default=None)
+        config = _get(self._deprecated_config_map, legpath("service_connection"), default=None)
         if not config:
             raise ValueError(
                 "get_default_connection_configuration() is only available for "

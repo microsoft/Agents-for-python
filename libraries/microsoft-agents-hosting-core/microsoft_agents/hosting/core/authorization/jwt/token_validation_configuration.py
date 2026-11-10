@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from microsoft_agents.activity.config import Configuration, _Configurable, xpath
+from microsoft_agents.activity.config import Configuration, _Configurable, _legpath as legpath
 from microsoft_agents.activity.config._metadata import _RootConfigMetadata
 
 from .jwt_connection_settings import JwtConnectionSettings
@@ -45,13 +45,13 @@ class TokenValidationConfiguration(_Configurable):
 
         if _RootConfigMetadata.get(configuration):
             token_validation = configuration.get_section(
-                xpath("token_validation"), default=Configuration()
+                legpath("token_validation"), default=Configuration()
             )
-            connection_raw_items = configuration.get_items(xpath("connections"))
+            connection_raw_items = configuration.get_items("connections")
 
-        audiences = token_validation.get_str_list(xpath("audiences"))
-        tenant_id = token_validation.get_strn(xpath("tenant_id"))
-        anonymous_allowed = token_validation.get_booln(xpath("anonymous_allowed"))
+        audiences = token_validation.get_str_list("audiences")
+        tenant_id = token_validation.get_strn(legpath("tenant_id"))
+        anonymous_allowed = token_validation.get_booln(legpath("anonymous_allowed"))
 
         connections: dict[str, JwtConnectionSettings] = {}
         for name, conf in connection_raw_items:

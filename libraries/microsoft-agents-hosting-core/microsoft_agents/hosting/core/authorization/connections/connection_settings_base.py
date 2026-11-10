@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, fields
 from typing import TypeVar
 from typing_extensions import Self
 
-from microsoft_agents.activity.config import Configuration, _Configurable, xpath
+from microsoft_agents.activity.config import Configuration, _Configurable, _legpath as legpath
 
 from .agent_auth_configuration import AgentAuthConfiguration
 
@@ -48,19 +48,12 @@ class ConnectionSettingsBase(_Configurable):
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         return {
-            "client_id": config.get_strn(cls._xpath("client_id")),
-            "authority": config.get_strn(
-                cls._xpath("authority"), cls._xpath("authorityendpoint")
-            ),
-            "tenant_id": config.get_strn(cls._xpath("tenant_id")),
-            "scopes": config.get_scopes(cls._xpath("scopes")),
-            "alternate_blueprint_connection_name": config.get_strn(
-                "alt_blueprint_name",
-                "ALT_BLUEPRINT_NAME",
-                "alt_blueprint_id",
-                "ALT_BLUEPRINT_ID",
-                *cls._xpath("alternate_blueprint_connection_name"),
-            ),
+            "client_id": config.get_strn(legpath("client_id")),
+            "authority": config.get_strn("authority") or config.get_strn("authorityendpoint"),
+            "tenant_id": config.get_strn(legpath("tenant_id")),
+            "scopes": config.get_scopes("scopes"),
+            "alternate_blueprint_connection_name": config.get_strn(legpath("alt_blueprint_name")) or 
+                config.get_strn(legpath("alternate_blueprint_connection_name")),
         }
 
     @classmethod
@@ -72,7 +65,7 @@ class ConnectionSettingsBase(_Configurable):
         base = [f.name for f in fields(cls) if f.init and f.name != "_extras"]
         final = []
         for n in base:
-            final.extend(xpath(n))
+            final.extend(legpath(n))
 
         _KNOWN_KWARGS_CACHE[cls] = final
         return final
@@ -90,11 +83,7 @@ class ConnectionSettingsBase(_Configurable):
     @classmethod
     def _from_config(cls, config: Configuration) -> Self:
         try:
-            settings = config.get_section(xpath("settings"))
+            settings = config.get_section("settings")
         except KeyError:
             settings = config
         return cls(**cls._get_init_kwargs(settings), _extras=cls._get_extras(settings))
-
-    @staticmethod
-    def _xpath(name: str) -> list[str]:
-        return xpath(name, lower_snake=True)

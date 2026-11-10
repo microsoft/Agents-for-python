@@ -11,18 +11,23 @@ these forms using ``Configuration.is_root_config``, not their contents or paths.
 from ._load_configuration import load_configuration_from_env
 from .configuration import Configuration, _Configurable, _RootConfigurable
 from ._protocol import _MappingConfigurable
-from ._engine._resolve import _resolve
-from ._engine._utils import (
+from ._engine import (
     _MissingType,
     _MISSING,
     _get,
     _is_missing,
-    _path as path,
-    _xpath as xpath,
     _set,
     _try_set,
+    _resolve,
+    coerce_bool,
+    coerce_int,
+    coerce_float,
+    _get_str,
+    _Path,
+    _PathProxy,
 )
-from ._engine._coercion import coerce_bool, coerce_int, coerce_float, _get_str
+from ._utils import _legpath, _netpath
+
 
 __all__ = [
     "load_configuration_from_env",
@@ -31,8 +36,6 @@ __all__ = [
     "_MissingType",
     "_MISSING",
     "_is_missing",
-    "xpath",
-    "path",
     "_get",
     "_set",
     "_try_set",
@@ -43,4 +46,8 @@ __all__ = [
     "coerce_int",
     "coerce_float",
     "_get_str",
+    "_Path",
+    "_PathProxy",
+    "_legpath",
+    "_netpath"
 ]

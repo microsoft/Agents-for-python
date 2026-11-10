@@ -20,7 +20,7 @@ from typing import (
 )
 
 from ._missing import _MISSING, _MissingType, _is_missing
-from ._utils import _get
+from ._path import _get, _Path, _PathProxy
 
 _TRUTHY = ("1", "true")
 _FALSY = ("0", "false")
@@ -226,52 +226,52 @@ def _handle_str_list(
 
 
 @overload
-def _get_bool(mapping: Mapping, key: str, default: bool | _MissingType) -> bool: ...
+def _get_bool(mapping: Mapping, _path: _PathProxy, default: bool | _MissingType) -> bool: ...
 @overload
-def _get_bool(mapping: Mapping, key: str, default: None) -> bool | None: ...
+def _get_bool(mapping: Mapping, _path: _PathProxy, default: None) -> bool | None: ...
 def _get_bool(
-    mapping: Mapping, key: str, default: bool | None | _MissingType = _MISSING
+    mapping: Mapping, _path: _PathProxy, default: bool | None | _MissingType = _MISSING
 ) -> bool | None:
-    val = _get(mapping, key, default=_MISSING)
-    _check_key_error(val, default, key)
-    return _handle_bool(val, default, key)
+    path = _Path.create(_path)
+    val = _get(mapping, path, default=_MISSING)
+    _check_key_error(val, default, path.last)
+    return _handle_bool(val, default, path.last)
 
 
 @overload
-def _get_int(mapping: Mapping, key: str, default: int | _MissingType) -> int: ...
+def _get_int(mapping: Mapping, _path: _PathProxy, default: int | _MissingType) -> int: ...
 @overload
-def _get_int(mapping: Mapping, key: str, default: None) -> int | None: ...
+def _get_int(mapping: Mapping, _path: _PathProxy, default: None) -> int | None: ...
 def _get_int(
-    mapping: Mapping, key: str, default: int | None | _MissingType = _MISSING
+    mapping: Mapping, _path: _PathProxy, default: int | None | _MissingType = _MISSING
 ) -> int | None:
-    val = _get(mapping, key, default=_MISSING)
-    _check_key_error(val, default, key)
-    return _handle_int(val, default, key)
+    path = _Path.create(_path)
+    val = _get(mapping, path, default=_MISSING)
+    _check_key_error(val, default, path.last)
+    return _handle_int(val, default, path.last)
 
 
 @overload
-def _get_float(mapping: Mapping, *key: str, default: float | _MissingType) -> float: ...
+def _get_float(mapping: Mapping, _path: _PathProxy, default: float | _MissingType) -> float: ...
 @overload
-def _get_float(mapping: Mapping, *key: str, default: None) -> float | None: ...
+def _get_float(mapping: Mapping, _path: _PathProxy, default: None) -> float | None: ...
 def _get_float(
-    mapping: Mapping, *key: str, default: float | None | _MissingType = _MISSING
+    mapping: Mapping, _path: _PathProxy, default: float | None | _MissingType = _MISSING
 ) -> float | None:
-    if not key:
-        raise ValueError("At least one key must be provided.")
-    val = _get(mapping, *key, default=_MISSING)
-    _check_key_error(val, default, key[0])
-    return _handle_float(val, default, key[0])
+    path = _Path.create(_path)
+    val = _get(mapping, path, default=_MISSING)
+    _check_key_error(val, default, path.last)
+    return _handle_float(val, default, path.last)
 
 
 @overload
-def _get_str(mapping: Mapping, *key: str, default: str | _MissingType) -> str: ...
+def _get_str(mapping: Mapping, _path: _PathProxy, default: str | _MissingType) -> str: ...
 @overload
-def _get_str(mapping: Mapping, *key: str, default: None) -> str | None: ...
+def _get_str(mapping: Mapping, _path: _PathProxy, default: None) -> str | None: ...
 def _get_str(
-    mapping: Mapping, *key: str, default: str | None | _MissingType = _MISSING
+    mapping: Mapping, _path: _PathProxy, default: str | None | _MissingType = _MISSING
 ) -> str | None:
-    if not key:
-        raise ValueError("At least one key must be provided.")
-    val = _get(mapping, *key, default=_MISSING)
-    _check_key_error(val, default, key[0])
-    return _handle_str(val, default, key[0])
+    path = _Path.create(_path)
+    val = _get(mapping, path, default=_MISSING)
+    _check_key_error(val, default, path.last)
+    return _handle_str(val, default, path.last)

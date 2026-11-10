@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Iterator, Mapping
 
 @dataclass(frozen=True, slots=True)
 class _PathSegment:
@@ -49,16 +49,22 @@ class _PathSegment:
             return 0 <= index < len(obj)
         return False
 
-    def step(self, obj: Any) -> tuple[bool, Any]:
+    def step_once(self, obj: Any) -> tuple[bool, Any, Any]:
+        try:
+            key, next_obj = next(self.iter_steps(obj))
+            return True, key, next_obj
+        except StopIteration:
+            return False, None, None
+
+    def iter_steps(self, obj: Any) -> Iterator[tuple[Any, Any]]:
         if isinstance(obj, Mapping):
             for key in obj:
                 if self.check(key):
-                    return True, obj[key]
-            return False, None
-        if isinstance(obj, list) and self.string.isdigit():
+                    yield key, obj[key]
+        elif isinstance(obj, list) and self.string.isdigit():
             index = int(self.string)
-            return (True, obj[index]) if 0 <= index < len(obj) else (False, None)
-        return False, None
+            if 0 <= index < len(obj):
+                yield index, obj[index]
 
     def __repr__(self) -> str:
         return f"_PathSegment(segment={self.string!r}, ignore_case={self.ignore_case}, ignore_underscores={self.ignore_underscores})"

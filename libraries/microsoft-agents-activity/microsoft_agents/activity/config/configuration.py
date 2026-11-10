@@ -7,10 +7,10 @@ from abc import ABC, abstractmethod
 from typing import (
     Any,
     Iterable,
-    Sequence,
     Mapping,
     MutableMapping,
     TypeVar,
+    Sequence,
     overload,
 )
 from typing_extensions import Self
@@ -27,6 +27,7 @@ from ._engine._coercion import (
 )
 from ._engine import (
     _Path,
+    _PathProxy,
     _MissingType,
     _MISSING,
     _get,
@@ -34,15 +35,11 @@ from ._engine import (
     _collect,
     _collect_with_paths,
     _is_missing,
-    _resolve_path,
     _parse_env_var_name,
 )
 from ._metadata import (
-    _Metadata,
     _RootConfigMetadata,
 )
-
-_PathType = str | Sequence[str] | _Path
 
 T = TypeVar("T")
 _MappingConfigurableT = TypeVar(
@@ -68,7 +65,7 @@ class Configuration(dict, _MappingConfigurable):
     def __init__(
         self,
         original: Mapping | None = None,
-        _base_path: str | None = None
+        _base_path: str | Sequence[str] | None = None
     ):
         """Initialize a Configuration instance.
 
@@ -79,6 +76,8 @@ class Configuration(dict, _MappingConfigurable):
         :raises ValueError: If both original and keyword entries are supplied.
         """
         super().__init__(original or {})
+        if not isinstance(_base_path, str) and _base_path is not None:
+            _base_path = "::".join(_base_path)
         self._base_path = _base_path or getattr(original, "_base_path", "")
         self._key = None
 
@@ -132,48 +131,48 @@ class Configuration(dict, _MappingConfigurable):
         _base_path = _base_path or getattr(base, "_base_path", None)
         return Configuration(base, _base_path=_base_path)
 
-    def _resolve_path(self, path: _Path) -> str:
+    def _resolve_path(self, path: str | _Path) -> str:
         """Resolve a configuration path by combining the base path and the key."""
         if not self._base_path:
             return str(path)
         return f"{self._base_path}::{str(path)}"
 
     def _get_with_path(
-        self, _path: _PathType, default: Any = _MISSING, skip_none: bool = False
-    ) -> tuple[Any, _Path]:
+        self, _path: _PathProxy, default: Any = _MISSING, skip_none: bool = False
+    ) -> tuple[Any, _Path | None]:
         """Return a value and its matched path segments, relative to this section."""
-        path = _resolve_path(_path)
-        res, path = _get_with_path(self, path, default=_MISSING, skip_none=skip_none)
+        path = _Path.create(_path)
+        res, found_path = _get_with_path(self, path, default=default, skip_none=skip_none)
         if _is_missing(res):
             if _is_missing(default):
                 raise KeyError(path)
-            return default, path
-        return res, path
+            return default, None
+        return res, found_path
 
     def _get(
-        self, path: _PathType, default: Any = _MISSING, skip_none: bool = False
+        self, path: _PathProxy, default: Any = _MISSING, skip_none: bool = False
     ) -> Any:
         """Return the first matched value, raising if absent and no default is given."""
         val, _ = self._get_with_path(path, default=default, skip_none=skip_none)
         return val
 
     def get(
-        self, key: _PathType, default: Any = None, skip_none: bool = False
+        self, key: _PathProxy, default: Any = None, skip_none: bool = False
     ) -> Any:
         """Retrieve a value from the configuration by key, returning the default if not found."""
-        path = _resolve_path(key)
+        path = _Path.create(key)
         try:
             return self._get(path, default=default, skip_none=skip_none)
         except KeyError:
             return default
 
-    def has(self, path: _PathType) -> bool:
+    def has(self, path: _PathProxy) -> bool:
         """Check if the configuration contains the specified keys.
 
         :param keys: The keys to check.
         :return: True if the keys exist in the configuration, False otherwise.
         """
-        path = _resolve_path(path)
+        path = _Path.create(path)
         try:
             self._get(path)
             return True
@@ -183,17 +182,17 @@ class Configuration(dict, _MappingConfigurable):
     @overload
     def get_section(
         self,
-        section: _PathType,
-        default: Configuration | _MissingType = _MISSING,
+        section: _PathProxy,
+        default: Configuration,
     ) -> Configuration: ...
     @overload
     def get_section(
-        self, section: _PathType, default: None
+        self, section: _PathProxy, default: None
     ) -> Configuration | None: ...
     def get_section(
         self,
-        section: _PathType,
-        default: Configuration | None | _MissingType = _MISSING,
+        section: _PathProxy,
+        default: Configuration | None = None,
     ) -> Configuration | None:
         """Retrieve a section of the configuration, returning it as a Configuration object.
 
@@ -203,7 +202,7 @@ class Configuration(dict, _MappingConfigurable):
         :raises KeyError: If the section is not found and no default is provided.
         :raises TypeError: If the section is found but is not a mapping.
         """
-        path = _resolve_path(section)
+        path = _Path.create(section)
         val, found_path = self._get_with_path(path, default=default)
         if not found_path:
             return val
@@ -211,18 +210,18 @@ class Configuration(dict, _MappingConfigurable):
 
         if isinstance(val, Mapping):
             return Configuration.from_config(val, _base_path=base_path)
-        if val is None and not _is_missing(default):
+        if val is None:
             return default
         raise TypeError(f"Section {base_path} is not a mapping")
 
-    def get_sections(self, section: _PathType) -> list[Configuration]:
+    def get_sections(self, section: _PathProxy) -> list[Configuration]:
         """Retrieve all subsections of the specified section as Configuration objects.
 
         :param section: The names of the nested sections to retrieve.
         :return: A list of Configuration objects representing the subsections.
         :raises TypeError: If the section is not a mapping.
         """
-        path = _resolve_path(section)
+        path = _Path.create(section)
         map = _collect_with_paths(self, path)
 
         if not map:
@@ -231,7 +230,7 @@ class Configuration(dict, _MappingConfigurable):
         for base_path, v in map.items():
             if not isinstance(v, Mapping):
                 raise TypeError(
-                    f"Section {self._resolve_path(base_path)} is not a mapping"
+                    f"Section {self._resolve_path(path)} is not a mapping"
                 )
 
         return [
@@ -241,14 +240,14 @@ class Configuration(dict, _MappingConfigurable):
 
     @overload
     def get_bool(
-        self, _path: _PathType, default: bool | _MissingType = _MISSING
+        self, path: _PathProxy, default: bool | _MissingType = _MISSING
     ) -> bool: ...
     @overload
     def get_bool(
-        self, _path: _PathType, default: None = None
+        self, path: _PathProxy, default: None = None
     ) -> bool | None: ...
     def get_bool(
-        self, _path: _PathType, default: bool | None | _MissingType = _MISSING
+        self, path: _PathProxy, default: bool | None | _MissingType = _MISSING
     ) -> bool | None:
         """Retrieve a boolean value from the configuration.
 
@@ -256,12 +255,12 @@ class Configuration(dict, _MappingConfigurable):
         :param default: The default value to return if the key is not found.
         :return: The retrieved boolean value or the default value if not found.
         """
-        path = _resolve_path(_path)
+        path = _Path.create(path)
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
-        return _handle_bool(val, default, found_path.last)
+        return _handle_bool(val, default, found_path.last if found_path else path.last)
 
     def get_booln(
-        self, path: _PathType, default: bool | None = None
+        self, path: _PathProxy, default: bool | None = None
     ) -> bool | None:
         """Retrieve a boolean value from the configuration, allowing None as default.
 
@@ -272,13 +271,13 @@ class Configuration(dict, _MappingConfigurable):
         return self.get_bool(path, default=default)
 
     @overload
-    def get_int(self, _path: _PathType, default: None = None) -> int | None: ...
+    def get_int(self, path: _PathProxy, default: None = None) -> int | None: ...
     @overload
     def get_int(
-        self, _path: _PathType, default: int | _MissingType = _MISSING
+        self, path: _PathProxy, default: int | _MissingType = _MISSING
     ) -> int: ...
     def get_int(
-        self, _path: _PathType, default: int | None | _MissingType = _MISSING
+        self, path: _PathProxy, default: int | None | _MissingType = _MISSING
     ) -> int | None:
         """Retrieve an integer value from the configuration.
 
@@ -286,12 +285,12 @@ class Configuration(dict, _MappingConfigurable):
         :param default: The default value to return if the key is not found.
         :return: The retrieved integer value or the default value if not found.
         """
-        path = _resolve_path(_path)
+        path = _Path.create(path)
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
-        return _handle_int(val, default, found_path.last)
+        return _handle_int(val, default, found_path.last if found_path else path.last)
 
     def get_intn(
-        self, path: _PathType, default: int | None = None
+        self, path: _PathProxy, default: int | None = None
     ) -> int | None:
         """Retrieve an integer value from the configuration, allowing None as default.
 
@@ -303,14 +302,14 @@ class Configuration(dict, _MappingConfigurable):
 
     @overload
     def get_float(
-        self, _path: _PathType, default: None = None
+        self, path: _PathProxy, default: None = None
     ) -> float | None: ...
     @overload
     def get_float(
-        self, _path: _PathType, default: float | _MissingType = _MISSING
+        self, path: _PathProxy, default: float | _MissingType = _MISSING
     ) -> float: ...
     def get_float(
-        self, _path: _PathType, default: float | None | _MissingType = _MISSING
+        self, path: _PathProxy, default: float | None | _MissingType = _MISSING
     ) -> float | None:
         """Retrieve a float value from the configuration.
 
@@ -318,12 +317,12 @@ class Configuration(dict, _MappingConfigurable):
         :param default: The default value to return if the key is not found.
         :return: The retrieved float value or the default value if not found.
         """
-        path = _resolve_path(_path)
+        path = _Path.create(path)
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
-        return _handle_float(val, default, found_path.last)
+        return _handle_float(val, default, found_path.last if found_path else path.last)
 
     def get_floatn(
-        self, path: _PathType, default: float | None = None
+        self, path: _PathProxy, default: float | None = None
     ) -> float | None:
         """Retrieve a float value from the configuration, allowing None as default.
 
@@ -334,13 +333,13 @@ class Configuration(dict, _MappingConfigurable):
         return self.get_float(path, default=default)
 
     @overload
-    def get_str(self, _path: _PathType, default: None) -> str | None: ...
+    def get_str(self, path: _PathProxy, default: None) -> str | None: ...
     @overload
     def get_str(
-        self, _path: _PathType, default: str | _MissingType = _MISSING
+        self, path: _PathProxy, default: str | _MissingType = _MISSING
     ) -> str: ...
     def get_str(
-        self, _path: _PathType, default: str | None | _MissingType = _MISSING
+        self, path: _PathProxy, default: str | None | _MissingType = _MISSING
     ) -> str | None:
         """Retrieve a string value from the configuration.
 
@@ -348,11 +347,11 @@ class Configuration(dict, _MappingConfigurable):
         :param default: The default value to return if the key is not found.
         :return: The retrieved string value or the default value if not found.
         """
-        path = _resolve_path(_path)
+        path = _Path.create(path)
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
-        return _handle_str(val, default, found_path.last)
+        return _handle_str(val, default, found_path.last if found_path else path.last)
 
-    def get_strn(self, path: _PathType, default: str | None = None):
+    def get_strn(self, path: _PathProxy, default: str | None = None):
         """Retrieve a string, allowing None as the default.
 
         :param keys: The keys of the value to retrieve.
@@ -362,7 +361,7 @@ class Configuration(dict, _MappingConfigurable):
         return self.get_str(path, default=default)
 
     def get_str_list(
-        self, _path: _PathType, default: list[str] | None = None
+        self, path: _PathProxy, default: list[str] | None = None
     ) -> list[str]:
         """Retrieve a list of strings from the configuration.
 
@@ -370,20 +369,20 @@ class Configuration(dict, _MappingConfigurable):
         :param default: The default value to return if the key is not found.
         :return: The retrieved list of strings or the default value if not found.
         """
-        path = _resolve_path(_path)
+        path = _Path.create(path)
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
         if val is None:
             if default is None:
                 return []
             return default
         if isinstance(val, list):
-            return _handle_str_list(val, default, found_path.last)
+            return _handle_str_list(val, default, found_path.last if found_path else path.last)
         elif isinstance(val, Mapping):
             raise ValueError(
-                f"Invalid list value for {str(found_path)}"
+                f"Invalid list value for {str(found_path if found_path else path)}"
             )
         elif not isinstance(val, Mapping):
-            before_split = _handle_str(val, None, found_path.last)
+            before_split = _handle_str(val, None, found_path.last if found_path else path.last)
             if before_split is None:
                 return default if default is not None else []
             if "," in before_split:
@@ -391,7 +390,7 @@ class Configuration(dict, _MappingConfigurable):
             return [s.strip() for s in before_split.strip().split()]
 
     def get_items(
-        self, _path: _PathType, default: dict | None = None
+        self, path: _PathProxy, default: dict | None = None
     ) -> Iterable[tuple[Any, Any]]:
         """Retrieve items from a dictionary in the configuration.
 
@@ -399,7 +398,6 @@ class Configuration(dict, _MappingConfigurable):
         :param default: The default value to return if the key is not found.
         :return: The retrieved items as a list of key-value tuples or the default value if not found.
         """
-        path = _resolve_path(_path)
         base = _get(self, path, default=default)
         if isinstance(base, Mapping):
             return base.items()
@@ -407,22 +405,22 @@ class Configuration(dict, _MappingConfigurable):
             return enumerate(base)
         return []
 
-    def collect(self, path: _PathType) -> list[Any]:
-        return _collect(self, _resolve_path(path))
+    def collect(self, path: _PathProxy) -> list[Any]:
+        return _collect(self, _Path.create(path))
 
-    def collect_str(self, _path: _PathType) -> list[str]:
-        path = _resolve_path(_path)
-        vals = _collect(self, _resolve_path(path))
+    def collect_str(self, _path: _PathProxy) -> list[str]:
+        path = _Path.create(_path)
+        vals = _collect(self, path)
         vals = [_handle_str(v, None, path.last) for v in vals if v is not None]
         return [v for v in vals if v is not None]
 
-    def get_scopes(self, _path: _PathType) -> list[str]:
+    def get_scopes(self, _path: _PathProxy) -> list[str]:
         """Retrieve a list of scopes from the configuration.
 
         :param path: The path of the scopes value to retrieve.
         :return: The scopes as a list, or an empty list if absent.
         """
-        path = _resolve_path(_path)
+        path = _Path.create(_path)
         val = self._get(path, default=None, skip_none=True)
         if val is None:
             return []
