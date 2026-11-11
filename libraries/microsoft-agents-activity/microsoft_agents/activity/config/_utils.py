@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from ._engine import _Path, _PathSegment, _Wildcard
+from ._engine import _Path, _SimplePathSegment, _Wildcard
 
-def _get_segments(*segments: str, **kwargs) -> list[_PathSegment]:
+def _get_segments(*segments: str, **kwargs) -> list[_SimplePathSegment]:
     return [
-        _PathSegment(segment, **kwargs) if segment != "*" else _Wildcard()
+        _SimplePathSegment(segment, **kwargs) if segment != "*" else _Wildcard()
         for segment in segments
     ]
 

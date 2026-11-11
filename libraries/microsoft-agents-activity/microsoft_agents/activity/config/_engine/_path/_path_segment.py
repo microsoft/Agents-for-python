@@ -35,23 +35,6 @@ class _PathSegment(ABC):
     @abstractmethod
     def __eq__(self, other: Any) -> bool: ...
 
-    def step_once(self, obj: Any) -> tuple[bool, Any, Any]:
-        try:
-            key, next_obj = next(self.iter_steps(obj))
-            return True, key, next_obj
-        except StopIteration:
-            return False, None, None
-
-    def iter_steps(self, obj: Any) -> Iterator[tuple[Any, Any]]:
-        if isinstance(obj, Mapping):
-            for key in obj:
-                if self.check(key):
-                    yield key, obj[key]
-        elif isinstance(obj, list) and self.string.isdigit():
-            index = int(self.string)
-            if 0 <= index < len(obj):
-                yield index, obj[index]
-
     def __str__(self) -> str:
         return self.string
 

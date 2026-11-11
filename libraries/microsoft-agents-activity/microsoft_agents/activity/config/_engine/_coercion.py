@@ -19,7 +19,7 @@ from typing import (
     overload,
 )
 
-from ._missing import _MISSING, _MissingType, _is_missing
+from ._path._missing import _MISSING, _MissingType, _is_missing
 from ._path import _get, _Path, _PathProxy
 
 _TRUTHY = ("1", "true")

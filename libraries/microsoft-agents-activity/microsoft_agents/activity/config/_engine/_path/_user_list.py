@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 import collections.abc
@@ -8,7 +11,6 @@ class _UserList(collections.abc.MutableSequence):
     def __init__(self, initlist=None):
         self._data = []
         if initlist is not None:
-            # XXX should this accept an arbitrary sequence?
             if type(initlist) == type(self._data):
                 self._data[:] = initlist
             elif isinstance(initlist, _UserList):

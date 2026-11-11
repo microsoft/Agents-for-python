@@ -28,7 +28,7 @@ from ._engine import (
     _Path,
     _PathProxy,
 )
-from ._utils import _legpath, _netpath
+from ._engine import _legpath, _netpath
 
 
 __all__ = [

@@ -9,6 +9,7 @@ from typing import (
     Iterable,
     Mapping,
     MutableMapping,
+    MutableSequence,
     TypeVar,
     Sequence,
     overload,
@@ -36,6 +37,7 @@ from ._engine import (
     _collect_with_paths,
     _is_missing,
     _parse_env_var_name,
+    _QueryDict,
 )
 from ._metadata import (
     _RootConfigMetadata,
@@ -49,7 +51,7 @@ _MappingConfigurableT = TypeVar(
 def _norm_path_transform(path: str) -> str:
     return _parse_env_var_name(path).lower()
 
-class Configuration(dict, _MappingConfigurable):
+class Configuration(_QueryDict, _MappingConfigurable):
     """Dictionary-backed configuration with path lookup and typed conversion.
 
     Paths use ``::`` separators. Alternative paths are tried in the supplied
@@ -375,8 +377,8 @@ class Configuration(dict, _MappingConfigurable):
             if default is None:
                 return []
             return default
-        if isinstance(val, list):
-            return _handle_str_list(val, default, found_path.last if found_path else path.last)
+        if isinstance(val, MutableMapping):
+            return _handle_str_list(list(val), default, found_path.last if found_path else path.last)
         elif isinstance(val, Mapping):
             raise ValueError(
                 f"Invalid list value for {str(found_path if found_path else path)}"
@@ -401,7 +403,7 @@ class Configuration(dict, _MappingConfigurable):
         base = _get(self, path, default=default)
         if isinstance(base, Mapping):
             return base.items()
-        elif isinstance(base, list):
+        elif isinstance(base, Sequence):
             return enumerate(base)
         return []
 
@@ -424,8 +426,8 @@ class Configuration(dict, _MappingConfigurable):
         val = self._get(path, default=None, skip_none=True)
         if val is None:
             return []
-        if isinstance(val, list):
-            return val
+        if isinstance(val, MutableSequence):
+            return list(val)
         if isinstance(val, str):
             return Configuration.format_scopes(val)
         raise ValueError(f"Invalid scopes value for {path.last}")

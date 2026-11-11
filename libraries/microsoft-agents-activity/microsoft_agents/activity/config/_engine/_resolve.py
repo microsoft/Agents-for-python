@@ -3,7 +3,7 @@
 
 from typing import Any, Callable, Mapping
 
-from ._missing import _MISSING
+from ._path._missing import _MISSING
 from ._path import _get, _try_set
 from ._utils import _parse_env_var_name
 

@@ -25,8 +25,9 @@ from ._path import (
     _try_set,
     _set,
     _pop,
+    _QueryDict,
 )
-from ._missing import _MISSING, _MissingType, _is_missing
+from ._path._missing import _MISSING, _MissingType, _is_missing
 from ._resolve import _resolve
 from ._utils import _parse_env_var_name
 
@@ -35,6 +36,7 @@ __all__ = [
     "_PathProxy",
     "_PathSegment",
     "_Wildcard",
+    "_QueryDict",
     "_MISSING",
     "_MissingType",
     "_is_missing",

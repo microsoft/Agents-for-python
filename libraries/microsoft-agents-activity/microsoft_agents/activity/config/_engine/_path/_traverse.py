@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
 from ._path import _Path, _PathProxy
+from ._step import iter_steps
 
 @dataclass
 class _TraverseState:
@@ -28,16 +29,18 @@ def _traverse_helper(
     base_path = state.path
     segment = base_path[0]
 
-    for key, next_obj in segment.iter_steps(state.current):
+    for key, next_obj in iter_steps(segment, state.current):
 
         state.path = state.path[1:]
-        state.traversed = state.traversed + str(key)
+        prev_traversed = state.traversed
+        state.traversed = state.traversed + _Path.exact(str(key))
 
         if handle_inner or len(base_path) == 1:
             handler(state, next_obj)
             if state.finished:
                 return
 
+        prev_current = state.current
         state.current = next_obj
 
         _traverse_helper(state, handler, handle_inner=handle_inner)
@@ -45,6 +48,8 @@ def _traverse_helper(
         if state.finished:
             return
 
+        state.traversed = prev_traversed
+        state.current = prev_current
         state.path = base_path
 
 

@@ -1,3 +1,4 @@
+
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
@@ -5,14 +6,16 @@ from typing import (
     Any,
     Mapping,
     MutableMapping,
+    Sequence,
 )
 
 from ._path import _Path, _PathProxy
 from ._path_segment import _Wildcard
 from ._traverse import _traverse_leaves, _TraverseState
+from ._step import iter_steps, step_once
 
 def _get_with_path(
-    mapping: Mapping,
+    mapping: Mapping | Sequence,
     path: _PathProxy,
     default: Any = None,
     skip_none: bool = False,
@@ -39,7 +42,7 @@ def _get_with_path(
     return return_value, return_path
 
 def _get(
-    mapping: Mapping,
+    mapping: Mapping | Sequence,
     path: _PathProxy,
     default: Any = None,
     skip_none: bool = False,
@@ -76,7 +79,7 @@ def _collect_helper(
 
     segment = path_left[0]
 
-    for key, val in segment.iter_steps(current):
+    for key, val in iter_steps(segment, current):
         _collect_helper(
             val, path_left[1:], collection, current_path + str(key)
         )
@@ -120,7 +123,7 @@ def _try_set(
     for segment in path[:-1]:
         non_mutable_mapping_err: bool = False
         if isinstance(current, Mapping):
-            matched, _, next_obj = segment.step_once(current)
+            matched, _, next_obj = step_once(segment, current)
             if matched:
                 current = next_obj
                 continue
@@ -138,7 +141,7 @@ def _try_set(
             )
 
     if isinstance(current, MutableMapping):
-        matched, key, next_obj = path[-1].step_once(current)
+        matched, key, next_obj = step_once(path[-1], (current))
 
         if matched and not overwrite:
             return False

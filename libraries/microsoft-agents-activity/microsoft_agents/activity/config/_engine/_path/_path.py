@@ -60,6 +60,10 @@ class _Path:
     def from_strings(*segments: str, ignore_case: bool = True, ignore_underscores: bool = False) -> _Path:
         return _Path(*(_SimplePathSegment(segment, ignore_case=ignore_case, ignore_underscores=ignore_underscores) for segment in segments))
 
+    @staticmethod
+    def exact(*segments: str) -> _Path:
+        return _Path.from_strings(*segments, ignore_case=False, ignore_underscores=False)
+
     @property
     def first(self) -> str:
         return self._segments[0].string
@@ -120,35 +124,6 @@ class _Path:
     def traverse(self, obj: Any, handler: Callable[[_TraverseState, Any], None]) -> None:
         from ._traverse import _traverse
         _traverse(self, obj, handler)
-
-    def get(
-        self,
-        mapping: Mapping,
-        default: Any = None,
-        skip_none: bool = False,
-        none_is_missing: bool = False,
-    ) -> tuple[Any, _Path]:
-        """Return the first matched value and its relative source path segments."""
-        from ._utils import _get
-        return _get(mapping, self, default=default, skip_none=skip_none, none_is_missing=none_is_missing)
-
-    def set(
-        self,
-        mapping: MutableMapping,
-        value: Any,
-        *,
-        overwrite: bool = False,
-    ) -> bool:
-        from ._utils import _try_set
-        return _try_set(mapping, self, value, overwrite=overwrite)
-
-    def collect(
-        self,
-        mapping: Mapping,
-        skip_none: bool = False,
-    ) -> list[Any]:
-        from ._utils import _collect
-        return _collect(mapping, self, skip_none=skip_none)
 
 class _WildcardPathClass(_Path):
 

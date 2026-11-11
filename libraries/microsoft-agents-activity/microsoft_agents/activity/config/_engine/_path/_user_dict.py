@@ -1,5 +1,7 @@
-import collections.abc
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
+import collections.abc
 
 class _UserDict(collections.abc.MutableMapping):
 
