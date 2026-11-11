@@ -7,7 +7,7 @@ from types import MappingProxyType
 import pytest
 
 from microsoft_agents.activity.config import Configuration
-from microsoft_agents.activity.config._resolve import _normalize, _resolve
+from microsoft_agents.activity.config._engine._resolve import _normalize, _resolve
 
 
 @pytest.mark.parametrize(

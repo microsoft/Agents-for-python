@@ -6,8 +6,8 @@ from types import MappingProxyType
 
 import pytest
 
-from microsoft_agents.activity.config._resolve import _resolve
-from microsoft_agents.activity.config._utils import (
+from microsoft_agents.activity.config._engine._resolve import _resolve
+from microsoft_agents.activity.config._engine._utils import (
     _MISSING,
     _get,
     _is_missing,

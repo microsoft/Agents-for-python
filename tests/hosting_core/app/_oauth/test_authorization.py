@@ -21,7 +21,7 @@ from microsoft_agents.hosting.core.app.oauth import (
     AgenticUserAuthorization,
     ConnectorUserAuthorization,
 )
-from microsoft_agents.hosting.core.app.oauth.authorization_settings import (
+from microsoft_agents.hosting.core.app.oauth.authorization_config import (
     AuthorizationSettings,
 )
 
