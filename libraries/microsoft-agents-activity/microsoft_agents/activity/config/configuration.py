@@ -183,7 +183,7 @@ class Configuration(dict, _MappingConfigurable):
     def get_section(
         self,
         section: _PathProxy,
-        default: Configuration,
+        default: Configuration | _MissingType = _MISSING,
     ) -> Configuration: ...
     @overload
     def get_section(
@@ -192,7 +192,7 @@ class Configuration(dict, _MappingConfigurable):
     def get_section(
         self,
         section: _PathProxy,
-        default: Configuration | None = None,
+        default: Configuration | None | _MissingType = _MISSING,
     ) -> Configuration | None:
         """Retrieve a section of the configuration, returning it as a Configuration object.
 
@@ -210,7 +210,7 @@ class Configuration(dict, _MappingConfigurable):
 
         if isinstance(val, Mapping):
             return Configuration.from_config(val, _base_path=base_path)
-        if val is None:
+        if val is None and not _is_missing(default):
             return default
         raise TypeError(f"Section {base_path} is not a mapping")
 

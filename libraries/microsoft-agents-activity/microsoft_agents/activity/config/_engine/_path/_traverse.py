@@ -22,7 +22,7 @@ def _traverse_helper(
     handle_inner: bool = True
 ) -> None:
 
-    if not isinstance(state.current, (Mapping, Sequence)):
+    if not isinstance(state.current, (Mapping, Sequence)) or not state.path:
         return
 
     base_path = state.path
@@ -30,16 +30,17 @@ def _traverse_helper(
 
     for key, next_obj in segment.iter_steps(state.current):
 
+        state.path = state.path[1:]
+        state.traversed = state.traversed + str(key)
+
         if handle_inner or len(base_path) == 1:
             handler(state, next_obj)
             if state.finished:
                 return
 
-        state.path = state.path[1:]
         state.current = next_obj
-        state.traversed = state.traversed + str(key)
 
-        _traverse_helper(state, handler)
+        _traverse_helper(state, handler, handle_inner=handle_inner)
 
         if state.finished:
             return

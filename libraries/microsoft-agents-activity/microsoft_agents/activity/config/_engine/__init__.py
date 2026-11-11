@@ -11,6 +11,7 @@ from ._coercion import (
     coerce_int,
     coerce_float,
     _get_str,
+    _get_bool,
 )
 from ._path import (
     _Path,
@@ -22,7 +23,8 @@ from ._path import (
     _collect_with_paths,
     _collect,
     _try_set,
-    _set
+    _set,
+    _pop,
 )
 from ._missing import _MISSING, _MissingType, _is_missing
 from ._resolve import _resolve
@@ -42,6 +44,7 @@ __all__ = [
     "_collect",
     "_try_set",
     "_set",
+    "_pop",
     "_resolve",
     "_parse_env_var_name",
     "_handle_bool",
@@ -52,5 +55,6 @@ __all__ = [
     "coerce_bool",
     "coerce_int",
     "coerce_float",
-    "_get_str"
+    "_get_str",
+    "_get_bool"
 ]

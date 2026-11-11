@@ -7,13 +7,13 @@ from dataclasses import dataclass, field, fields
 from typing import TypeVar
 from typing_extensions import Self
 
-from microsoft_agents.activity.config import Configuration, _Configurable, _legpath as legpath
+from microsoft_agents.activity.config import Configuration, _Configurable, _legpath as legpath, _get_bool, _pop
 
 from .agent_auth_configuration import AgentAuthConfiguration
 
 T = TypeVar("T", bound="ConnectionSettingsBase")
 
-_KNOWN_KWARGS_CACHE: dict[type[ConnectionSettingsBase], list[str]] = {}
+_KNOWN_KWARGS_CACHE: dict[type[ConnectionSettingsBase], dict[str, bool]] = {}
 
 
 @dataclass(frozen=True)
@@ -57,15 +57,15 @@ class ConnectionSettingsBase(_Configurable):
         }
 
     @classmethod
-    def _known_kwargs(cls) -> list[str]:
+    def _known_kwargs(cls) -> dict[str, bool]:
 
         if cls in _KNOWN_KWARGS_CACHE:
             return _KNOWN_KWARGS_CACHE[cls]
 
         base = [f.name for f in fields(cls) if f.init and f.name != "_extras"]
-        final = []
+        final = {}
         for n in base:
-            final.extend(legpath(n))
+            final[n] = True
 
         _KNOWN_KWARGS_CACHE[cls] = final
         return final
@@ -73,11 +73,12 @@ class ConnectionSettingsBase(_Configurable):
     @classmethod
     def _get_extras(cls, config: Configuration) -> Configuration:
         known_kwargs = cls._known_kwargs()
-        base = {k: v for k, v in config.items() if k not in known_kwargs}
-        extra = {}
-        if "extras" in base:
-            extra = base.pop("extras")
-        base = {**base, **extra}
+        base = {}
+        for k, v in config.items():
+            if not _get_bool(known_kwargs, legpath(k), default=False):
+                base[k] = v
+        extras = _pop(base, "extras", default={})
+        base = {**base, **extras}
         return Configuration.from_config(base, _base_path=config._base_path)
 
     @classmethod

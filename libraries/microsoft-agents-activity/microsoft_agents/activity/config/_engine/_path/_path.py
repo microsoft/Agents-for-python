@@ -14,7 +14,7 @@ from typing import (
 )
 from typing_extensions import TYPE_CHECKING
 
-from ._path_segment import _PathSegment
+from ._path_segment import _PathSegment, _SimplePathSegment, _Wildcard
 
 if TYPE_CHECKING:
     from ._traverse import _TraverseState
@@ -24,12 +24,24 @@ class _Path:
     def __init__(self, *segments: str | _PathSegment):
 
         _segments = [
-            segment if isinstance(segment, _PathSegment) else _PathSegment(segment)
+            segment if isinstance(segment, _PathSegment) else _SimplePathSegment(segment, ignore_case=True, ignore_underscores=False)
             for segment in segments
         ]
         _segments = [ segment for segment in _segments if segment.string ]
         self._segments = _segments
         self._cached_string: str | None = None
+        self._is_simple = any(segment.__class__ != _SimplePathSegment for segment in self._segments)
+        self._folded: str | None = None
+
+    @property
+    def is_simple(self) -> bool:
+        return self._is_simple
+
+    @property
+    def folded(self) -> str:
+        if self._folded is None:
+            self._folded = "::".join(segment.folded for segment in self._segments)
+        return self._folded
 
     @staticmethod
     def create(path: _PathProxy) -> _Path:
@@ -41,9 +53,12 @@ class _Path:
             return path
         raise TypeError(f"Unsupported type for create: {type(path)}")
 
+    def __hash__(self) -> int:
+        return hash(tuple( seg.string for seg in self._segments ))
+
     @staticmethod
     def from_strings(*segments: str, ignore_case: bool = True, ignore_underscores: bool = False) -> _Path:
-        return _Path(*(_PathSegment(segment, ignore_case=ignore_case, ignore_underscores=ignore_underscores) for segment in segments))
+        return _Path(*(_SimplePathSegment(segment, ignore_case=ignore_case, ignore_underscores=ignore_underscores) for segment in segments))
 
     @property
     def first(self) -> str:
@@ -74,8 +89,8 @@ class _Path:
             return self._segments[key]
         raise TypeError(f"Unsupported key type: {type(key)}")
 
-    def __slice__(self, start: int | None, stop: int | None) -> _Path:
-        return _Path(*self._segments[start:stop])
+    # def __slice__(self, start: int | None, stop: int | None) -> _Path:
+    #     return _Path(*self._segments[start:stop])
 
     def __str__(self) -> str:
         if self._cached_string is None:
@@ -88,9 +103,11 @@ class _Path:
     def __len__(self) -> int:
         return len(self._segments)
 
-    def __add__(self, other: str | _Path  | _PathSegment) -> _Path:
+    def __add__(self, other: str | int | _Path  | _PathSegment) -> _Path:
+        if isinstance(other, int):
+            other = str(other)
         if isinstance(other, str):
-            other = _PathSegment(other)
+            other = _SimplePathSegment(other)
         if isinstance(other, _PathSegment):
             return _Path(*self._segments, other)
         if isinstance(other, _Path):
@@ -131,6 +148,57 @@ class _Path:
         skip_none: bool = False,
     ) -> list[Any]:
         from ._utils import _collect
-        return _collect(mapping, [self], skip_none=skip_none)
+        return _collect(mapping, self, skip_none=skip_none)
+
+class _WildcardPathClass(_Path):
+
+    def __init__(self):
+        self._wildcard = _Wildcard()
+
+    @overload
+    def __getitem__(self, key: int) -> _PathSegment: ...
+    @overload
+    def __getitem__(self, key: slice) -> _Path: ...
+    def __getitem__(self, key: Any) -> _PathSegment | _Path:
+        if isinstance(key, slice):
+            return self
+        elif isinstance(key, int):
+            return self._wildcard
+        raise TypeError(f"Unsupported key type: {type(key)}")
+
+    @property
+    def folded(self) -> str:
+        return "**"
+
+    @property
+    def first(self) -> str:
+        return self._wildcard.string
+    
+    @property
+    def last(self) -> str:
+        return self._wildcard.string
+
+    def __add__(self, other: str | int | _Path | _PathSegment) -> _Path:
+        return self
+
+    def check(self, other: _Path) -> bool:
+        return True
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __str__(self) -> str:
+        return "**"
+
+    def __repr__(self) -> str:
+        return "_WildcardPath"
+
+    def __iter__(self) -> Iterator[_PathSegment]:
+        return iter(self._segments)
+
+    def __len__(self) -> int:
+        return 1
+
+_WildcardPath = _WildcardPathClass()
 
 _PathProxy = str | Sequence[str] | _Path

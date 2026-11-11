@@ -125,8 +125,8 @@ def _try_set(
                 current = next_obj
                 continue
             elif isinstance(current, MutableMapping):
-                current[segment] = {}
-                current = current[segment]
+                current[segment.string] = {}
+                current = current[segment.string]
             else:
                 non_mutable_mapping_err = True
         else:
@@ -138,10 +138,16 @@ def _try_set(
             )
 
     if isinstance(current, MutableMapping):
-        if overwrite or path.last not in current:
-            current[path.last] = value
-            return True
-        return False
+        matched, key, next_obj = path[-1].step_once(current)
+
+        if matched and not overwrite:
+            return False
+
+        if matched:
+            del current[key]
+
+        current[path.last] = value
+        return True
     else:
         raise TypeError(f"Cannot set value for key path {path} in non-mutable mapping")
 
@@ -154,3 +160,17 @@ def _set(mapping: MutableMapping, _path: _PathProxy, value: Any) -> None:
     :param value: The value to set.
     """
     _try_set(mapping, _path, value, overwrite=True)
+
+def _pop(mapping: MutableMapping, _path: _PathProxy, *, default: Any = None) -> Any:
+
+    value = default
+
+    def handler(state: _TraverseState, obj: Any) -> None:
+        nonlocal value
+        if not state.path:
+            del state.current[state.traversed.last]
+            state.finished = True
+            value = obj
+
+    _traverse_leaves(_path, mapping, handler)
+    return value

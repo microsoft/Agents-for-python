@@ -10,7 +10,7 @@ from collections.abc import Callable
 
 from microsoft_agents.activity import Activity
 from microsoft_agents.activity.config import (
-    Configuration, _legpath as legpath, _get
+    Configuration, _legpath as legpath, _get, _netpath
 )
 
 from .agent_auth_configuration import AgentAuthConfiguration
@@ -174,8 +174,8 @@ class ConnectionManager(Connections):
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
         original_name = connection_name
-        connection_name = (connection_name or "service_connection").lower()
-        connection = _get(self._connections, legpath(connection_name), default=None)
+        connection_name = (connection_name or "service_connection")
+        connection = _get(self._connections, _netpath(connection_name), default=None)
         if not connection:
             if original_name:
                 raise ValueError(f"No connection found for '{original_name}'.")
