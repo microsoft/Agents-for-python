@@ -377,7 +377,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
             if default is None:
                 return []
             return default
-        if isinstance(val, MutableMapping):
+        if isinstance(val, MutableSequence):
             return _handle_str_list(list(val), default, found_path.last if found_path else path.last)
         elif isinstance(val, Mapping):
             raise ValueError(
@@ -403,7 +403,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         base = _get(self, path, default=default)
         if isinstance(base, Mapping):
             return base.items()
-        elif isinstance(base, Sequence):
+        elif isinstance(base, Sequence) and not isinstance(base, (str, bytes, bytearray)):
             return enumerate(base)
         return []
 

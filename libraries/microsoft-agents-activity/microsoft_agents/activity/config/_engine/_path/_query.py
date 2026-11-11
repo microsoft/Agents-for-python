@@ -13,10 +13,6 @@ from ._path import _Path
 from ._path_segment import _PathSegment, _Wildcard
 from ._user_dict import _UserDict
 from ._user_list import _UserList
-from ._utils import (
-    _set,
-    _pop,
-)
 
 def _normalize_value(value: Any) -> Any:
     if isinstance(value, (_QueryDict, _QueryList)):
@@ -98,9 +94,6 @@ class _QueryList(_UserList):
         
         raise TypeError("List index must be an integer or a digit string.")
 
-    def __contains__(self, item) -> bool:
-        return self.get_with_key(item)[0] is not None
-
     def __getitem__(self, index: Any) -> Any:
         if isinstance(index, slice):
             return super().__getitem__(index)
@@ -143,6 +136,7 @@ class _QueryList(_UserList):
         raise TypeError("List index must be an integer or a digit string.")
 
     def __delitem__(self, index: Any) -> None:
+        from ._utils import _pop
 
         if isinstance(index, _Path):
             if not index.is_simple:

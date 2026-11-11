@@ -28,8 +28,6 @@ from ._engine import (
     _Path,
     _PathProxy,
 )
-from ._engine import _legpath, _netpath
-
 
 __all__ = [
     "load_configuration_from_env",
@@ -52,6 +50,4 @@ __all__ = [
     "_get_bool",
     "_Path",
     "_PathProxy",
-    "_legpath",
-    "_netpath"
 ]
