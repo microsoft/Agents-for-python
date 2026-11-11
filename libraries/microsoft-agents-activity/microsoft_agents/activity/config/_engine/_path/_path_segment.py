@@ -21,11 +21,15 @@ class _PathSegment(ABC):
 
     @abstractmethod
     def check(self, target: Any) -> bool: ...
+    
+    @staticmethod
+    def fold(string: str) -> str:
+        return string.casefold().replace("_", "")
 
     @property
     def folded(self) -> str:
         if self._fold is None:
-            self._fold = self.string.casefold().replace("_", "")
+            self._fold = self.fold(self.string)
         return self._fold
 
     @abstractmethod
@@ -56,12 +60,8 @@ def _ExactPathSegment(string: str) -> _SimplePathSegment:
 
 class _SimplePathSegment(_PathSegment):
 
-    string: str = ""
-    _ignore_case: bool = False
-    _ignore_underscores: bool = False
-
     def __init__(self, string: str, ignore_case: bool = False, ignore_underscores: bool = False):
-        self._string = string
+        super().__init__(string)
         self._ignore_case = ignore_case
         self._ignore_underscores = ignore_underscores
         self._fold: str | None = None
@@ -75,8 +75,6 @@ class _SimplePathSegment(_PathSegment):
         return False
     
     def check(self, target: Any) -> bool:
-
-
 
         if isinstance(target, int):
             if self.string.isdigit():
@@ -107,7 +105,7 @@ class _SimplePathSegment(_PathSegment):
 class _Wildcard(_PathSegment):
 
     def __init__(self):
-        self._string = "*"
+        super().__init__("*")
 
     def __eq__(self, other: Any):
         return isinstance(other, _Wildcard)

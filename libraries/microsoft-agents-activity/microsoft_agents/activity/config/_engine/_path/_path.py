@@ -25,12 +25,12 @@ class _Path:
 
         _segments = [
             segment if isinstance(segment, _PathSegment) else _SimplePathSegment(segment, ignore_case=True, ignore_underscores=False)
-            for segment in segments
+            for segment in segments if segment
         ]
         _segments = [ segment for segment in _segments if segment.string ]
         self._segments = _segments
         self._cached_string: str | None = None
-        self._is_simple = any(segment.__class__ != _SimplePathSegment for segment in self._segments)
+        self._is_simple = not any(segment.__class__ != _SimplePathSegment for segment in self._segments)
         self._folded: str | None = None
 
     @property
