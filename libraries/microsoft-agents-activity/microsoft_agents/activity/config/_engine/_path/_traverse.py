@@ -8,11 +8,15 @@ from typing import Any, Callable, Mapping
 from .types import _Wildcard, _MISSING, _Path, _PathProxy
 from ._step import iter_steps
 
+
 def _validate_singular_path(path: _PathProxy) -> None:
-    if (not isinstance(path, int) and not path) or (isinstance(path, _Path) and not path.is_simple):
+    if (not isinstance(path, int) and not path) or (
+        isinstance(path, _Path) and not path.is_simple
+    ):
         raise ValueError("Path must be non-empty and simple.")
     elif isinstance(path, _Wildcard):
         raise ValueError("Path must not be a wildcard.")
+
 
 @dataclass
 class _TraverseState:
@@ -30,13 +34,12 @@ class _TraverseState:
     def traversed_path(self) -> _Path:
         return _Path.exact(*self.traversed_keys)
 
-    
 
 def _traverse_helper(
     state: _TraverseState,
     handler: Callable[[_TraverseState, Any], None],
     *,
-    handle_inner: bool = True
+    handle_inner: bool = True,
 ) -> None:
 
     if not isinstance(state.current, (Mapping, Sequence)) or state.no_path_left:
@@ -68,22 +71,20 @@ def _traverse_helper(
 
 
 def _traverse_leaves(
-    _path: _PathProxy,
-    obj: Any,
-    handler: Callable[[_TraverseState, Any], None]
+    _path: _PathProxy, obj: Any, handler: Callable[[_TraverseState, Any], None]
 ) -> None:
     path = _Path.create(_path)
     state = _TraverseState(path=path, current=obj)
     _traverse_helper(state, handler, handle_inner=False)
 
+
 def _traverse(
-    _path: _PathProxy,
-    obj: Any,
-    handler: Callable[[_TraverseState, Any], None]
+    _path: _PathProxy, obj: Any, handler: Callable[[_TraverseState, Any], None]
 ) -> None:
     path = _Path.create(_path)
     state = _TraverseState(path=path, current=obj)
     _traverse_helper(state, handler, handle_inner=True)
+
 
 @dataclass
 class _LookupResult:
@@ -91,6 +92,7 @@ class _LookupResult:
     found: bool = False
     value: Any = _MISSING
     matched_keys: list[str] | None = None
+
 
 def _lookup(
     obj: Mapping | Sequence,

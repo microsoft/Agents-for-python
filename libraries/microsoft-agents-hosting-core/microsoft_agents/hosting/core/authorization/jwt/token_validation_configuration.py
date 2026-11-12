@@ -6,7 +6,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from microsoft_agents.activity.config import Configuration, _Configurable, _legpath as legpath
+from microsoft_agents.activity.config import (
+    Configuration,
+    _Configurable,
+    _legpath as legpath,
+)
 from microsoft_agents.activity.config._metadata import _RootConfigMetadata
 
 from .jwt_connection_settings import JwtConnectionSettings
@@ -36,9 +40,7 @@ class TokenValidationConfiguration(_Configurable):
     connections: dict[str, JwtConnectionSettings] = field(default_factory=dict)
 
     @classmethod
-    def _from_config(
-        cls, configuration: Configuration
-    ) -> TokenValidationConfiguration:
+    def _from_config(cls, configuration: Configuration) -> TokenValidationConfiguration:
 
         token_validation: Configuration = configuration
         connection_raw_items = {}

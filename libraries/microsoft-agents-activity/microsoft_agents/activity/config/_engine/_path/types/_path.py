@@ -11,10 +11,16 @@ from typing import (
 )
 from typing_extensions import TYPE_CHECKING
 
-from ._path_segment import _PathSegment, _SimplePathSegment, _Wildcard, _ExactPathSegment
+from ._path_segment import (
+    _PathSegment,
+    _SimplePathSegment,
+    _Wildcard,
+    _ExactPathSegment,
+)
 
 if TYPE_CHECKING:
     from .._traverse import _TraverseState
+
 
 class _Path:
 
@@ -22,12 +28,15 @@ class _Path:
 
         _segments = [
             segment if isinstance(segment, _PathSegment) else _ExactPathSegment(segment)
-            for segment in segments if segment
+            for segment in segments
+            if segment
         ]
-        _segments = [ segment for segment in _segments if segment.string ]
+        _segments = [segment for segment in _segments if segment.string]
         self._segments = _segments
         self._cached_string: str | None = None
-        self._is_simple = not any(segment.__class__ != _SimplePathSegment for segment in self._segments)
+        self._is_simple = not any(
+            segment.__class__ != _SimplePathSegment for segment in self._segments
+        )
         self._folded: str | None = None
 
     @property
@@ -55,15 +64,28 @@ class _Path:
         raise TypeError(f"Unsupported type for create: {type(path)}")
 
     def __hash__(self) -> int:
-        return hash(tuple( seg.string for seg in self._segments ))
+        return hash(tuple(seg.string for seg in self._segments))
 
     @staticmethod
-    def from_strings(*segments: str, ignore_case: bool = True, ignore_underscores: bool = False) -> _Path:
-        return _Path(*(_SimplePathSegment(segment, ignore_case=ignore_case, ignore_underscores=ignore_underscores) for segment in segments))
+    def from_strings(
+        *segments: str, ignore_case: bool = True, ignore_underscores: bool = False
+    ) -> _Path:
+        return _Path(
+            *(
+                _SimplePathSegment(
+                    segment,
+                    ignore_case=ignore_case,
+                    ignore_underscores=ignore_underscores,
+                )
+                for segment in segments
+            )
+        )
 
     @staticmethod
     def exact(*segments: str) -> _Path:
-        return _Path.from_strings(*segments, ignore_case=False, ignore_underscores=False)
+        return _Path.from_strings(
+            *segments, ignore_case=False, ignore_underscores=False
+        )
 
     @property
     def first(self) -> str:
@@ -99,7 +121,9 @@ class _Path:
 
     def __str__(self) -> str:
         if self._cached_string is None:
-            self._cached_string = "::".join(segment.string for segment in self._segments)
+            self._cached_string = "::".join(
+                segment.string for segment in self._segments
+            )
         return self._cached_string
 
     def __repr__(self) -> str:
@@ -108,7 +132,7 @@ class _Path:
     def __len__(self) -> int:
         return len(self._segments)
 
-    def __add__(self, other: str | int | _Path  | _PathSegment) -> _Path:
+    def __add__(self, other: str | int | _Path | _PathSegment) -> _Path:
         if isinstance(other, int):
             other = str(other)
         if isinstance(other, str):
@@ -121,6 +145,7 @@ class _Path:
 
     def __iter__(self) -> Iterator[_PathSegment]:
         return iter(self._segments)
+
 
 class _WildcardPathClass(_Path):
 
@@ -145,7 +170,7 @@ class _WildcardPathClass(_Path):
     @property
     def first(self) -> str:
         return self._wildcard.string
-    
+
     @property
     def last(self) -> str:
         return self._wildcard.string
@@ -171,6 +196,7 @@ class _WildcardPathClass(_Path):
     def __len__(self) -> int:
         return 1
 
+
 _WildcardPath = _WildcardPathClass()
 
-_PathProxy = str | int | Sequence[str] | _PathSegment |  _Path
+_PathProxy = str | int | Sequence[str] | _PathSegment | _Path

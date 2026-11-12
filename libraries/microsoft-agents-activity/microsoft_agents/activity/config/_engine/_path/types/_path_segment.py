@@ -6,6 +6,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+
 class _PathSegment(ABC):
 
     def __init__(self, string: str):
@@ -21,7 +22,7 @@ class _PathSegment(ABC):
 
     @abstractmethod
     def check(self, target: Any) -> bool: ...
-    
+
     @staticmethod
     def fold(string: str) -> str:
         return string.casefold().replace("_", "")
@@ -38,12 +39,16 @@ class _PathSegment(ABC):
     def __str__(self) -> str:
         return self.string
 
+
 def _ExactPathSegment(string: str) -> _SimplePathSegment:
     return _SimplePathSegment(string, ignore_case=False, ignore_underscores=False)
 
+
 class _SimplePathSegment(_PathSegment):
 
-    def __init__(self, string: str, ignore_case: bool = False, ignore_underscores: bool = False):
+    def __init__(
+        self, string: str, ignore_case: bool = False, ignore_underscores: bool = False
+    ):
         super().__init__(string)
         self._ignore_case = ignore_case
         self._ignore_underscores = ignore_underscores
@@ -54,9 +59,13 @@ class _SimplePathSegment(_PathSegment):
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, _SimplePathSegment):
-            return self.string == other.string and self._ignore_case == other._ignore_case and self._ignore_underscores == other._ignore_underscores
+            return (
+                self.string == other.string
+                and self._ignore_case == other._ignore_case
+                and self._ignore_underscores == other._ignore_underscores
+            )
         return False
-    
+
     def check(self, target: Any) -> bool:
 
         if isinstance(target, int):
@@ -66,7 +75,7 @@ class _SimplePathSegment(_PathSegment):
 
         if not isinstance(target, (str, _PathSegment)):
             target = str(target)
-        
+
         target_segment = target.string if isinstance(target, _PathSegment) else target
         segment = self.string
 
@@ -84,6 +93,7 @@ class _SimplePathSegment(_PathSegment):
 
     def __repr__(self) -> str:
         return f"_PathSegment(segment={self.string!r}, ignore_case={self._ignore_case}, ignore_underscores={self._ignore_underscores})"
+
 
 class _Wildcard(_PathSegment):
 

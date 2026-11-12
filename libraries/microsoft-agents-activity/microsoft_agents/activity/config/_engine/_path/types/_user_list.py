@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import collections.abc
 
+
 class _UserList(collections.abc.MutableSequence):
     """A more or less complete user-defined wrapper around list objects."""
 

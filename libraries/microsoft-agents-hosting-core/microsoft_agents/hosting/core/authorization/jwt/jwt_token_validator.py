@@ -110,9 +110,7 @@ class JwtTokenValidator:
                 ),
             )
         else:
-            self._config = TokenValidationConfiguration.from_config(
-                configuration
-            )
+            self._config = TokenValidationConfiguration.from_config(configuration)
 
     @property
     def config(self) -> TokenValidationConfiguration:

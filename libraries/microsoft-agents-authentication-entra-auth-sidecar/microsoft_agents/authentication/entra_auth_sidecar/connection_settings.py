@@ -114,5 +114,3 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
         if isinstance(config, Mapping):
             config = Configuration.from_config(config)
         return super().from_config(config)
-
-    

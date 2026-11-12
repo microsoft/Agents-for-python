@@ -116,7 +116,8 @@ def _summarize_auth_configs(config_map: dict[str, Configuration]) -> str:
                 CLIENTSECRET=SkipNone(_redact_str_or_none(get_strn("CLIENT_SECRET"))),
                 AUTHORITY=SkipNone(
                     _redact_url_or_none(
-                        config.get_strn(legpath("authority")) or config.get_strn(legpath("authorityendpoint"))
+                        config.get_strn(legpath("authority"))
+                        or config.get_strn(legpath("authorityendpoint"))
                     )
                 ),
                 SCOPES=SkipNone(_redact_scopes(config.get_scopes(legpath("SCOPES")))),

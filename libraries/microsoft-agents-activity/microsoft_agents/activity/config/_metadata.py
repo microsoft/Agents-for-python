@@ -9,8 +9,10 @@ T = TypeVar("T")
 
 _METADATA_PREFIX = "#metadata#"
 
+
 def _META(s: str) -> str:
     return f"{_METADATA_PREFIX}{s}"
+
 
 class _Metadata(ABC, Generic[T]):
 
@@ -25,6 +27,7 @@ class _Metadata(ABC, Generic[T]):
     @staticmethod
     def is_metadata(key: str) -> bool:
         return key.startswith(_METADATA_PREFIX)
+
 
 class _RootConfigMetadata(_Metadata[bool]):
 

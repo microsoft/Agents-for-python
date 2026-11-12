@@ -22,7 +22,7 @@ class _ConnectionMapItem:
 
 
 @dataclass(frozen=True)
-class _ConnectionMap():
+class _ConnectionMap:
     items: list[_ConnectionMapItem] = field(default_factory=list)
 
     def __init__(

@@ -1,4 +1,3 @@
-
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
@@ -11,8 +10,14 @@ from typing import (
 )
 
 from .types import _Path, _PathProxy, _Wildcard
-from ._traverse import _traverse_leaves, _TraverseState, _lookup, _validate_singular_path
+from ._traverse import (
+    _traverse_leaves,
+    _TraverseState,
+    _lookup,
+    _validate_singular_path,
+)
 from ._step import iter_steps, step_once
+
 
 def _get_with_path(
     obj: Mapping | Sequence,
@@ -33,6 +38,7 @@ def _get_with_path(
     if not result.found or (none_is_missing and result.value is None):
         return default, None
     return result.value, _Path.exact(*(result.matched_keys or []))
+
 
 def _get(
     obj: Mapping | Sequence,
@@ -74,34 +80,41 @@ def _collect_helper(
     segment = path_left[0]
 
     for key, val in iter_steps(segment, current):
-        _collect_helper(
-            val, path_left[1:], collection, current_path + str(key)
-        )
+        _collect_helper(val, path_left[1:], collection, current_path + str(key))
         if not isinstance(segment, _Wildcard):
             break
 
-def _collect_with_paths(mapping: Mapping, path: _PathProxy, *, skip_none: bool = False) -> dict[str, Any]:
+
+def _collect_with_paths(
+    mapping: Mapping, path: _PathProxy, *, skip_none: bool = False
+) -> dict[str, Any]:
     collection: dict[str, Any] = {}
 
     def handler(state: _TraverseState, obj: Any) -> None:
-            if skip_none and obj is None:
-                return
-            last = state.traversed_keys[-1]
-            if last in collection:
-                raise KeyError(f"Duplicate key found for path: {last}")
-            
-            collection[last] = obj
-            
+        if skip_none and obj is None:
+            return
+        last = state.traversed_keys[-1]
+        if last in collection:
+            raise KeyError(f"Duplicate key found for path: {last}")
+
+        collection[last] = obj
+
     _traverse_leaves(path, mapping, handler)
     return collection
 
 
-def _collect(mapping: Mapping, path: _PathProxy, *, skip_none: bool = False) -> list[Any]:
+def _collect(
+    mapping: Mapping, path: _PathProxy, *, skip_none: bool = False
+) -> list[Any]:
     return list(_collect_with_paths(mapping, path, skip_none=skip_none).values())
 
 
 def _try_set(
-    obj: MutableMapping | MutableSequence, _path: _PathProxy, value: Any, *, overwrite: bool = False
+    obj: MutableMapping | MutableSequence,
+    _path: _PathProxy,
+    value: Any,
+    *,
+    overwrite: bool = False,
 ) -> bool:
     """Set a value in a nested mapping using a ``::``-separated key path.
 
@@ -175,7 +188,10 @@ def _set(obj: MutableMapping | MutableSequence, _path: _PathProxy, value: Any) -
     """
     _try_set(obj, _path, value, overwrite=True)
 
-def _pop(obj: MutableMapping | MutableSequence, _path: _PathProxy, *, default: Any = None) -> Any:
+
+def _pop(
+    obj: MutableMapping | MutableSequence, _path: _PathProxy, *, default: Any = None
+) -> Any:
 
     _validate_singular_path(_path)
 
@@ -193,7 +209,9 @@ def _pop(obj: MutableMapping | MutableSequence, _path: _PathProxy, *, default: A
                 state.finished = True
                 value = obj
             else:
-                raise TypeError("Cannot pop value from non-mutable mapping or list object")
+                raise TypeError(
+                    "Cannot pop value from non-mutable mapping or list object"
+                )
 
     _traverse_leaves(_path, obj, handler)
     return value

@@ -4,6 +4,7 @@
 from typing import Any
 from typing_extensions import TypeIs
 
+
 class _MissingType:
     """A special class used to represent missing values in the configuration."""
 

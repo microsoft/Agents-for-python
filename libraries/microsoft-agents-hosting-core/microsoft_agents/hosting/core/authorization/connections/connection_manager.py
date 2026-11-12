@@ -10,7 +10,10 @@ from collections.abc import Callable
 
 from microsoft_agents.activity import Activity
 from microsoft_agents.activity.config import (
-    Configuration, _legpath as legpath, _get, _netpath
+    Configuration,
+    _legpath as legpath,
+    _get,
+    _netpath,
 )
 
 from .agent_auth_configuration import AgentAuthConfiguration
@@ -24,6 +27,7 @@ from .connections_map import _ConnectionMap
 logger = logging.getLogger(__name__)
 
 ConfigT = TypeVar("ConfigT", Configuration, AgentAuthConfiguration)
+
 
 class ConnectionManager(Connections):
     """
@@ -142,14 +146,18 @@ class ConnectionManager(Connections):
             self._provider_factory = cast(
                 Callable[[Configuration], AccessTokenProviderBase], provider_factory
             )
-            config = Configuration._from_config_or_kwargs(config, kwargs, ensure_root_config=True)
+            config = Configuration._from_config_or_kwargs(
+                config, kwargs, ensure_root_config=True
+            )
 
             raw_connections_map = config.get(legpath("connections_map"), [])
             connection_configs = config.get_sections(legpath("connections", "*"))
 
             for section in connection_configs:
                 connection_name = section.key
-                parsed_config = section.get_section(legpath("settings"), default=section)
+                parsed_config = section.get_section(
+                    legpath("settings"), default=section
+                )
                 # parsed_config = Configuration(**_get(connection_settings, *legpath("SETTINGS"), default={}))
                 self._connections[connection_name] = self._provider_factory(
                     parsed_config
@@ -174,7 +182,7 @@ class ConnectionManager(Connections):
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
         original_name = connection_name
-        connection_name = (connection_name or "service_connection")
+        connection_name = connection_name or "service_connection"
         connection = _get(self._connections, _netpath(connection_name), default=None)
         if not connection:
             if original_name:
@@ -192,7 +200,9 @@ class ConnectionManager(Connections):
         :return: The default OAuth connection for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
-        connection = _get(self._connections, legpath("service_connection"), default=None)
+        connection = _get(
+            self._connections, legpath("service_connection"), default=None
+        )
         if not connection:
             raise ValueError(
                 "No default service connection found. Expected 'SERVICE_CONNECTION'."
@@ -291,7 +301,9 @@ class ConnectionManager(Connections):
             DeprecationWarning,
             stacklevel=2,
         )
-        config = _get(self._deprecated_config_map, legpath("service_connection"), default=None)
+        config = _get(
+            self._deprecated_config_map, legpath("service_connection"), default=None
+        )
         if not config:
             raise ValueError(
                 "get_default_connection_configuration() is only available for "
@@ -299,4 +311,3 @@ class ConnectionManager(Connections):
                 "For Configuration-based managers, use get_default_connection().config instead."
             )
         return config
-    

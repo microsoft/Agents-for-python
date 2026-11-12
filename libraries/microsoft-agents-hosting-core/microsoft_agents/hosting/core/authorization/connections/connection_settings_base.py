@@ -7,7 +7,13 @@ from dataclasses import dataclass, field, fields
 from typing import TypeVar
 from typing_extensions import Self
 
-from microsoft_agents.activity.config import Configuration, _Configurable, _legpath as legpath, _get_bool, _pop
+from microsoft_agents.activity.config import (
+    Configuration,
+    _Configurable,
+    _legpath as legpath,
+    _get_bool,
+    _pop,
+)
 
 from .agent_auth_configuration import AgentAuthConfiguration
 
@@ -49,11 +55,14 @@ class ConnectionSettingsBase(_Configurable):
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         return {
             "client_id": config.get_strn(legpath("client_id")),
-            "authority": config.get_strn("authority") or config.get_strn("authorityendpoint"),
+            "authority": config.get_strn("authority")
+            or config.get_strn("authorityendpoint"),
             "tenant_id": config.get_strn(legpath("tenant_id")),
             "scopes": config.get_scopes("scopes"),
-            "alternate_blueprint_connection_name": config.get_strn(legpath("alt_blueprint_name")) or 
-                config.get_strn(legpath("alternate_blueprint_connection_name")),
+            "alternate_blueprint_connection_name": config.get_strn(
+                legpath("alt_blueprint_name")
+            )
+            or config.get_strn(legpath("alternate_blueprint_connection_name")),
         }
 
     @classmethod

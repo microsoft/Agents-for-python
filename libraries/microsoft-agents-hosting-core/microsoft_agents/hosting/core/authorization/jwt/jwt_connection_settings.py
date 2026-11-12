@@ -25,10 +25,14 @@ class JwtConnectionSettings(ConnectionSettingsBase):
 
     def __post_init__(self):
         if not getattr(self, "issuers", None):
-            object.__setattr__(self, "issuers", default_connection_issuers(
-                self.tenant_id,
-                self.authority,
-            ))
+            object.__setattr__(
+                self,
+                "issuers",
+                default_connection_issuers(
+                    self.tenant_id,
+                    self.authority,
+                ),
+            )
 
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:

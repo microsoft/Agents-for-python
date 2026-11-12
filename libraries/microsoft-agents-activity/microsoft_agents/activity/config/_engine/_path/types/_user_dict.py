@@ -3,6 +3,7 @@
 
 import collections.abc
 
+
 class _UserDict(collections.abc.MutableMapping):
 
     # Start by filling-out the abstract methods
@@ -45,7 +46,6 @@ class _UserDict(collections.abc.MutableMapping):
             return self[key]
         return default
 
-
     # Now, add the methods in dicts but not in MutableMapping
     def __repr__(self):
         return repr(self._data)
@@ -82,6 +82,7 @@ class _UserDict(collections.abc.MutableMapping):
         if self.__class__ is _UserDict:
             return _UserDict(self._data.copy())
         import copy
+
         data = self._data
         try:
             self._data = {}
@@ -97,6 +98,7 @@ class _UserDict(collections.abc.MutableMapping):
         for key in iterable:
             d[key] = value
         return d
+
 
 class _NoCopyUserDict(_UserDict):
     def __init__(self, dict=None, **kwargs):

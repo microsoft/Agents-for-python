@@ -60,5 +60,5 @@ __all__ = [
     "coerce_int",
     "coerce_float",
     "_get_str",
-    "_get_bool"
+    "_get_bool",
 ]

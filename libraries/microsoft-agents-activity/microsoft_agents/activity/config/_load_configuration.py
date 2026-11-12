@@ -9,9 +9,7 @@ from ._engine._resolve import _resolve
 from ._metadata import _RootConfigMetadata
 
 
-def load_configuration_from_env(
-    config_dict: Mapping[str, Any]
-) -> Configuration:
+def load_configuration_from_env(config_dict: Mapping[str, Any]) -> Configuration:
     """Resolve environment values and defaults into root configuration.
 
     Environment-style ``__`` paths are expanded and indexed mappings become

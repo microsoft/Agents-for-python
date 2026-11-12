@@ -79,7 +79,9 @@ class Authorization:
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handlers: list[AuthHandlerConfig] | dict[str, AuthHandlerConfig] | None = None,
+        auth_handlers: (
+            list[AuthHandlerConfig] | dict[str, AuthHandlerConfig] | None
+        ) = None,
         auto_sign_in: bool = False,
         *,
         config: Configuration | AuthorizationConfig | None = None,

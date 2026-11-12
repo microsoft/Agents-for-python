@@ -44,12 +44,12 @@ from ._metadata import (
 )
 
 T = TypeVar("T")
-_MappingConfigurableT = TypeVar(
-    "_MappingConfigurableT", bound=_MappingConfigurable
-)
+_MappingConfigurableT = TypeVar("_MappingConfigurableT", bound=_MappingConfigurable)
+
 
 def _norm_path_transform(path: str) -> str:
     return _parse_env_var_name(path).lower()
+
 
 class Configuration(_QueryDict, _MappingConfigurable):
     """Dictionary-backed configuration with path lookup and typed conversion.
@@ -67,7 +67,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def __init__(
         self,
         original: Mapping | None = None,
-        _base_path: str | Sequence[str] | None = None
+        _base_path: str | Sequence[str] | None = None,
     ):
         """Initialize a Configuration instance.
 
@@ -117,13 +117,15 @@ class Configuration(_QueryDict, _MappingConfigurable):
         :param defaults: Optional fallback values.
         :param _base_path: Diagnostic source path for the result.
         """
-        resolved = _resolve(primary or {}, defaults or {}, path_transformer=_norm_path_transform)
-        return Configuration(
-            resolved, _base_path=_base_path
+        resolved = _resolve(
+            primary or {}, defaults or {}, path_transformer=_norm_path_transform
         )
+        return Configuration(resolved, _base_path=_base_path)
 
     @classmethod
-    def from_config(cls, base: Mapping | None, *, _base_path: str | None = None) -> Configuration:
+    def from_config(
+        cls, base: Mapping | None, *, _base_path: str | None = None
+    ) -> Configuration:
         """Fork configuration, preserving its source path and root identity.
 
         Values in base take precedence; kwargs supply missing defaults rather
@@ -144,7 +146,9 @@ class Configuration(_QueryDict, _MappingConfigurable):
     ) -> tuple[Any, _Path | None]:
         """Return a value and its matched path segments, relative to this section."""
         path = _Path.create(_path)
-        res, found_path = _get_with_path(self, path, default=default, skip_none=skip_none)
+        res, found_path = _get_with_path(
+            self, path, default=default, skip_none=skip_none
+        )
         if _is_missing(res):
             if _is_missing(default):
                 raise KeyError(path)
@@ -162,9 +166,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
             return default
         return val
 
-    def get(
-        self, key: _PathProxy, default: Any = None, skip_none: bool = False
-    ) -> Any:
+    def get(self, key: _PathProxy, default: Any = None, skip_none: bool = False) -> Any:
         """Retrieve a value from the configuration by key, returning the default if not found."""
         path = _Path.create(key)
         try:
@@ -235,9 +237,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
 
         for base_path, v in map.items():
             if not isinstance(v, Mapping):
-                raise TypeError(
-                    f"Section {self._resolve_path(path)} is not a mapping"
-                )
+                raise TypeError(f"Section {self._resolve_path(path)} is not a mapping")
 
         return [
             Configuration.from_config(v, _base_path=self._resolve_path(base_path))
@@ -249,9 +249,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         self, path: _PathProxy, default: bool | _MissingType = _MISSING
     ) -> bool: ...
     @overload
-    def get_bool(
-        self, path: _PathProxy, default: None = None
-    ) -> bool | None: ...
+    def get_bool(self, path: _PathProxy, default: None = None) -> bool | None: ...
     def get_bool(
         self, path: _PathProxy, default: bool | None | _MissingType = _MISSING
     ) -> bool | None:
@@ -265,9 +263,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
         return _handle_bool(val, default, found_path.last if found_path else path.last)
 
-    def get_booln(
-        self, path: _PathProxy, default: bool | None = None
-    ) -> bool | None:
+    def get_booln(self, path: _PathProxy, default: bool | None = None) -> bool | None:
         """Retrieve a boolean value from the configuration, allowing None as default.
 
         :param keys: The keys of the value to retrieve.
@@ -295,9 +291,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
         return _handle_int(val, default, found_path.last if found_path else path.last)
 
-    def get_intn(
-        self, path: _PathProxy, default: int | None = None
-    ) -> int | None:
+    def get_intn(self, path: _PathProxy, default: int | None = None) -> int | None:
         """Retrieve an integer value from the configuration, allowing None as default.
 
         :param keys: The keys of the value to retrieve.
@@ -307,9 +301,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         return self.get_int(path, default=default)
 
     @overload
-    def get_float(
-        self, path: _PathProxy, default: None = None
-    ) -> float | None: ...
+    def get_float(self, path: _PathProxy, default: None = None) -> float | None: ...
     @overload
     def get_float(
         self, path: _PathProxy, default: float | _MissingType = _MISSING
@@ -382,13 +374,17 @@ class Configuration(_QueryDict, _MappingConfigurable):
                 return []
             return default
         if isinstance(val, MutableSequence):
-            return _handle_str_list(list(val), default, found_path.last if found_path else path.last)
+            return _handle_str_list(
+                list(val), default, found_path.last if found_path else path.last
+            )
         elif isinstance(val, Mapping):
             raise ValueError(
                 f"Invalid list value for {str(found_path if found_path else path)}"
             )
         elif not isinstance(val, Mapping):
-            before_split = _handle_str(val, None, found_path.last if found_path else path.last)
+            before_split = _handle_str(
+                val, None, found_path.last if found_path else path.last
+            )
             if before_split is None:
                 return default if default is not None else []
             if "," in before_split:
@@ -407,7 +403,9 @@ class Configuration(_QueryDict, _MappingConfigurable):
         base = _get(self, path, default=default)
         if isinstance(base, Mapping):
             return base.items()
-        elif isinstance(base, Sequence) and not isinstance(base, (str, bytes, bytearray)):
+        elif isinstance(base, Sequence) and not isinstance(
+            base, (str, bytes, bytearray)
+        ):
             return enumerate(base)
         return []
 
@@ -448,7 +446,12 @@ class Configuration(_QueryDict, _MappingConfigurable):
         return list(scopes)
 
     @staticmethod
-    def _from_config_or_kwargs(primary_config: Mapping | None, kwargs: MutableMapping, *, ensure_root_config: bool = False) -> Configuration:
+    def _from_config_or_kwargs(
+        primary_config: Mapping | None,
+        kwargs: MutableMapping,
+        *,
+        ensure_root_config: bool = False,
+    ) -> Configuration:
         if primary_config is None:
             if ensure_root_config:
                 _RootConfigMetadata.set(kwargs, True)

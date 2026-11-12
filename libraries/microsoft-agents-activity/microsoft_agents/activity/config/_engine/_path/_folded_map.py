@@ -6,19 +6,23 @@ from typing import Any, Mapping
 
 from .types import _PathSegment, _SimplePathSegment
 
+
 def _get_folded_key(segment: str | _PathSegment) -> str:
     return _ps(segment).folded
+
 
 def _ps(segment: str | _PathSegment) -> _PathSegment:
     if isinstance(segment, str):
         return _SimplePathSegment(segment)
     return segment
 
+
 @dataclass
 class _FoldedMapEntry:
 
     key: str
     value: Any
+
 
 class _FoldedMap:
 
@@ -50,7 +54,9 @@ class _FoldedMap:
             return key
         return None
 
-    def _get_entry_and_bucket(self, segment: str | _PathSegment) -> tuple[list[_FoldedMapEntry] | None, _FoldedMapEntry | None]:
+    def _get_entry_and_bucket(
+        self, segment: str | _PathSegment
+    ) -> tuple[list[_FoldedMapEntry] | None, _FoldedMapEntry | None]:
         seg = _ps(segment)
         entries = self.get_bucket(segment)
         if entries:

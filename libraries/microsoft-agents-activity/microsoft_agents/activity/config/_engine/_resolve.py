@@ -11,6 +11,7 @@ from ._utils import _parse_env_var_name
 def _path(*parts: str) -> str:
     return "::".join(parts)
 
+
 def _expand_paths(
     source: Mapping, path_transformer: Callable[[str], str]
 ) -> dict[str, Any]:

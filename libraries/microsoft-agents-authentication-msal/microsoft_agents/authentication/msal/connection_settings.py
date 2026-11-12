@@ -58,9 +58,12 @@ class MsalConnectionSettings(ConnectionSettingsBase):
                 "send_x5c": config.get_bool(legpath("send_x5c"), default=False),
                 "connection_name": config.get_strn(legpath("connection_name")),
                 "federated_client_id": config.get_strn(legpath("federated_client_id")),
-                "federated_token_file": config.get_strn(legpath("federated_token_file")),
+                "federated_token_file": config.get_strn(
+                    legpath("federated_token_file")
+                ),
                 "idpm_resource": config.get_strn(legpath("idpm_resource")),
-                "azure_region": config.get_strn(legpath("azure_region")) or config.get_strn(legpath("regional_authority")),
+                "azure_region": config.get_strn(legpath("azure_region"))
+                or config.get_strn(legpath("regional_authority")),
             }
         )
         return base

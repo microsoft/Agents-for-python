@@ -5,6 +5,7 @@ from typing import TypeVar
 
 T = TypeVar("T")
 
+
 def _parse_env_var_name(name: str) -> str:
     """Replace environment-variable ``__`` separators with ``::``.
 
@@ -12,6 +13,7 @@ def _parse_env_var_name(name: str) -> str:
     :return: The ``::``-separated key path, preserving case.
     """
     return name.replace("__", "::")
+
 
 def str_in(base: str, *sub: str) -> bool:
     """Check if any of the given substrings are present in the base string.
@@ -21,6 +23,7 @@ def str_in(base: str, *sub: str) -> bool:
     :return: True if any of the substrings are present in the base string, False otherwise.
     """
     return any(s in base for s in sub)
+
 
 def _resolve_keys_arg(*keys: str | list[str]) -> list[str]:
     resolved_keys = []

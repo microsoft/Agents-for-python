@@ -4,6 +4,7 @@
 from typing import Any, Iterator, Mapping, Sequence
 from .types._path_segment import _PathSegment, _SimplePathSegment
 
+
 def step_once(segment: _PathSegment, obj: Any) -> tuple[bool, Any, Any]:
     try:
         key, next_obj = next(iter_steps(segment, obj))
@@ -11,8 +12,10 @@ def step_once(segment: _PathSegment, obj: Any) -> tuple[bool, Any, Any]:
     except StopIteration:
         return False, None, None
 
+
 def iter_steps(segment: _PathSegment, obj: Any) -> Iterator[tuple[Any, Any]]:
     from ._query import _QueryDict
+
     if isinstance(obj, Mapping):
         if isinstance(obj, _QueryDict) and isinstance(segment, _SimplePathSegment):
             bucket = obj._shortcuts.get_bucket(segment)

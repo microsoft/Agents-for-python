@@ -226,7 +226,9 @@ def _handle_str_list(
 
 
 @overload
-def _get_bool(mapping: Mapping, _path: _PathProxy, default: bool | _MissingType) -> bool: ...
+def _get_bool(
+    mapping: Mapping, _path: _PathProxy, default: bool | _MissingType
+) -> bool: ...
 @overload
 def _get_bool(mapping: Mapping, _path: _PathProxy, default: None) -> bool | None: ...
 def _get_bool(
@@ -239,7 +241,9 @@ def _get_bool(
 
 
 @overload
-def _get_int(mapping: Mapping, _path: _PathProxy, default: int | _MissingType) -> int: ...
+def _get_int(
+    mapping: Mapping, _path: _PathProxy, default: int | _MissingType
+) -> int: ...
 @overload
 def _get_int(mapping: Mapping, _path: _PathProxy, default: None) -> int | None: ...
 def _get_int(
@@ -252,7 +256,9 @@ def _get_int(
 
 
 @overload
-def _get_float(mapping: Mapping, _path: _PathProxy, default: float | _MissingType) -> float: ...
+def _get_float(
+    mapping: Mapping, _path: _PathProxy, default: float | _MissingType
+) -> float: ...
 @overload
 def _get_float(mapping: Mapping, _path: _PathProxy, default: None) -> float | None: ...
 def _get_float(
@@ -265,7 +271,9 @@ def _get_float(
 
 
 @overload
-def _get_str(mapping: Mapping, _path: _PathProxy, default: str | _MissingType) -> str: ...
+def _get_str(
+    mapping: Mapping, _path: _PathProxy, default: str | _MissingType
+) -> str: ...
 @overload
 def _get_str(mapping: Mapping, _path: _PathProxy, default: None) -> str | None: ...
 def _get_str(

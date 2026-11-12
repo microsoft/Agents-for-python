@@ -7,12 +7,18 @@ from collections import UserDict
 from collections.abc import Iterable, Mapping, MutableMapping
 from typing import Any, Sequence
 from typing_extensions import Self
-    
+
 from ._folded_map import _FoldedMap, _ps
 from .types import (
-    _Path, _PathSegment, _Wildcard, _UserDict, _UserList, _MISSING,
+    _Path,
+    _PathSegment,
+    _Wildcard,
+    _UserDict,
+    _UserList,
+    _MISSING,
 )
 from ._traverse import _LookupResult, _lookup
+
 
 def _normalize_value(value: Any) -> Any:
     if isinstance(value, (_QueryDict, _QueryList)):
@@ -25,14 +31,15 @@ def _normalize_value(value: Any) -> Any:
         return _QueryList(value)
     return value
 
+
 class _QueryList(_UserList):
 
     def __init__(
-            self,
-            data,
-            /,
-        ):
-        self._data = [ _normalize_value(value) for index, value in enumerate(data) ]
+        self,
+        data,
+        /,
+    ):
+        self._data = [_normalize_value(value) for index, value in enumerate(data)]
 
     def copy(self) -> _QueryList:
         return self.__class__(self)
@@ -77,9 +84,9 @@ class _QueryList(_UserList):
             return _LookupResult(
                 found=True,
                 value=value,
-                matched_keys=[str(index)] if include_path else []
+                matched_keys=[str(index)] if include_path else [],
             )
-        
+
         raise TypeError("List index must be an integer or a digit string.")
 
     def __getitem__(self, index: Any) -> Any:
@@ -146,7 +153,6 @@ class _QueryList(_UserList):
             return
         raise TypeError("List index must be an integer or a digit string.")
 
-        
 
 class _QueryDict(_UserDict):
 
@@ -204,7 +210,7 @@ class _QueryDict(_UserDict):
 
     def __delitem__(self, key: Any) -> None:
         from ._utils import _pop
-        
+
         if isinstance(key, _Path):
             if len(key) == 1:
                 key = key[0]
@@ -237,7 +243,7 @@ class _QueryDict(_UserDict):
             if len(key) == 1:
                 key = key[0]
             else:
-                result =  _lookup(self, key, include_path=include_path)
+                result = _lookup(self, key, include_path=include_path)
                 return result
 
         if isinstance(key, _Wildcard):
