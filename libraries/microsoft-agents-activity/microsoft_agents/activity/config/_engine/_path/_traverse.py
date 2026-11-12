@@ -2,19 +2,35 @@
 # Licensed under the MIT License.
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
 
-from ._path import _Path, _PathProxy
+from .types import _Wildcard, _MISSING, _Path, _PathProxy
 from ._step import iter_steps
+
+def _validate_singular_path(path: _PathProxy) -> None:
+    if not path or (isinstance(path, _Path) and not path.is_simple):
+        raise ValueError("Path must be non-empty and simple.")
+    elif isinstance(path, _Wildcard):
+        raise ValueError("Path must not be a wildcard.")
 
 @dataclass
 class _TraverseState:
 
     path: _Path
     current: Any
-    traversed: _Path = _Path()
+    path_index: int = 0
+    traversed_keys: list[str] = field(default_factory=list)
     finished: bool = False
+
+    @property
+    def no_path_left(self) -> bool:
+        return self.path_index >= len(self.path)
+
+    def traversed_path(self) -> _Path:
+        return _Path.exact(*self.traversed_keys)
+
+    
 
 def _traverse_helper(
     state: _TraverseState,
@@ -23,19 +39,17 @@ def _traverse_helper(
     handle_inner: bool = True
 ) -> None:
 
-    if not isinstance(state.current, (Mapping, Sequence)) or not state.path:
+    if not isinstance(state.current, (Mapping, Sequence)) or state.no_path_left:
         return
 
-    base_path = state.path
-    segment = base_path[0]
+    segment = state.path[state.path_index]
 
     for key, next_obj in iter_steps(segment, state.current):
 
-        state.path = state.path[1:]
-        prev_traversed = state.traversed
-        state.traversed = state.traversed + _Path.exact(str(key))
+        state.path_index += 1
+        state.traversed_keys.append(str(key))
 
-        if handle_inner or len(base_path) == 1:
+        if handle_inner or state.path_index == len(state.path):
             handler(state, next_obj)
             if state.finished:
                 return
@@ -48,9 +62,9 @@ def _traverse_helper(
         if state.finished:
             return
 
-        state.traversed = prev_traversed
+        state.traversed_keys.pop()
         state.current = prev_current
-        state.path = base_path
+        state.path_index -= 1
 
 
 def _traverse_leaves(
@@ -70,3 +84,37 @@ def _traverse(
     path = _Path.create(_path)
     state = _TraverseState(path=path, current=obj)
     _traverse_helper(state, handler, handle_inner=True)
+
+@dataclass
+class _LookupResult:
+
+    found: bool = False
+    value: Any = _MISSING
+    matched_keys: list[str] | None = None
+
+def _lookup(
+    obj: Mapping | Sequence,
+    path: _PathProxy,
+    *,
+    include_path: bool = False,
+    skip_none: bool = False,
+) -> _LookupResult:
+
+    _validate_singular_path(path)
+
+    result = _LookupResult()
+
+    def handler(state: _TraverseState, candidate: Any) -> None:
+        nonlocal result
+
+        if skip_none and candidate is None:
+            return
+
+        result.found = True
+        result.value = candidate
+        if include_path:
+            result.matched_keys = state.traversed_keys.copy()
+        state.finished = True
+
+    _traverse_leaves(path, obj, handler)
+    return result

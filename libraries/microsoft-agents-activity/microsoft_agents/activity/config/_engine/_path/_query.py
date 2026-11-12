@@ -7,12 +7,12 @@ from collections import UserDict
 from collections.abc import Iterable, Mapping, MutableMapping
 from typing import Any, Sequence
 from typing_extensions import Self
-
+    
 from ._folded_map import _FoldedMap, _ps
-from ._path import _Path
-from ._path_segment import _PathSegment, _Wildcard
-from ._user_dict import _UserDict
-from ._user_list import _UserList
+from .types import (
+    _Path, _PathSegment, _Wildcard, _UserDict, _UserList, _MISSING,
+)
+from ._traverse import _LookupResult, _lookup
 
 def _normalize_value(value: Any) -> Any:
     if isinstance(value, (_QueryDict, _QueryList)):
@@ -30,13 +30,9 @@ class _QueryList(_UserList):
     def __init__(
             self,
             data,
-            # base_path: _Path,
             /,
         ):
         self._data = [ _normalize_value(value) for index, value in enumerate(data) ]
-
-    # def full_path(self, index: int) -> _Path:
-    #     return self._base_path + str(index)
 
     def copy(self) -> _QueryList:
         return self.__class__(self)
@@ -56,27 +52,15 @@ class _QueryList(_UserList):
         self.extend(other)
         return self
 
-    def get_with_key(self, index: Any) -> tuple[Any, _Path]:
+    def _lookup(self, index: Any, include_path: bool = False) -> _LookupResult:
         if isinstance(index, _Path):
-            if not index.is_simple:
-                raise ValueError("Path must be simple to set a value.")
-
-            if not index:
-                raise ValueError("Path must not be empty.")
-
             if len(index) == 1:
                 index = index[0]
             else:
-                i = index[0]
-                if i.isdigit() and 0 <= int(i.string) < len(self):
-                    next_obj = self._data[int(i.string)]
-
-                    if not isinstance(next_obj, (_QueryList, _QueryDict)):
-                        raise TypeError("Path of length > 1 must refer to a mapping.")
-
-                    value, path = next_obj.get_with_key(index[1:])
-                    return value, _Path.exact(i.string) + path
-                raise IndexError("List index out of range.")
+                result = _lookup(self, index, include_path=include_path)
+                if not result.found:
+                    raise KeyError(index.last)
+                return result
 
         if isinstance(index, _PathSegment):
             if not index.isdigit():
@@ -90,35 +74,29 @@ class _QueryList(_UserList):
             if index < 0 or index >= len(self):
                 raise IndexError("List index out of range.")
             value = super().__getitem__(index)
-            return value, _Path.exact(str(index))
+            return _LookupResult(
+                found=True,
+                value=value,
+                matched_keys=[str(index)] if include_path else []
+            )
         
         raise TypeError("List index must be an integer or a digit string.")
 
     def __getitem__(self, index: Any) -> Any:
-        if isinstance(index, slice):
+        if isinstance(index, (slice, int)):
             return super().__getitem__(index)
-        return self.get_with_key(index)[0]
+        return self._lookup(index).value
 
     def __setitem__(self, index: Any, item: Any) -> None:
+        from ._utils import _set
 
         if isinstance(index, _Path):
-            if not index.is_simple:
-                raise ValueError("Path must be simple to set a value.")
-
-            if not index:
-                raise ValueError("Path must not be empty.")
 
             if len(index) == 1:
                 index = index[0]
             else:
-                i = index[0]
-                if i.isdigit() and 0 <= int(i.string) < len(self):
-                    next_obj = self._data[int(i.string)]
-                    if not isinstance(next_obj, (_QueryDict, _QueryList)):
-                        raise TypeError("Cannot set a nested value on a non-dictionary or non-list.")
-                    next_obj[index[1:]] = _normalize_value(item)
-                    return
-                raise IndexError("List index out of range.")
+                _set(self, index, _normalize_value(item))
+                return
 
         if isinstance(index, _PathSegment):
             if not index.isdigit():
@@ -139,20 +117,11 @@ class _QueryList(_UserList):
         from ._utils import _pop
 
         if isinstance(index, _Path):
-            if not index.is_simple:
-                raise ValueError("Path must be simple to delete a value.")
 
-            if not index:
-                raise ValueError("Path must not be empty.")
-
-            if len(index) == 1:
-                index = index[0]
-            else:
-                i = index[0]
-                if i.isdigit() and 0 <= int(i.string) < len(self):
-                    _pop(self._data[int(i.string)], index[1:])
-                    return
-                raise IndexError("List index out of range.")
+            val = _pop(self, index, default=_MISSING)
+            if val is _MISSING:
+                raise KeyError(index)
+            return
 
         if isinstance(index, _PathSegment):
             if not index.isdigit():
@@ -192,11 +161,6 @@ class _QueryDict(_UserDict):
         inst.__dict__["_shortcuts"] = _FoldedMap(inst.__dict__["_data"])
         return inst
 
-    # def full_path(self, partial_path: int | str | _Path) -> _Path:
-    #     if isinstance(partial_path, _Path):
-    #         return self._base_path + partial_path
-    #     return self._base_path + _Path(str(partial_path))
-
     def __contains__(self, key: Any) -> bool:
         if isinstance(key, _Path):
             if len(key) == 0:
@@ -215,23 +179,14 @@ class _QueryDict(_UserDict):
         return super().__contains__(key)
 
     def __setitem__(self, key: Any, value: Any) -> None:
+        from ._utils import _set
 
         if isinstance(key, _Path):
-            if not key.is_simple:
-                raise ValueError("Path must be simple to set a value.")
-
-            if len(key) == 0:
-                raise ValueError("Path must not be empty.")
-
             if len(key) == 1:
                 key = key[0]
             else:
-                entry = self._shortcuts.get_entry(_ps(key[0]))
-                next_obj = entry.value if entry is not None else None
-                if isinstance(next_obj, (_QueryDict, _QueryList)):
-                    next_obj[key[1:]] = value
-                    return
-                raise TypeError("Path must refer to a nested _QueryDict or _QueryList.")
+                _set(self, key, value)
+                return
 
         if isinstance(key, _Wildcard):
             raise ValueError("Wildcard paths cannot be used to set a value.")
@@ -244,22 +199,16 @@ class _QueryDict(_UserDict):
             raise TypeError(f"Unsupported key type: {type(key)}")
 
     def __delitem__(self, key: Any) -> None:
+        from ._utils import _pop
+        
         if isinstance(key, _Path):
-            if not key.is_simple:
-                raise ValueError("Path must be simple to delete a value.")
-
-            if len(key) == 0:
-                raise ValueError("Path must not be empty.")
-
             if len(key) == 1:
                 key = key[0]
             else:
-                entry = self._shortcuts.get_entry(_ps(key[0]))
-                next_obj = entry.value if entry is not None else None
-                if isinstance(next_obj, (_QueryDict, _QueryList)):
-                    del next_obj[key[1:]]
-                    return
-                raise TypeError("Path must refer to a nested _QueryDict or _QueryList.")
+                val = _pop(self, key, default=_MISSING)
+                if val is _MISSING:
+                    raise KeyError(key)
+                return
 
         if isinstance(key, _Wildcard):
             raise ValueError("Wildcard paths cannot be used to delete a value.")
@@ -272,7 +221,7 @@ class _QueryDict(_UserDict):
         else:
             raise TypeError(f"Unsupported key type: {type(key)}")
 
-    def get_with_key(self, key: Any) -> tuple[Any, _Path]:
+    def _lookup(self, key: Any, include_path: bool = False) -> _LookupResult:
 
         if isinstance(key, _Path):
             if not key.is_simple:
@@ -284,13 +233,8 @@ class _QueryDict(_UserDict):
             if len(key) == 1:
                 key = key[0]
             else:
-                entry = self._shortcuts.get_entry(_ps(key[0]))
-                next_obj = entry.value if entry is not None else None
-                if isinstance(next_obj, (_QueryDict, _QueryList)):
-                    assert entry is not None
-                    val, path = next_obj.get_with_key(key[1:])
-                    return val, _Path.exact(entry.key) + path
-                raise TypeError("Path must refer to a nested _QueryDict or _QueryList.")
+                result =  _lookup(self, key, include_path=include_path)
+                return result
 
         if isinstance(key, _Wildcard):
             raise ValueError("Wildcard paths cannot be used to get a value.")
@@ -298,13 +242,21 @@ class _QueryDict(_UserDict):
         if isinstance(key, (str, _PathSegment)):
             entry = self._shortcuts.get_entry(_ps(key))
             if entry is not None:
-                return entry.value, _Path.exact(entry.key)
-            raise KeyError(key)
+                return _LookupResult(
+                    found=True,
+                    value=entry.value,
+                    matched_keys=[entry.key] if include_path else None,
+                )
+            else:
+                return _LookupResult(found=False)
         else:
             raise TypeError(f"Unsupported key type: {type(key)}")
 
     def __getitem__(self, key: Any) -> Any:
-        return self.get_with_key(key)[0]
+        result = self._lookup(key)
+        if not result.found:
+            raise KeyError(key)
+        return result.value
 
     def __ior__(self, other: Any) -> Self:
         if not isinstance(other, _QueryDict) and isinstance(other, UserDict):

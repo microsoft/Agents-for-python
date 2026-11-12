@@ -6,16 +6,16 @@ from typing import (
     Any,
     Mapping,
     MutableMapping,
+    MutableSequence,
     Sequence,
 )
 
-from ._path import _Path, _PathProxy
-from ._path_segment import _Wildcard
-from ._traverse import _traverse_leaves, _TraverseState
+from .types import _Path, _PathProxy, _Wildcard
+from ._traverse import _traverse_leaves, _TraverseState, _lookup, _validate_singular_path
 from ._step import iter_steps, step_once
 
 def _get_with_path(
-    mapping: Mapping | Sequence,
+    obj: Mapping | Sequence,
     path: _PathProxy,
     default: Any = None,
     skip_none: bool = False,
@@ -23,26 +23,19 @@ def _get_with_path(
 ) -> tuple[Any, _Path | None]:
     """Return the first matched value and its relative source path segments."""
 
-    return_value: Any = None
-    return_path: _Path | None = None
+    result = _lookup(
+        obj,
+        path,
+        include_path=True,
+        skip_none=skip_none,
+    )
 
-    def handler(state: _TraverseState, obj: Any) -> None:
-        nonlocal return_value, return_path
-        if skip_none and obj is None:
-            return
-
-        state.finished = True
-        return_value = obj
-        return_path = state.traversed
-
-    _traverse_leaves(path, mapping, handler)
-
-    if return_path is None or (none_is_missing and return_value is None):
+    if not result.found or (none_is_missing and result.value is None):
         return default, None
-    return return_value, return_path
+    return result.value, _Path.exact(*(result.matched_keys or []))
 
 def _get(
-    mapping: Mapping | Sequence,
+    obj: Mapping | Sequence,
     path: _PathProxy,
     default: Any = None,
     skip_none: bool = False,
@@ -56,14 +49,15 @@ def _get(
     :param skip_none: Whether to skip None values while traversing the mapping.
     :return: The retrieved value or the default value if not found.
     """
-    value, _ = _get_with_path(
-        mapping,
+    result = _lookup(
+        obj,
         path,
-        default=default,
+        include_path=False,
         skip_none=skip_none,
-        none_is_missing=none_is_missing,
     )
-    return value
+    if not result.found or (none_is_missing and result.value is None):
+        return default
+    return result.value
 
 
 def _collect_helper(
@@ -92,10 +86,11 @@ def _collect_with_paths(mapping: Mapping, path: _PathProxy, *, skip_none: bool =
     def handler(state: _TraverseState, obj: Any) -> None:
             if skip_none and obj is None:
                 return
-            if state.traversed.last in collection:
-                raise KeyError(f"Duplicate key found for path: {state.traversed.last}")
+            last = state.traversed_keys[-1]
+            if last in collection:
+                raise KeyError(f"Duplicate key found for path: {last}")
             
-            collection[state.traversed.last] = obj
+            collection[last] = obj
             
     _traverse_leaves(path, mapping, handler)
     return collection
@@ -106,7 +101,7 @@ def _collect(mapping: Mapping, path: _PathProxy, *, skip_none: bool = False) -> 
 
 
 def _try_set(
-    mapping: MutableMapping, _path: _PathProxy, value: Any, *, overwrite: bool = False
+    obj: MutableMapping | MutableSequence, _path: _PathProxy, value: Any, *, overwrite: bool = False
 ) -> bool:
     """Set a value in a nested mapping using a ``::``-separated key path.
 
@@ -115,10 +110,11 @@ def _try_set(
     :param value: The value to set.
     :param overwrite: Whether to overwrite the existing value if the key already exists.
     """
+    _validate_singular_path(_path)
 
     path = _Path.create(_path)
 
-    current = mapping
+    current = obj
 
     for segment in path[:-1]:
         non_mutable_mapping_err: bool = False
@@ -132,6 +128,15 @@ def _try_set(
                 current = current[segment.string]
             else:
                 non_mutable_mapping_err = True
+        elif isinstance(current, MutableSequence):
+            matched, _, next_obj = step_once(segment, current)
+            if matched:
+                current = next_obj
+                continue
+            elif isinstance(current, MutableSequence):
+                raise RuntimeError("Cannot modify intermediary list elements")
+            else:
+                non_mutable_mapping_err = True
         else:
             non_mutable_mapping_err = True
 
@@ -142,38 +147,53 @@ def _try_set(
 
     if isinstance(current, MutableMapping):
         matched, key, next_obj = step_once(path[-1], (current))
-
+        if matched:
+            if not overwrite:
+                return False
+            current[key] = value
+        else:
+            current[path.last] = value
+        return True
+    elif isinstance(current, MutableSequence):
+        matched, key, next_obj = step_once(path[-1], current)
+        if not matched:
+            raise IndexError(f"List index out of range for key path {path}")
         if matched and not overwrite:
             return False
-
-        if matched:
-            del current[key]
-
-        current[path.last] = value
+        current[key] = value
         return True
     else:
         raise TypeError(f"Cannot set value for key path {path} in non-mutable mapping")
 
 
-def _set(mapping: MutableMapping, _path: _PathProxy, value: Any) -> None:
+def _set(obj: MutableMapping | MutableSequence, _path: _PathProxy, value: Any) -> None:
     """Set a value using a ``::``-separated path, overwriting any existing value.
 
     :param mapping: The mapping to set the value in.
     :param path: The ``::``-separated key path.
     :param value: The value to set.
     """
-    _try_set(mapping, _path, value, overwrite=True)
+    _try_set(obj, _path, value, overwrite=True)
 
-def _pop(mapping: MutableMapping, _path: _PathProxy, *, default: Any = None) -> Any:
+def _pop(obj: MutableMapping | MutableSequence, _path: _PathProxy, *, default: Any = None) -> Any:
+
+    _validate_singular_path(_path)
 
     value = default
 
     def handler(state: _TraverseState, obj: Any) -> None:
         nonlocal value
-        if not state.path:
-            del state.current[state.traversed.last]
-            state.finished = True
-            value = obj
+        if state.no_path_left:
+            if isinstance(state.current, MutableMapping):
+                del state.current[state.traversed_keys[-1]]
+                state.finished = True
+                value = obj
+            elif isinstance(state.current, MutableSequence):
+                del state.current[int(state.traversed_keys[-1])]
+                state.finished = True
+                value = obj
+            else:
+                raise TypeError("Cannot pop value from non-mutable mapping or list object")
 
-    _traverse_leaves(_path, mapping, handler)
+    _traverse_leaves(_path, obj, handler)
     return value

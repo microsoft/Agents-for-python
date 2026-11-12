@@ -5,26 +5,23 @@ from __future__ import annotations
 
 from typing import (
     Any,
-    Callable,
     Iterator,
-    Mapping,
-    MutableMapping,
+    Sequence,
     overload,
-    Sequence
 )
 from typing_extensions import TYPE_CHECKING
 
-from ._path_segment import _PathSegment, _SimplePathSegment, _Wildcard
+from ._path_segment import _PathSegment, _SimplePathSegment, _Wildcard, _ExactPathSegment
 
 if TYPE_CHECKING:
-    from ._traverse import _TraverseState
+    from .._traverse import _TraverseState
 
 class _Path:
 
     def __init__(self, *segments: str | _PathSegment):
 
         _segments = [
-            segment if isinstance(segment, _PathSegment) else _SimplePathSegment(segment, ignore_case=True, ignore_underscores=False)
+            segment if isinstance(segment, _PathSegment) else _ExactPathSegment(segment)
             for segment in segments if segment
         ]
         _segments = [ segment for segment in _segments if segment.string ]
@@ -45,10 +42,14 @@ class _Path:
 
     @staticmethod
     def create(path: _PathProxy) -> _Path:
+        if isinstance(path, int):
+            path = str(path)
         if isinstance(path, str):
             return _Path(path)
         if isinstance(path, list):
             return _Path(*path)
+        if isinstance(path, _PathSegment):
+            return _Path(path)
         if isinstance(path, _Path):
             return path
         raise TypeError(f"Unsupported type for create: {type(path)}")
@@ -121,10 +122,6 @@ class _Path:
     def __iter__(self) -> Iterator[_PathSegment]:
         return iter(self._segments)
 
-    def traverse(self, obj: Any, handler: Callable[[_TraverseState, Any], None]) -> None:
-        from ._traverse import _traverse
-        _traverse(self, obj, handler)
-
 class _WildcardPathClass(_Path):
 
     def __init__(self):
@@ -176,4 +173,4 @@ class _WildcardPathClass(_Path):
 
 _WildcardPath = _WildcardPathClass()
 
-_PathProxy = str | Sequence[str] | _Path
+_PathProxy = str | int | Sequence[str] | _PathSegment |  _Path

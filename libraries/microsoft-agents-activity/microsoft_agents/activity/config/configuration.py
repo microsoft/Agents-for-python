@@ -155,7 +155,11 @@ class Configuration(_QueryDict, _MappingConfigurable):
         self, path: _PathProxy, default: Any = _MISSING, skip_none: bool = False
     ) -> Any:
         """Return the first matched value, raising if absent and no default is given."""
-        val, _ = self._get_with_path(path, default=default, skip_none=skip_none)
+        val = _get(self, path, default=default, skip_none=skip_none)
+        if _is_missing(val):
+            if _is_missing(default):
+                raise KeyError(path)
+            return default
         return val
 
     def get(

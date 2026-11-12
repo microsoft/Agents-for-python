@@ -28,7 +28,7 @@ from ._path import (
     _pop,
     _QueryDict,
 )
-from ._path._missing import _MISSING, _MissingType, _is_missing
+from ._path.types._missing import _MISSING, _MissingType, _is_missing
 from ._resolve import _resolve
 from ._utils import _parse_env_var_name
 

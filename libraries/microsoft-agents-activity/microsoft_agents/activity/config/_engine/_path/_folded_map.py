@@ -4,7 +4,7 @@
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from ._path_segment import _PathSegment, _SimplePathSegment
+from .types import _PathSegment, _SimplePathSegment
 
 def _get_folded_key(segment: str | _PathSegment) -> str:
     return _ps(segment).folded

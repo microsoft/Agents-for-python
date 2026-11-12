@@ -2,8 +2,7 @@
 # Licensed under the MIT License.
 
 from typing import Any, Iterator, Mapping, Sequence
-from ._path_segment import _PathSegment, _SimplePathSegment
-from ._query import _QueryDict
+from .types._path_segment import _PathSegment, _SimplePathSegment
 
 def step_once(segment: _PathSegment, obj: Any) -> tuple[bool, Any, Any]:
     try:
@@ -13,6 +12,7 @@ def step_once(segment: _PathSegment, obj: Any) -> tuple[bool, Any, Any]:
         return False, None, None
 
 def iter_steps(segment: _PathSegment, obj: Any) -> Iterator[tuple[Any, Any]]:
+    from ._query import _QueryDict
     if isinstance(obj, Mapping):
         if isinstance(obj, _QueryDict) and isinstance(segment, _SimplePathSegment):
             bucket = obj._shortcuts.get_bucket(segment)
