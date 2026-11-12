@@ -45,14 +45,24 @@ def _ExactPathSegment(string: str) -> _SimplePathSegment:
 
 
 class _SimplePathSegment(_PathSegment):
+    """Match one key with explicit case and underscore policies.
+
+    The broader folded form is only an index bucket key; ``check`` applies the
+    requested policy. Decimal segments compare by numeric value, including
+    comparisons with integer mapping keys.
+    """
 
     def __init__(
-        self, string: str, ignore_case: bool = False, ignore_underscores: bool = False
+        self, string: str | int, ignore_case: bool = False, ignore_underscores: bool = False
     ):
-        super().__init__(string)
+        if isinstance(string, str) and not string:
+            raise ValueError("Path segment cannot be empty")
+        
+        super().__init__(str(string))
         self._ignore_case = ignore_case
         self._ignore_underscores = ignore_underscores
         self._fold: str | None = None
+        self._transformed_string: str = self._transform(self.string)
 
     def isdigit(self) -> bool:
         return self.string.isdigit()
@@ -66,6 +76,14 @@ class _SimplePathSegment(_PathSegment):
             )
         return False
 
+    def _transform(self, string: str) -> str:
+        
+        if self._ignore_case:
+            string = string.casefold()
+        if self._ignore_underscores:
+            string = string.replace("_", "")
+        return string
+
     def check(self, target: Any) -> bool:
 
         if isinstance(target, int):
@@ -77,19 +95,11 @@ class _SimplePathSegment(_PathSegment):
             target = str(target)
 
         target_segment = target.string if isinstance(target, _PathSegment) else target
-        segment = self.string
 
         if self.string.isdigit() and target_segment.isdigit():
             return int(self.string) == int(target_segment)
 
-        if self._ignore_case:
-            target_segment = target_segment.casefold()
-            segment = segment.casefold()
-        if self._ignore_underscores:
-            target_segment = target_segment.replace("_", "")
-            segment = segment.replace("_", "")
-
-        return segment == target_segment
+        return self._transformed_string == self._transform(target_segment)
 
     def __repr__(self) -> str:
         return f"_PathSegment(segment={self.string!r}, ignore_case={self._ignore_case}, ignore_underscores={self._ignore_underscores})"

@@ -240,13 +240,15 @@ from microsoft_agents.authentication.msal import MsalConnectionManager
 
 connections = MsalConnectionManager(
     config=Configuration(
-        connections={
-            "SERVICE_CONNECTION": {
-                "settings": {
-                    "auth_type": "ClientSecret",
-                    "client_id": "your-client-id",
-                    "tenant_id": "your-tenant-id",
-                    "client_secret": "your-client-secret",
+        {
+            "connections": {
+                "SERVICE_CONNECTION": {
+                    "settings": {
+                        "auth_type": "ClientSecret",
+                        "client_id": "your-client-id",
+                        "tenant_id": "your-tenant-id",
+                        "client_secret": "your-client-secret",
+                    }
                 }
             }
         }
@@ -254,6 +256,10 @@ connections = MsalConnectionManager(
 )
 settings = connections.get_default_connection().config
 ```
+
+For one scoped settings mapping, use `MsalConnectionSettings.from_config(mapping)`
+and pass the result to `MsalAuth`. Each settings mapping describes one
+connection.
 
 Load credentials from your application's secure configuration rather than hardcoding
 them. Legacy constructor calls and the `provider.configuration` compatibility view

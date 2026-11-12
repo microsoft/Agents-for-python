@@ -1,14 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Coercion helpers for values loaded from environment configuration.
+"""Typed conversion for raw configuration values.
 
-:func:`load_configuration_from_env` keeps every value as the raw string (or a
-nested ``dict``) read from the environment. Consumers that expect a bool, int or
-float must coerce explicitly: a naive ``bool("false")`` is ``True`` and would
-silently invert a flag, and ``int("5") + 1`` style math fails on values that may
-legitimately arrive as strings. These helpers centralize that coercion so every
-config consumer parses env values the same, fail-safe way.
+Loading and wrapping configuration do not coerce scalar values. These helpers
+let typed consumers distinguish missing/unset values from invalid input without
+relying on Python truthiness, where ``bool("false")`` would incorrectly be True.
 """
 
 from __future__ import annotations

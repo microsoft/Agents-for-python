@@ -18,7 +18,7 @@ from typing_extensions import Self
 
 from ._protocol import _MappingConfigurable
 from ._constants import _PATH_SEPARATOR
-from ._engine._resolve import _resolve
+from ._engine._resolve import _default_path_transformer, _resolve
 from ._engine._coercion import (
     _handle_bool,
     _handle_int,
@@ -36,7 +36,6 @@ from ._engine import (
     _collect,
     _collect_with_paths,
     _is_missing,
-    _parse_env_var_name,
     _QueryDict,
 )
 from ._metadata import (
@@ -47,16 +46,21 @@ T = TypeVar("T")
 _MappingConfigurableT = TypeVar("_MappingConfigurableT", bound=_MappingConfigurable)
 
 
-def _norm_path_transform(path: str) -> str:
-    return _parse_env_var_name(path).lower()
+def _norm_path_transform(parts: list[str]) -> _Path:
+    return _default_path_transformer([part.lower() for part in parts])
 
 
 class Configuration(_QueryDict, _MappingConfigurable):
     """Dictionary-backed configuration with path lookup and typed conversion.
 
-    Paths use ``::`` separators. Alternative paths are tried in the supplied
-    order. Sections carry the matched source path for diagnostics.
-    Construction makes a shallow copy; nested mutable values can remain shared.
+    Use string keys for direct lookup and lists of segments for nested lookup.
+    Matching is exact unless an internal path object supplies a different
+    case/underscore policy. Collection methods accept explicit wildcard segments.
+
+    Construction copies the outer mapping and recursively wraps plain nested
+    mappings and sequences. Existing query wrappers can remain shared.
+    Source normalization and merging are handled by ``resolve``. Extracted
+    sections carry source paths for diagnostics.
 
     Plain mappings are scoped by default. Root configurations, such as those
     returned by ``load_configuration_from_env``, let settings binders locate
@@ -69,13 +73,12 @@ class Configuration(_QueryDict, _MappingConfigurable):
         original: Mapping | None = None,
         _base_path: str | Sequence[str] | None = None,
     ):
-        """Initialize a Configuration instance.
+        """Wrap a mapping without expanding key names or coercing values.
 
         :param original: The original mapping to initialize the configuration from.
-        :param _base_path: Source path used in diagnostics; defaults to an empty
-            path, even when copying another Configuration.
-        :param kwargs: Configuration entries when no original mapping is supplied.
-        :raises ValueError: If both original and keyword entries are supplied.
+        :param _base_path: Diagnostic path as a string or sequence of strings.
+            An omitted or empty path inherits the original object's base path,
+            if present.
         """
         super().__init__(original or {})
         if not isinstance(_base_path, str) and _base_path is not None:
@@ -85,7 +88,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
 
     @property
     def base_path(self) -> str:
-        """Source path used in diagnostics, not an indication of root identity."""
+        """Source path used in diagnostics."""
         return self._base_path
 
     @property
@@ -107,11 +110,11 @@ class Configuration(_QueryDict, _MappingConfigurable):
         *,
         _base_path: str | None = None,
     ) -> Configuration:
-        """Normalize and merge sources, with primary values taking precedence.
+        """Normalize source names and merge with primary values taking precedence.
 
-        Expand environment-style ``__`` paths and convert indexed mappings to
-        lists. Nested mappings merge recursively; primary lists replace default
-        lists. Neither input's containers are modified.
+        Source names are lowercased, and ``__`` or ``::`` separators expand into
+        nested sections. Primary lists replace default lists. Neither input's
+        containers are modified, and this method does not apply logging configuration.
 
         :param primary: Values that override defaults.
         :param defaults: Optional fallback values.
@@ -126,11 +129,11 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def from_config(
         cls, base: Mapping | None, *, _base_path: str | None = None
     ) -> Configuration:
-        """Fork configuration, preserving its source path and root identity.
+        """Create a wrapper, retaining mapping metadata and diagnostic source path.
 
-        Values in base take precedence; kwargs supply missing defaults rather
-        than overwriting existing entries. If base is None, create a scoped
-        Configuration from kwargs.
+        ``None`` creates empty scoped configuration. Key spelling is preserved.
+        A nonempty ``_base_path`` rebases diagnostics without modifying the input.
+        Existing nested query wrappers may remain shared.
         """
         _base_path = _base_path or getattr(base, "_base_path", None)
         return Configuration(base, _base_path=_base_path)
@@ -151,7 +154,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         )
         if _is_missing(res):
             if _is_missing(default):
-                raise KeyError(path)
+                raise KeyError(str(path))
             return default, None
         return res, found_path
 
@@ -162,12 +165,17 @@ class Configuration(_QueryDict, _MappingConfigurable):
         val = _get(self, path, default=default, skip_none=skip_none)
         if _is_missing(val):
             if _is_missing(default):
-                raise KeyError(path)
+                raise KeyError(str(path))
             return default
         return val
 
     def get(self, key: _PathProxy, default: Any = None, skip_none: bool = False) -> Any:
-        """Retrieve a value from the configuration by key, returning the default if not found."""
+        """Return the first value matching one path, or ``default`` if absent.
+
+        Use a string key for direct lookup or a list of segments for nested
+        lookup. ``skip_none=True`` continues searching matching candidates
+        until a non-``None`` value is found. Wildcard paths are not accepted.
+        """
         path = _Path.create(key)
         try:
             return self._get(path, default=default, skip_none=skip_none)
@@ -175,10 +183,10 @@ class Configuration(_QueryDict, _MappingConfigurable):
             return default
 
     def has(self, path: _PathProxy) -> bool:
-        """Check if the configuration contains the specified keys.
+        """Check whether one non-wildcard path matches, including a ``None`` value.
 
-        :param keys: The keys to check.
-        :return: True if the keys exist in the configuration, False otherwise.
+        :param path: A key or sequence of path segments.
+        :return: True when a value exists at the path.
         """
         path = _Path.create(path)
         try:
@@ -204,8 +212,9 @@ class Configuration(_QueryDict, _MappingConfigurable):
     ) -> Configuration | None:
         """Retrieve a section of the configuration, returning it as a Configuration object.
 
-        :param section: Alternative section paths, tried in order.
-        :param default: The default value to return if the section is not found.
+        :param section: A key or path to a mapping.
+        :param default: Returned if the section is absent, or its value is
+            ``None``. Without a default, absence raises ``KeyError``.
         :return: The retrieved section as a Configuration object, or the default value if not found.
         :raises KeyError: If the section is not found and no default is provided.
         :raises TypeError: If the section is found but is not a mapping.
@@ -225,9 +234,10 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_sections(self, section: _PathProxy) -> list[Configuration]:
         """Retrieve all subsections of the specified section as Configuration objects.
 
-        :param section: The names of the nested sections to retrieve.
+        :param section: A path, optionally containing internal wildcard segments.
         :return: A list of Configuration objects representing the subsections.
-        :raises TypeError: If the section is not a mapping.
+        :raises TypeError: If a matched value is not a mapping.
+        :raises KeyError: If multiple matches have the same final source key.
         """
         path = _Path.create(section)
         map = _collect_with_paths(self, path)
@@ -253,23 +263,22 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_bool(
         self, path: _PathProxy, default: bool | None | _MissingType = _MISSING
     ) -> bool | None:
-        """Retrieve a boolean value from the configuration.
+        """Convert a matched value to a bool, skipping ``None`` candidates.
 
-        :param keys: The keys of the value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved boolean value or the default value if not found.
+        Strings accept ``true/1`` and ``false/0``, ignoring case and whitespace.
+        Missing or blank values return an explicit default; without one they
+        raise ``KeyError`` or ``ValueError``. Invalid nonempty values raise
+        ``ValueError`` even when a default is supplied.
+
+        :param path: A key or path.
+        :param default: Fallback for missing, ``None``, or blank values.
         """
         path = _Path.create(path)
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
         return _handle_bool(val, default, found_path.last if found_path else path.last)
 
     def get_booln(self, path: _PathProxy, default: bool | None = None) -> bool | None:
-        """Retrieve a boolean value from the configuration, allowing None as default.
-
-        :param keys: The keys of the value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved boolean value or the default value if not found.
-        """
+        """Call ``get_bool`` with a nullable default, ``None`` unless supplied."""
         return self.get_bool(path, default=default)
 
     @overload
@@ -281,23 +290,22 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_int(
         self, path: _PathProxy, default: int | None | _MissingType = _MISSING
     ) -> int | None:
-        """Retrieve an integer value from the configuration.
+        """Convert a matched value to an int, skipping ``None`` candidates.
 
-        :param keys: The keys of the value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved integer value or the default value if not found.
+        Decimal and float-form strings are accepted; float-form values are
+        truncated. Blank values and bools use an explicit default. Missing
+        values without a default raise ``KeyError``; unset or invalid values
+        can raise ``ValueError``.
+
+        :param path: A key or path.
+        :param default: Fallback for missing or unset values.
         """
         path = _Path.create(path)
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
         return _handle_int(val, default, found_path.last if found_path else path.last)
 
     def get_intn(self, path: _PathProxy, default: int | None = None) -> int | None:
-        """Retrieve an integer value from the configuration, allowing None as default.
-
-        :param keys: The keys of the value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved integer value or the default value if not found.
-        """
+        """Call ``get_int`` with a nullable default, ``None`` unless supplied."""
         return self.get_int(path, default=default)
 
     @overload
@@ -309,11 +317,14 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_float(
         self, path: _PathProxy, default: float | None | _MissingType = _MISSING
     ) -> float | None:
-        """Retrieve a float value from the configuration.
+        """Convert a matched value to a float, skipping ``None`` candidates.
 
-        :param keys: The keys of the value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved float value or the default value if not found.
+        Blank values and bools use an explicit default. Missing values without
+        a default raise ``KeyError``; unset or invalid values can raise
+        ``ValueError``.
+
+        :param path: A key or path.
+        :param default: Fallback for missing or unset values.
         """
         path = _Path.create(path)
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
@@ -322,12 +333,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_floatn(
         self, path: _PathProxy, default: float | None = None
     ) -> float | None:
-        """Retrieve a float value from the configuration, allowing None as default.
-
-        :param keys: The keys of the value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved float value or the default value if not found.
-        """
+        """Call ``get_float`` with a nullable default, ``None`` unless supplied."""
         return self.get_float(path, default=default)
 
     @overload
@@ -339,33 +345,33 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_str(
         self, path: _PathProxy, default: str | None | _MissingType = _MISSING
     ) -> str | None:
-        """Retrieve a string value from the configuration.
+        """Convert a matched value to a string, skipping ``None`` candidates.
 
-        :param keys: The keys of the value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved string value or the default value if not found.
+        Existing strings, including empty strings, are preserved. Other values
+        use ``str()``. Missing values without a default raise ``KeyError``.
+
+        :param path: A key or path.
+        :param default: Fallback for a missing or ``None`` value.
         """
         path = _Path.create(path)
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
         return _handle_str(val, default, found_path.last if found_path else path.last)
 
     def get_strn(self, path: _PathProxy, default: str | None = None):
-        """Retrieve a string, allowing None as the default.
-
-        :param keys: The keys of the value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved string or the default value if not found.
-        """
+        """Call ``get_str`` with a nullable default, ``None`` unless supplied."""
         return self.get_str(path, default=default)
 
     def get_str_list(
         self, path: _PathProxy, default: list[str] | None = None
     ) -> list[str]:
-        """Retrieve a list of strings from the configuration.
+        """Read a string list, skipping ``None`` matches and list elements.
 
-        :param keys: The keys of the value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved list of strings or the default value if not found.
+        Sequence elements are converted to strings. Scalar text is split on
+        commas when present, otherwise on whitespace. Use ``get_scopes`` when
+        both separators must be handled together. Mapping values are rejected.
+
+        :param path: A key or path.
+        :param default: Fallback list; missing values return ``[]`` if omitted.
         """
         path = _Path.create(path)
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
@@ -394,11 +400,12 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_items(
         self, path: _PathProxy, default: dict | None = None
     ) -> Iterable[tuple[Any, Any]]:
-        """Retrieve items from a dictionary in the configuration.
+        """Return mapping entries or enumerated sequence elements at one path.
 
-        :param keys: The keys of the value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved items as a list of key-value tuples or the default value if not found.
+        :param path: A key or path.
+        :param default: Fallback value inspected when no match exists.
+        :return: A mapping's items view, an enumeration of a non-text sequence,
+            or an empty list for other values.
         """
         base = _get(self, path, default=default)
         if isinstance(base, Mapping):
@@ -410,9 +417,16 @@ class Configuration(_QueryDict, _MappingConfigurable):
         return []
 
     def collect(self, path: _PathProxy) -> list[Any]:
+        """Collect all matching leaves, including ``None``, in traversal order.
+
+        Use explicit internal wildcard segments to enumerate mapping keys.
+        Matching leaves must have distinct final source keys, or ``KeyError``
+        is raised. Sequence traversal requires a numeric segment.
+        """
         return _collect(self, _Path.create(path))
 
     def collect_str(self, _path: _PathProxy) -> list[str]:
+        """Collect matches as strings, omitting ``None`` values."""
         path = _Path.create(_path)
         vals = _collect(self, path)
         vals = [_handle_str(v, None, path.last) for v in vals if v is not None]
@@ -421,7 +435,10 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_scopes(self, _path: _PathProxy) -> list[str]:
         """Retrieve a list of scopes from the configuration.
 
-        :param path: The path of the scopes value to retrieve.
+        Strings split on both commas and whitespace; mutable sequences are
+        copied without coercing their elements. Other value types are rejected.
+
+        :param _path: A key or path.
         :return: The scopes as a list, or an empty list if absent.
         """
         path = _Path.create(_path)
@@ -436,7 +453,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
 
     @staticmethod
     def format_scopes(scopes: str | list[str] | None) -> list[str]:
-        """Format scopes into a list of strings. If scopes is a string, it will be split by whitespace. If scopes is None, an empty list is returned."""
+        """Split strings on commas and whitespace, copy lists, or map None to []."""
         if scopes is None:
             return []
         if isinstance(scopes, str):
@@ -452,6 +469,11 @@ class Configuration(_QueryDict, _MappingConfigurable):
         *,
         ensure_root_config: bool = False,
     ) -> Configuration:
+        """Prefer explicit config; otherwise wrap deprecated root keyword data.
+
+        Keyword values are not merged when ``primary_config`` is supplied.
+        ``ensure_root_config`` marks only the keyword fallback as root input.
+        """
         if primary_config is None:
             if ensure_root_config:
                 _RootConfigMetadata.set(kwargs, True)
@@ -468,10 +490,11 @@ class _Configurable(ABC):
 
     @classmethod
     def from_config(cls, config: Mapping | Self | None) -> Self:
-        """Bind a Configuration, reuse a settings instance, or bind defaults.
+        """Bind a mapping or Configuration, reuse settings, or bind defaults.
 
-        None binds an empty scoped Configuration. Plain mappings must instead
-        be passed to ``from_mapping``.
+        Plain mappings are wrapped with their key names preserved.
+        Existing instances of this settings class are returned unchanged.
+        ``None`` binds an empty scoped Configuration.
 
         :raises TypeError: If config is not a supported input type.
         """
@@ -491,10 +514,10 @@ class _Configurable(ABC):
 class _RootConfigurable(_Configurable, ABC):
     """Bind settings from either application-level or scoped configuration.
 
-    Subclasses implement root and scoped binding separately. Dispatch uses only
-    ``Configuration.is_root_config``: a root binder locates its own section,
-    while a scoped binder reads fields directly. Passing None uses the scoped
-    binder with empty configuration.
+    Subclasses implement root and scoped binding separately. Dispatch uses root
+    metadata stored in the mapping.
+    A root binder locates its own section, while a scoped binder reads fields
+    directly. Passing None uses the scoped binder with empty configuration.
     """
 
     @classmethod

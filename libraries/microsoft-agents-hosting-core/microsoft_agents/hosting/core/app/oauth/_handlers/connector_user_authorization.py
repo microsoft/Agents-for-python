@@ -41,20 +41,20 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
     ) -> None:
         """Create a connector authorization strategy.
 
-        Prefer settings containing an AuthHandlerConfig instance or a mapping.
+        Pass config as an AuthHandlerConfig instance or a nonempty mapping.
         Legacy settings arguments remain accepted but emit a DeprecationWarning.
 
         :param storage: The storage system to use for state management.
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param settings: Handler settings, accepted positionally or by keyword.
-        :type settings: Mapping | AuthHandlerConfig | None
+        :param config: Handler configuration, accepted positionally or by keyword.
+        :type config: Mapping | AuthHandlerConfig | None
         :param auth_handler_id: Optional override of the settings name.
         :type auth_handler_id: str | None
-        :param auth_handler: Deprecated bound settings; use settings instead.
+        :param auth_handler: Deprecated bound settings; use config instead.
         :type auth_handler: AuthHandlerConfig | None
-        :param auth_handler_settings: Deprecated mapping; use settings instead.
+        :param auth_handler_settings: Deprecated mapping; use config instead.
         :type auth_handler_settings: dict | None
         :param kwargs: Compatibility arguments forwarded to the base handler.
         :raises ValueError: If storage, nonempty settings, or a handler ID is

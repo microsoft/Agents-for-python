@@ -33,6 +33,13 @@ def _normalize_value(value: Any) -> Any:
 
 
 class _QueryList(_UserList):
+    """List wrapper that normalizes inserted mappings and sequences.
+
+    Integer and slice reads retain list semantics, including negative indexes.
+    Internal paths traverse nonnegative numeric positions. Membership uses
+    ordinary value equality. Slice replacements are normalized before the
+    backing list is changed, and extended slices retain Python's length rules.
+    """
 
     def __init__(
         self,
@@ -118,7 +125,7 @@ class _QueryList(_UserList):
         if isinstance(index, (int, _PathSegment)):
             index = int(index.string) if isinstance(index, _PathSegment) else index
 
-            if index < 0 or index >= len(self):
+            if index >= len(self) or -len(self) > index:
                 raise IndexError("List index out of range.")
             super().__setitem__(index, _normalize_value(item))
             return
@@ -135,7 +142,7 @@ class _QueryList(_UserList):
 
             val = _pop(self, index, default=_MISSING)
             if val is _MISSING:
-                raise KeyError(index)
+                raise KeyError(str(index))
             return
 
         if isinstance(index, _PathSegment):
@@ -155,6 +162,12 @@ class _QueryList(_UserList):
 
 
 class _QueryDict(_UserDict):
+    """Mapping wrapper with literal keys and indexed internal path matching.
+
+    Mapping updates synchronize the folded index and normalize nested values.
+    Copies own a new outer mapping/index but may share nested query wrappers.
+    Multi-segment path membership tests existence, including ``None`` leaves.
+    """
 
     def __init__(self, data: Mapping | None = None, /, **kwargs):
 
@@ -217,7 +230,7 @@ class _QueryDict(_UserDict):
             else:
                 val = _pop(self, key, default=_MISSING)
                 if val is _MISSING:
-                    raise KeyError(key)
+                    raise KeyError(str(key))
                 return
 
         if isinstance(key, _Wildcard):
@@ -226,7 +239,7 @@ class _QueryDict(_UserDict):
         if isinstance(key, (str, _PathSegment)):
             actual_key = self._shortcuts.delete_entry(_ps(key))
             if actual_key is None:
-                raise KeyError(key)
+                raise KeyError(str(key))
             super().__delitem__(actual_key)
         else:
             raise TypeError(f"Unsupported key type: {type(key)}")
@@ -265,7 +278,7 @@ class _QueryDict(_UserDict):
     def __getitem__(self, key: Any) -> Any:
         result = self._lookup(key)
         if not result.found:
-            raise KeyError(key)
+            raise KeyError(str(key))
         return result.value
 
     def __ior__(self, other: Any) -> Self:

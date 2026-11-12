@@ -200,9 +200,9 @@ See the [Quickstart sample](https://github.com/microsoft/Agents/tree/main/sample
 agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
@@ -217,7 +217,7 @@ async def on_message(context: TurnContext, state: TurnState):
 start_server(
     agent_application=AGENT_APP,
     adapter=ADAPTER,
-    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
+    auth_configuration=agents_sdk_config,
 )
 ```
 

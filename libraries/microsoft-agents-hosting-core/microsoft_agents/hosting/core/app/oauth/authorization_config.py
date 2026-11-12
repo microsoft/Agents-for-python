@@ -21,18 +21,19 @@ from .auth_handler import AuthHandlerConfig
 class AuthorizationConfig(_RootConfigurable):
     """Application-level OAuth options and named handler definitions.
 
-    Root configuration reads ``agent_application::user_authorization``. Scoped
+    Root configuration traverses ``agent_application`` / ``user_authorization``. Scoped
     configuration reads ``auto_sign_in`` and ``handlers`` directly. A missing
     section binds the defaults: no handlers and automatic sign-in disabled.
 
-    Construct this dataclass directly with AuthHandlerSettings values, or bind
-    configuration with ``from_mapping`` / ``from_configuration``. In mapped
+    Construct this dataclass directly with AuthHandlerConfig values, or bind
+    a mapping or Configuration with ``from_config``. In mapped
     configuration, each handler has a ``settings`` mapping and an optional
-    ``type`` at handler level or inside ``settings``. The handler key supplies
-    its name.
+    ``type`` at handler level. A nested ``auth_type`` is used when the outer
+    type is absent. The handler key supplies its name, overriding a nested name.
+    Automatic sign-in and handler-section names ignore case and underscores.
 
     :param auto_sign_in: Whether to attempt sign-in automatically before routes.
-    :param handlers: Handler IDs mapped to bound AuthHandlerSettings instances.
+    :param handlers: Handler IDs mapped to bound AuthHandlerConfig instances.
     """
 
     auto_sign_in: bool = False

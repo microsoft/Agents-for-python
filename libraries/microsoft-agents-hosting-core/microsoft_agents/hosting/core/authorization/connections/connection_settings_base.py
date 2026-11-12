@@ -11,6 +11,7 @@ from microsoft_agents.activity.config import (
     Configuration,
     _Configurable,
     _legpath as legpath,
+    _netpath as netpath,
     _get_bool,
     _pop,
 )
@@ -24,8 +25,18 @@ _KNOWN_KWARGS_CACHE: dict[type[ConnectionSettingsBase], dict[str, bool]] = {}
 
 @dataclass(frozen=True)
 class ConnectionSettingsBase(_Configurable):
-    """Provider-independent settings bound from Configuration.
+    """Provider-independent settings constructed directly or with ``from_config``.
 
+    Binding accepts a scoped mapping/Configuration, or a connection definition
+    with a literal ``settings`` child. It does not search an application root.
+    Use canonical field names for exact lookups; individual provider binders
+    explicitly opt into legacy case/underscore matching where supported.
+    Unrecognized keys are retained in ``extras``; an explicit ``extras`` mapping
+    overrides matching unrecognized keys.
+
+    An already-bound instance is reused by ``from_config``. ``None`` binds
+    defaults. Legacy AgentAuthConfiguration conversion is a separate internal
+    compatibility path.
     Frozen fields cannot be reassigned, but scopes and extras remain mutable.
     Treat those containers as read-only after handing settings to a provider.
     """
@@ -55,10 +66,10 @@ class ConnectionSettingsBase(_Configurable):
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         return {
             "client_id": config.get_strn(legpath("client_id")),
-            "authority": config.get_strn("authority")
-            or config.get_strn("authorityendpoint"),
+            "authority": config.get_strn(netpath("authority"))
+            or config.get_strn(netpath("authorityendpoint")),
             "tenant_id": config.get_strn(legpath("tenant_id")),
-            "scopes": config.get_scopes("scopes"),
+            "scopes": config.get_scopes(netpath("scopes")),
             "alternate_blueprint_connection_name": config.get_strn(
                 legpath("alt_blueprint_name")
             )
@@ -93,7 +104,7 @@ class ConnectionSettingsBase(_Configurable):
     @classmethod
     def _from_config(cls, config: Configuration) -> Self:
         try:
-            settings = config.get_section("settings")
+            settings = config.get_section(netpath("settings"))
         except KeyError:
             settings = config
         return cls(**cls._get_init_kwargs(settings), _extras=cls._get_extras(settings))

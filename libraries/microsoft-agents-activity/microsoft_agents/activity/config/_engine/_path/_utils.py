@@ -26,7 +26,12 @@ def _get_with_path(
     skip_none: bool = False,
     none_is_missing: bool = False,
 ) -> tuple[Any, _Path | None]:
-    """Return the first matched value and its relative source path segments."""
+    """Return the first matched value and an exact path with stored key spelling.
+
+    ``skip_none`` searches later candidates after a ``None`` match.
+    ``none_is_missing`` instead returns the default for the selected ``None``
+    without continuing. Missing values return ``(default, None)``.
+    """
 
     result = _lookup(
         obj,
@@ -47,13 +52,14 @@ def _get(
     skip_none: bool = False,
     none_is_missing: bool = False,
 ) -> Any:
-    """Retrieve a value using alternative ``::``-separated key paths.
+    """Return the first leaf matching one non-wildcard path, without building a path.
 
-    :param mapping: The mapping to retrieve the value from.
-    :param _path: The key path to try.
-    :param default: The default value to return if the key path is not found.
-    :param skip_none: Whether to skip None values while traversing the mapping.
-    :return: The retrieved value or the default value if not found.
+    :param obj: Mapping or sequence to search.
+    :param path: A key, list of segments, or internal path object.
+    :param default: Returned when no match exists.
+    :param skip_none: Continue searching after a ``None`` match.
+    :param none_is_missing: Return the default for a selected ``None`` without
+        searching later candidates.
     """
     result = _lookup(
         obj,
@@ -88,6 +94,12 @@ def _collect_helper(
 def _collect_with_paths(
     mapping: Mapping, path: _PathProxy, *, skip_none: bool = False
 ) -> dict[str, Any]:
+    """Collect leaves into a dictionary keyed by each final stored key.
+
+    Explicit wildcard segments enumerate mapping keys; numeric segments index
+    sequences. Duplicate final keys raise ``KeyError``.
+    ``skip_none`` omits ``None`` leaves.
+    """
     collection: dict[str, Any] = {}
 
     def handler(state: _TraverseState, obj: Any) -> None:
@@ -116,12 +128,19 @@ def _try_set(
     *,
     overwrite: bool = False,
 ) -> bool:
-    """Set a value in a nested mapping using a ``::``-separated key path.
+    """Set one non-wildcard path, returning whether a value was assigned.
 
-    :param mapping: The mapping to set the value in.
-    :param path: The key path as a _Path instance.
+    Missing mapping parents are created. Intermediate sequence positions must
+    already exist; an absent one raises ``RuntimeError``. Final sequence
+    positions must exist too, otherwise ``IndexError`` is raised. Traversing an
+    existing scalar or assigning to a read-only parent raises ``TypeError``.
+
+    :param obj: Mutable mapping or sequence to modify.
+    :param _path: A key, list of segments, or internal path object.
     :param value: The value to set.
-    :param overwrite: Whether to overwrite the existing value if the key already exists.
+    :param overwrite: Allow replacement of an existing match. Replacement keeps
+        its stored key spelling and mapping position.
+    :return: False for an existing match when overwrite is disabled, else True.
     """
     _validate_singular_path(_path)
 
@@ -180,18 +199,18 @@ def _try_set(
 
 
 def _set(obj: MutableMapping | MutableSequence, _path: _PathProxy, value: Any) -> None:
-    """Set a value using a ``::``-separated path, overwriting any existing value.
-
-    :param mapping: The mapping to set the value in.
-    :param path: The ``::``-separated key path.
-    :param value: The value to set.
-    """
+    """Assign one explicit path, overwriting matches under ``_try_set`` rules."""
     _try_set(obj, _path, value, overwrite=True)
 
 
 def _pop(
     obj: MutableMapping | MutableSequence, _path: _PathProxy, *, default: Any = None
 ) -> Any:
+    """Remove the first matched leaf from a mutable mapping or sequence.
+
+    A missing path returns ``default``. Sequence deletion shifts later elements.
+    Wildcards are rejected; a matched read-only parent raises ``TypeError``.
+    """
 
     _validate_singular_path(_path)
 

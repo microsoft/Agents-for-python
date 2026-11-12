@@ -38,8 +38,9 @@ class _LogLevelEntry:
 class _LoggingConfiguration(_RootConfigurable):
     """Bind namespace log levels from root configuration or a logging section.
 
-    Root input reads ``logging::log_level``; scoped input reads ``log_level``
-    directly. Missing entries produce no level overrides.
+    ``from_config`` uses root metadata to choose ``logging`` / ``log_level``
+    traversal or a scoped ``log_level`` lookup. These setting names ignore case
+    and underscores. Missing entries produce no level overrides.
     """
 
     log_levels: list[_LogLevelEntry]

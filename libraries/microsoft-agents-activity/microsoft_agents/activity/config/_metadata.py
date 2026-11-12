@@ -30,6 +30,7 @@ class _Metadata(ABC, Generic[T]):
 
 
 class _RootConfigMetadata(_Metadata[bool]):
+    """Store root identity as a reserved mapping entry so ordinary copies retain it."""
 
     _KEY = _META("isrootconfig")
 

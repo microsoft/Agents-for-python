@@ -59,7 +59,7 @@ def _create_kwargs(
 class AuthHandlerConfig(_Configurable):
     """Settings for one OAuth handler, independent of its runtime strategy.
 
-    Construct with typed field values, or use ``from_mapping`` to bind
+    Construct with typed field values, or use ``from_config`` to bind
     configuration aliases such as ``AZUREBOTOAUTHCONNECTIONNAME`` and ``TYPE``.
     Mapping binding normalizes the authorization type and accepts scopes as a
     list or a comma/whitespace-separated string. Direct construction expects a
@@ -100,11 +100,11 @@ class AuthHandlerConfig(_Configurable):
 
 
 class AuthHandler(AuthHandlerConfig):
-    """Deprecated compatibility constructor for AuthHandlerSettings.
+    """Deprecated compatibility constructor for AuthHandlerConfig.
 
     Accepts legacy positional fields and configuration keyword aliases, and
-    emits a DeprecationWarning. Use AuthHandlerSettings for typed construction
-    or ``AuthHandlerSettings.from_mapping`` for configuration binding.
+    emits a DeprecationWarning. Use AuthHandlerConfig for typed construction
+    or ``AuthHandlerConfig.from_config`` for configuration binding.
     """
 
     def __init__(self, *args, **kwargs):

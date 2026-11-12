@@ -5,6 +5,11 @@ import collections.abc
 
 
 class _UserDict(collections.abc.MutableMapping):
+    """Internal dict-like base with backing storage owned through ``_data``.
+
+    Construction normally copies entries. The internal ``_make_copy=False``
+    mode borrows backing storage; normal copies remain shallow.
+    """
 
     # Start by filling-out the abstract methods
     def __init__(self, data=None, _make_copy: bool = True, /, **kwargs):
@@ -98,8 +103,3 @@ class _UserDict(collections.abc.MutableMapping):
         for key in iterable:
             d[key] = value
         return d
-
-
-class _NoCopyUserDict(_UserDict):
-    def __init__(self, dict=None, **kwargs):
-        super().__init__(dict, _make_copy=False, **kwargs)

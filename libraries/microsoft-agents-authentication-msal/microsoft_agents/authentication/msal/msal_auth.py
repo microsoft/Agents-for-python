@@ -58,10 +58,12 @@ class MsalAuth(AccessTokenProviderBase):
     ):
         """Initializes the MsalAuth class with the given configuration.
 
-        :param msal_configuration: Raw Configuration or bound MsalConnectionSettings.
+        :param msal_configuration: Scoped Configuration or bound MsalConnectionSettings.
             AgentAuthConfiguration remains accepted for deprecated compatibility.
-            Do not mutate settings or their nested values after passing them in.
-        :type config: Configuration | MsalConnectionSettings | AgentAuthConfiguration
+            Bind a plain mapping with ``MsalConnectionSettings.from_config`` or
+            wrap it in Configuration before constructing the provider. Bound
+            settings are reused; do not mutate their nested values after use.
+        :type msal_configuration: Configuration | MsalConnectionSettings | AgentAuthConfiguration
         """
         config = msal_configuration
         if isinstance(config, MsalConnectionSettings):

@@ -23,8 +23,14 @@ if TYPE_CHECKING:
 
 
 class _Path:
+    """Internal sequence of matching policies, one per traversal level.
 
-    def __init__(self, *segments: str | _PathSegment):
+    String inputs create exact segments. ``from_strings`` enables case-insensitive
+    matching by default; ``exact`` keeps both case and underscores significant.
+    String rendering joins segments with ``::`` for display and diagnostics.
+    """
+
+    def __init__(self, *segments: str | int | _PathSegment):
 
         _segments = [
             segment if isinstance(segment, _PathSegment) else _ExactPathSegment(segment)
@@ -51,14 +57,14 @@ class _Path:
 
     @staticmethod
     def create(path: _PathProxy) -> _Path:
-        if isinstance(path, int):
-            path = str(path)
-        if isinstance(path, str):
+        """Accept a string/int key, segment list, segment, or existing path.
+
+        Existing paths are reused. A list supplies consecutive path segments.
+        """
+        if isinstance(path, (int, str, _PathSegment)):
             return _Path(path)
-        if isinstance(path, list):
+        if isinstance(path, Sequence) and not isinstance(path, (str, bytes, bytearray)):
             return _Path(*path)
-        if isinstance(path, _PathSegment):
-            return _Path(path)
         if isinstance(path, _Path):
             return path
         raise TypeError(f"Unsupported type for create: {type(path)}")
@@ -68,7 +74,7 @@ class _Path:
 
     @staticmethod
     def from_strings(
-        *segments: str, ignore_case: bool = True, ignore_underscores: bool = False
+        *segments: str | int, ignore_case: bool = True, ignore_underscores: bool = False
     ) -> _Path:
         return _Path(
             *(
@@ -82,7 +88,7 @@ class _Path:
         )
 
     @staticmethod
-    def exact(*segments: str) -> _Path:
+    def exact(*segments: str | int) -> _Path:
         return _Path.from_strings(
             *segments, ignore_case=False, ignore_underscores=False
         )
@@ -145,58 +151,5 @@ class _Path:
 
     def __iter__(self) -> Iterator[_PathSegment]:
         return iter(self._segments)
-
-
-class _WildcardPathClass(_Path):
-
-    def __init__(self):
-        self._wildcard = _Wildcard()
-
-    @overload
-    def __getitem__(self, key: int) -> _PathSegment: ...
-    @overload
-    def __getitem__(self, key: slice) -> _Path: ...
-    def __getitem__(self, key: Any) -> _PathSegment | _Path:
-        if isinstance(key, slice):
-            return self
-        elif isinstance(key, int):
-            return self._wildcard
-        raise TypeError(f"Unsupported key type: {type(key)}")
-
-    @property
-    def folded(self) -> str:
-        return "**"
-
-    @property
-    def first(self) -> str:
-        return self._wildcard.string
-
-    @property
-    def last(self) -> str:
-        return self._wildcard.string
-
-    def __add__(self, other: str | int | _Path | _PathSegment) -> _Path:
-        return self
-
-    def check(self, other: _Path) -> bool:
-        return True
-
-    def __bool__(self) -> bool:
-        return True
-
-    def __str__(self) -> str:
-        return "**"
-
-    def __repr__(self) -> str:
-        return "_WildcardPath"
-
-    def __iter__(self) -> Iterator[_PathSegment]:
-        return iter(self._segments)
-
-    def __len__(self) -> int:
-        return 1
-
-
-_WildcardPath = _WildcardPathClass()
 
 _PathProxy = str | int | Sequence[str] | _PathSegment | _Path

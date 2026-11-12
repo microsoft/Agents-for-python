@@ -20,11 +20,17 @@ def _ps(segment: str | _PathSegment) -> _PathSegment:
 @dataclass
 class _FoldedMapEntry:
 
-    key: str
+    key: str | int
     value: Any
 
 
 class _FoldedMap:
+    """Index original keys/values by casefolded, underscore-free bucket names.
+
+    Buckets retain insertion order and distinct source spellings. Selecting a
+    bucket does not establish a match: callers must apply the segment policy.
+    Updates to a matched entry retain its original key.
+    """
 
     def __init__(self, data: Mapping) -> None:
         self._data: dict[str, list[_FoldedMapEntry]] = {}

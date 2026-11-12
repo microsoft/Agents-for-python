@@ -185,6 +185,45 @@ Additionally we provide a Copilot Studio Client, to interact with Agents created
 |--------------|-------------|-------------|
 | `microsoft-agents-copilotstudio-client` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-copilotstudio-client)](https://pypi.org/project/microsoft-agents-copilotstudio-client/) | Direct to Engine client to interact with Agents created in CopilotStudio |
 
+## Configuration
+
+`microsoft_agents.activity.config.Configuration` wraps a mapping and provides
+typed getters and section lookup:
+
+```python
+from microsoft_agents.activity.config import Configuration
+
+config = Configuration(
+    {"service": {"timeout": "30", "enabled": "false"}}
+)
+
+assert config.get_int(["service", "timeout"]) == 30
+assert config.get_bool(["service", "enabled"]) is False
+
+service = config.get_section("service")
+assert service.get_int("timeout") == 30
+assert service.base_path == "service"
+```
+
+Use string keys for direct lookup and lists of segments for nested lookup.
+Matching is exact. Internal SDK path helpers support case/underscore matching
+and wildcards.
+
+`get()` returns its default for a missing value. Typed getters raise when a value
+is missing and no default is supplied; the nullable forms, such as `get_intn()`,
+default to `None`. Invalid nonempty typed values still raise rather than silently
+using a fallback. `get_scopes()` splits text on commas and whitespace.
+
+Construction preserves key names and scalar values while wrapping nested plain
+containers. Existing query wrappers can remain shared between copies.
+
+Settings classes expose `from_config()` for mappings, `Configuration`, existing
+settings objects, or `None`. Root-aware settings distinguish application-root
+input using mapping metadata.
+`load_configuration_from_env(mapping)` delegates normalization to the source
+resolver, applies logging configuration, and marks the result as root input.
+It accepts one mapping; callers own source selection and precedence.
+
 ## Architecture
 
 The SDK follows a modular architecture:

@@ -7,7 +7,12 @@ import collections.abc
 
 
 class _UserList(collections.abc.MutableSequence):
-    """A more or less complete user-defined wrapper around list objects."""
+    """Internal list-like base with ``_data`` backing storage.
+
+    Construction, copies, and slices copy the outer list while sharing elements.
+    Subclasses can normalize inserted values without exposing a public ``data``
+    attribute.
+    """
 
     def __init__(self, initlist=None):
         self._data = []

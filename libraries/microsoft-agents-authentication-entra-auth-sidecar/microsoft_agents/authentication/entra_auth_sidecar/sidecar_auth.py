@@ -62,7 +62,12 @@ class SidecarAuth(AccessTokenProviderBase):
         *,
         sidecar_client: SidecarHttpClient | None = None,
     ):
+        """Bind scoped settings or reuse a SidecarConnectionSettings instance.
 
+        Legacy AgentAuthConfiguration remains accepted. ``sidecar_client``
+        supplies an existing transport; otherwise URL validation and HTTP
+        settings are applied when constructing the provider's transport.
+        """
         if isinstance(configuration, AgentAuthConfiguration):
             self._configuration = configuration
             self._settings = SidecarConnectionSettings._from_agent_auth_config(
@@ -96,12 +101,11 @@ class SidecarAuth(AccessTokenProviderBase):
 
     @property
     def configuration(self) -> AgentAuthConfiguration:
-        """The auth configuration this provider was created from.
+        """Return the deprecated legacy configuration supplied at construction.
 
-        Exposed so provider-agnostic SDK code (e.g. the agentic token path in
-        ``RestChannelServiceClientFactory``) can read connection-level settings
-        such as the alternate-blueprint connection name without depending on a
-        specific provider implementation.
+        Configuration-based and typed-settings construction do not create this
+        compatibility view and raise ``ValueError`` here. Use ``config`` for
+        bound provider settings in all construction modes.
         """
 
         warnings.warn(

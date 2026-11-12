@@ -34,14 +34,15 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
     """
     Connection settings for the sidecar-based token provider.
 
-    Extends
-    :class:`microsoft_agents.hosting.core.authorization.connection_settings_base._ConnectionSettingsBase`
-    with the sidecar-specific fields, mirroring the .NET
-    ``Microsoft.Agents.Authentication.EntraAuthSidecar.SidecarConnectionSettings``
-    which derives from ``_ConnectionSettingsBase``. Bound from an
-    :class:`microsoft_agents.hosting.core.AgentAuthConfiguration` (or its raw
-    ``SETTINGS`` keyword arguments). No secrets/certificates are required: the
-    sidecar owns all credential management.
+    Extends :class:`microsoft_agents.hosting.core.ConnectionSettingsBase`.
+    Construct directly or use ``from_config`` for scoped mappings,
+    Configuration, an existing settings instance, or defaults. Sidecar-specific
+    field matching ignores case and underscores; the shared base defines
+    connection-level fields.
+
+    The ``from_configuration`` compatibility method additionally accepts legacy
+    AgentAuthConfiguration. No secrets/certificates are required: the sidecar
+    owns credential management. Frozen fields do not make nested values immutable.
     """
 
     service_name: str | None = DEFAULT_SERVICE_NAME
@@ -109,6 +110,10 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
     def from_configuration(
         cls, config: Configuration | Mapping | AgentAuthConfiguration | Self
     ) -> Self:
+        """Compatibility binder that also converts legacy AgentAuthConfiguration.
+
+        Prefer ``from_config`` for mappings, Configuration, or bound settings.
+        """
         if isinstance(config, AgentAuthConfiguration):
             return cls._from_agent_auth_config(config)
         if isinstance(config, Mapping):

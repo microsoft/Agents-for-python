@@ -10,6 +10,7 @@ from microsoft_agents.activity.config import (
     Configuration,
     _get_str,
     _legpath as legpath,
+    _netpath as netpath,
 )
 
 
@@ -29,7 +30,13 @@ class _ConnectionMap:
         self,
         items: list[_ConnectionMapItem] | list[dict] | Mapping[str, dict] | None = None,
     ) -> None:
-        """Initialize a _ConnectionMap with a list of _ConnectionMapItem, a list of dicts, or a dict of dicts."""
+        """Bind ordered routing entries from a list or named mapping.
+
+        Entries use canonical ``audience`` and ``connection`` keys; service URL
+        lookup additionally ignores case and underscores. Named mapping keys
+        label entries only and do not supply a missing connection field.
+        Existing _ConnectionMapItem instances are reused.
+        """
 
         final_items: list[_ConnectionMapItem] = []
 
@@ -55,8 +62,8 @@ class _ConnectionMap:
                         service_url=val_config.get_str(
                             legpath("service_url"), default=""
                         ),
-                        audience=val_config.get_str("audience", default=""),
-                        connection=val_config.get_str("connection", default=""),
+                        audience=val_config.get_str(netpath("audience"), default=""),
+                        connection=val_config.get_str(netpath("connection"), default=""),
                     )
                 )
 

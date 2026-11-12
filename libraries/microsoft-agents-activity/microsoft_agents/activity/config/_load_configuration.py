@@ -10,16 +10,15 @@ from ._metadata import _RootConfigMetadata
 
 
 def load_configuration_from_env(config_dict: Mapping[str, Any]) -> Configuration:
-    """Resolve environment values and defaults into root configuration.
+    """Normalize one configuration mapping, mark it as root, and apply logging.
 
-    Environment-style ``__`` paths are expanded and indexed mappings become
-    lists. Environment values take precedence over defaults without modifying
-    either input. The resolved logging section is applied before returning.
+    Pass ``os.environ`` or an application-prepared mapping. Callers control
+    source selection, merging, and precedence before this call. Typed settings
+    conversion happens when values are read or bound.
 
-    :param env_vars: A mapping of environment variable names to their values.
-    :param defaults: Optional fallback values, either nested or environment-style.
-    :return: A Configuration with ``is_root_config=True``, suitable for binding
-        application-level settings. Extracted sections are scoped configurations.
+    :param config_dict: Configuration data supplied to the source resolver.
+    :return: A Configuration carrying application-root mapping metadata for
+        settings binders. Its diagnostic base path is independent of root status.
     """
     config = Configuration(_resolve(config_dict))
     _RootConfigMetadata.set(config, True)

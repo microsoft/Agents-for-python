@@ -40,8 +40,8 @@ class _AuthorizationHandler(ABC):
     ) -> None:
         """Initialize an authorization strategy from handler settings.
 
-        A nonempty settings mapping is bound through AuthHandlerConfig;
-        an AuthHandlerConfig instance is reused. Settings take precedence
+        A nonempty config mapping is bound through AuthHandlerConfig;
+        an AuthHandlerConfig instance is reused. Config takes precedence
         over the deprecated auth_handler and auth_handler_settings arguments.
         The handler ID comes from auth_handler_id, or from the settings name.
 
@@ -49,14 +49,14 @@ class _AuthorizationHandler(ABC):
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param settings: Preferred handler settings, accepted positionally or
+        :param config: Preferred handler configuration, accepted positionally or
             by keyword.
-        :type settings: Mapping | AuthHandlerConfig | None
+        :type config: Mapping | AuthHandlerConfig | None
         :param auth_handler_id: Optional override of the settings name.
         :type auth_handler_id: str | None
-        :param auth_handler: Deprecated bound settings; use settings instead.
+        :param auth_handler: Deprecated bound settings; use config instead.
         :type auth_handler: AuthHandlerConfig | None
-        :param auth_handler_settings: Deprecated mapping; use settings instead.
+        :param auth_handler_settings: Deprecated mapping; use config instead.
         :type auth_handler_settings: dict | None
         :param kwargs: Accepted for compatibility, not used to bind settings.
         :raises ValueError: If storage, nonempty settings, or a handler ID is

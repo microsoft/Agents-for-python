@@ -197,13 +197,50 @@ Pass application settings as `ConnectionManager(provider_factory, config=configu
 to deliver each connection's settings to the provider as a `Configuration`. Read bound
 provider settings through `provider.config`; provider-specific settings derive from
 `ConnectionSettingsBase`. Connection maps accept ordered lists or named mappings with
-`service_url`, `audience`, and `connection` fields, including environment-style aliases.
+`service_url`, `audience`, and `connection` fields. Use canonical lowercase field
+names; the service URL binder also accepts legacy case/underscore variants.
 
-Existing `connections_configurations`, `connections_map`, and `**legacy_config`
-constructor calls still pass `AgentAuthConfiguration` objects to the provider factory.
+The deprecated `connections_configurations` and `connections_map` constructor
+arguments select the legacy factory path using `AgentAuthConfiguration`.
+Deprecated unpacked keyword configuration uses the `Configuration` path when
+neither of those arguments is supplied. Explicit `config=` takes precedence over
+keyword configuration rather than merging it.
 `get_default_connection_configuration()` remains available for those legacy calls;
 configuration-based managers should use `get_default_connection().config`.
-The environment loader is unchanged.
+`load_configuration_from_env()` accepts one mapping and returns root-marked
+`Configuration`; callers control source merging and precedence.
+
+## Typed OAuth Configuration
+
+`AuthHandlerConfig` describes one handler; `AuthorizationConfig` holds named
+handlers and automatic sign-in settings. Both are exported from
+`microsoft_agents.hosting.core`. Construct them directly or bind mappings with
+`from_config()`:
+
+```python
+from microsoft_agents.hosting.core import AuthHandlerConfig, AuthorizationConfig
+
+oauth = AuthorizationConfig(
+    auto_sign_in=True,
+    handlers={
+        "graph": AuthHandlerConfig(
+            name="graph",
+            abs_oauth_connection_name="graph-connection",
+            scopes=["User.Read"],
+        )
+    },
+)
+```
+
+Pass this object as `Authorization(storage, connections, config=oauth)`.
+Root-marked configuration reads the `agent_application` / `user_authorization`
+section; ordinary mappings are scoped to that section. In mapped input, each
+handler's fields live under `settings`, with an optional outer `type`.
+
+An explicit nonempty handler list or mapping replaces configured handlers. Lists
+use each handler's `name`; duplicate names retain the last definition. Empty
+collections fall back to configured handlers. `auto_sign_in=False` also defers to
+the configured value rather than disabling a configured `True`.
 
 ## Installation
 
@@ -217,9 +254,9 @@ See the [Quickstart sample](https://github.com/microsoft/Agents/tree/main/sample
 agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
@@ -234,7 +271,7 @@ async def on_message(context: TurnContext, state: TurnState):
 start_server(
     agent_application=AGENT_APP,
     adapter=ADAPTER,
-    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
+    auth_configuration=agents_sdk_config,
 )
 ```
 

@@ -20,6 +20,13 @@ def _validate_singular_path(path: _PathProxy) -> None:
 
 @dataclass
 class _TraverseState:
+    """Shared traversal cursor and stack of actual source keys.
+
+    During a handler call, ``current`` is the candidate's parent and
+    ``path_index`` counts consumed segments. Backtracking restores the cursor,
+    parent, and key stack unless ``finished`` stops traversal. Handlers retaining
+    keys beyond the call must copy the stack.
+    """
 
     path: _Path
     current: Any
@@ -88,6 +95,7 @@ def _traverse(
 
 @dataclass
 class _LookupResult:
+    """Distinguish absence from a matched None; optionally retain source keys."""
 
     found: bool = False
     value: Any = _MISSING
@@ -101,6 +109,11 @@ def _lookup(
     include_path: bool = False,
     skip_none: bool = False,
 ) -> _LookupResult:
+    """Find the first complete non-wildcard match, backtracking as needed.
+
+    ``skip_none`` ignores ``None`` leaves without rejecting other falsey values.
+    Source keys are copied only when ``include_path`` is requested.
+    """
 
     _validate_singular_path(path)
 

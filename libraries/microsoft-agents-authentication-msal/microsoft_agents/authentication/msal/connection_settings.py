@@ -13,7 +13,17 @@ from microsoft_agents.hosting.core import (
 
 @dataclass(frozen=True)
 class MsalConnectionSettings(ConnectionSettingsBase):
-    """MSAL-specific settings, bound independently of inbound JWT policy."""
+    """MSAL settings constructed directly or bound with ``from_config``.
+
+    Binding accepts scoped settings or a connection's literal ``settings``
+    child, independently of inbound JWT policy. Provider-specific keys ignore
+    case and underscores. ``regional_authority`` is a fallback for
+    ``azure_region``; unknown settings remain in ``extras``.
+
+    Certificate, federated-credential, and workload-identity modes require
+    ``cert_pfx_file``, ``federated_client_id``, and ``federated_token_file``,
+    respectively. Validation runs for direct and bound construction.
+    """
 
     auth_type: str = AuthTypes.client_secret
     client_secret: str | None = field(default=None, repr=False)

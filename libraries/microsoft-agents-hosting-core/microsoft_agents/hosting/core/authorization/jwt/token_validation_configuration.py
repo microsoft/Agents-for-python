@@ -10,6 +10,7 @@ from microsoft_agents.activity.config import (
     Configuration,
     _Configurable,
     _legpath as legpath,
+    _netpath as netpath,
 )
 from microsoft_agents.activity.config._metadata import _RootConfigMetadata
 
@@ -31,6 +32,10 @@ class TokenValidationConfiguration(_Configurable):
     For programmatic token validation, construct this dataclass with
     ``connections`` and/or ``default_jwt_settings`` to supply routing as well as
     the acceptance policy.
+
+    Use ``from_config`` to bind a mapping/Configuration or reuse a bound policy.
+    Root dispatch depends on mapping metadata, not on the presence of section
+    names. Use canonical ``connections`` and ``audiences`` keys for exact lookup.
     """
 
     tenant_id: str | None = None
@@ -49,9 +54,9 @@ class TokenValidationConfiguration(_Configurable):
             token_validation = configuration.get_section(
                 legpath("token_validation"), default=Configuration()
             )
-            connection_raw_items = configuration.get_items("connections")
+            connection_raw_items = configuration.get_items(netpath("connections"))
 
-        audiences = token_validation.get_str_list("audiences")
+        audiences = token_validation.get_str_list(netpath("audiences"))
         tenant_id = token_validation.get_strn(legpath("tenant_id"))
         anonymous_allowed = token_validation.get_booln(legpath("anonymous_allowed"))
 

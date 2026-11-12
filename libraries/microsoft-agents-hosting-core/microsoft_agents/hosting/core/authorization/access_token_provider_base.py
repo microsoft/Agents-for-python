@@ -29,6 +29,9 @@ class AccessTokenProviderBase(Protocol):
         """
         Bound provider-specific settings extending ConnectionSettingsBase.
 
+        Providers should override this property to expose their bound settings.
+        The compatibility default rebinds the legacy configuration on each call.
+
         :return: The provider's typed connection settings.
         """
         # Convert the deprecated configuration to the new connection settings format.
