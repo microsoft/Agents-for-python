@@ -9,7 +9,7 @@ from .types import _Wildcard, _MISSING, _Path, _PathProxy
 from ._step import iter_steps
 
 def _validate_singular_path(path: _PathProxy) -> None:
-    if not path or (isinstance(path, _Path) and not path.is_simple):
+    if (not isinstance(path, int) and not path) or (isinstance(path, _Path) and not path.is_simple):
         raise ValueError("Path must be non-empty and simple.")
     elif isinstance(path, _Wildcard):
         raise ValueError("Path must not be a wildcard.")

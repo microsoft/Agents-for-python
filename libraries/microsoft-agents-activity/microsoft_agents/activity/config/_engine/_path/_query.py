@@ -90,6 +90,10 @@ class _QueryList(_UserList):
     def __setitem__(self, index: Any, item: Any) -> None:
         from ._utils import _set
 
+        if isinstance(index, slice):
+            super().__setitem__(index, [_normalize_value(value) for value in item])
+            return
+
         if isinstance(index, _Path):
 
             if len(index) == 1:
@@ -115,6 +119,10 @@ class _QueryList(_UserList):
 
     def __delitem__(self, index: Any) -> None:
         from ._utils import _pop
+
+        if isinstance(index, slice):
+            super().__delitem__(index)
+            return
 
         if isinstance(index, _Path):
 
@@ -166,11 +174,7 @@ class _QueryDict(_UserDict):
             if len(key) == 0:
                 return False
             if len(key) != 1:
-                entry = self._shortcuts.get_entry(_ps(key[0]))
-                next_obj = entry.value if entry is not None else None
-                if isinstance(next_obj, (_QueryDict, _QueryList)):
-                    return key[1:] in next_obj
-                raise TypeError("Path must refer to a nested _QueryDict or _QueryList.")
+                return _lookup(self, key).found
             key = key[0]
         if isinstance(key, _Wildcard):
             return True
