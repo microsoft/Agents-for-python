@@ -284,7 +284,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                         conversation_parameters
                     )
                 )
-            except Exception:
+            except BaseException:
                 await connector_client.close()
                 raise
 
