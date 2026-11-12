@@ -85,13 +85,13 @@ class _QueryList(_UserList):
         if isinstance(index, (int, _PathSegment)):
             index = int(index.string) if isinstance(index, _PathSegment) else index
 
-            if index < 0 or index >= len(self):
+            if index < -len(self) or index >= len(self):
                 raise IndexError("List index out of range.")
             value = super().__getitem__(index)
             return _LookupResult(
                 found=True,
                 value=value,
-                matched_keys=[str(index)] if include_path else [],
+                matched_keys=[index] if include_path else [],
             )
 
         raise TypeError("List index must be an integer or a digit string.")
@@ -154,7 +154,7 @@ class _QueryList(_UserList):
         if isinstance(index, (int, _PathSegment)):
             index = int(index.string) if isinstance(index, _PathSegment) else index
 
-            if index < 0 or index >= len(self):
+            if index < -len(self) or index >= len(self):
                 raise IndexError("List index out of range.")
             super().__delitem__(index)
             return
@@ -170,15 +170,8 @@ class _QueryDict(_UserDict):
     """
 
     def __init__(self, data: Mapping | None = None, /, **kwargs):
-
-        data = data or {}
-
-        data = dict(data)
-        for key, val in data.items():
-            data[key] = _normalize_value(val)
-        self._shortcuts = _FoldedMap(data)
-
-        super().__init__(data, False, **kwargs)
+        self._shortcuts = _FoldedMap({})
+        super().__init__(data, **kwargs)
 
     def __copy__(self):
         inst = self.__class__.__new__(self.__class__)
@@ -197,7 +190,7 @@ class _QueryDict(_UserDict):
             key = key[0]
         if isinstance(key, _Wildcard):
             return True
-        elif isinstance(key, (str, _PathSegment)):
+        elif isinstance(key, (str, int, _PathSegment)):
             return self._shortcuts.get_entry(_ps(key)) is not None
         return super().__contains__(key)
 
@@ -214,7 +207,7 @@ class _QueryDict(_UserDict):
         if isinstance(key, _Wildcard):
             raise ValueError("Wildcard paths cannot be used to set a value.")
 
-        if isinstance(key, (str, _PathSegment)):
+        if isinstance(key, (str, int, _PathSegment)):
             value = _normalize_value(value)
             actual_key = self._shortcuts.update_entry(_ps(key), value)
             super().__setitem__(actual_key, value)
@@ -236,7 +229,7 @@ class _QueryDict(_UserDict):
         if isinstance(key, _Wildcard):
             raise ValueError("Wildcard paths cannot be used to delete a value.")
 
-        if isinstance(key, (str, _PathSegment)):
+        if isinstance(key, (str, int, _PathSegment)):
             actual_key = self._shortcuts.delete_entry(_ps(key))
             if actual_key is None:
                 raise KeyError(str(key))
@@ -262,7 +255,7 @@ class _QueryDict(_UserDict):
         if isinstance(key, _Wildcard):
             raise ValueError("Wildcard paths cannot be used to get a value.")
 
-        if isinstance(key, (str, _PathSegment)):
+        if isinstance(key, (str, int, _PathSegment)):
             entry = self._shortcuts.get_entry(_ps(key))
             if entry is not None:
                 return _LookupResult(
@@ -278,7 +271,7 @@ class _QueryDict(_UserDict):
     def __getitem__(self, key: Any) -> Any:
         result = self._lookup(key)
         if not result.found:
-            raise KeyError(str(key))
+            raise KeyError(_PathSegment.get_value(key))
         return result.value
 
     def __ior__(self, other: Any) -> Self:

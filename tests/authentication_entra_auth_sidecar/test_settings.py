@@ -26,7 +26,7 @@ class TestSettingsFromConfiguration:
         }
         source = {"SETTINGS": values} if nested else values
 
-        settings = SidecarConnectionSettings.from_mapping(source)
+        settings = SidecarConnectionSettings.from_config(source)
 
         assert settings.client_id == "blueprint"
         assert settings.scopes == ["scope1", "scope2", "scope3"]
@@ -40,20 +40,22 @@ class TestSettingsFromConfiguration:
         manager = ConnectionManager(
             SidecarAuth,
             config=Configuration(
-                connections={
-                    "SERVICE_CONNECTION": {
-                        "settings": {
-                            "client_id": "blueprint",
-                            "service_name": " service ",
-                            "blueprint_service_name": " ",
-                            "sidecar_base_url": "http://localhost:5178",
-                            "retry_count": "5",
-                            "request_timeout": "45",
-                            "bypass_local_network_restriction": "false",
-                            "scopes": "scope1, scope2",
+                dict(
+                    connections={
+                        "SERVICE_CONNECTION": {
+                            "settings": {
+                                "client_id": "blueprint",
+                                "service_name": " service ",
+                                "blueprint_service_name": " ",
+                                "sidecar_base_url": "http://localhost:5178",
+                                "retry_count": "5",
+                                "request_timeout": "45",
+                                "bypass_local_network_restriction": "false",
+                                "scopes": "scope1, scope2",
+                            }
                         }
                     }
-                },
+                )
             ),
         )
         settings = manager.get_default_connection().config
@@ -166,7 +168,7 @@ class TestEnvConfigEndToEnd:
             "CONNECTIONSMAP__0__CONNECTION": "SERVICE_CONNECTION",
         }
         cfg = load_configuration_from_env(env)
-        cm = ConnectionManager(provider_factory=SidecarAuth, **cfg)
+        cm = ConnectionManager(provider_factory=SidecarAuth, config=cfg)
         settings = cm.get_default_connection()._settings
         assert settings.service_name == "botframework"
         assert settings.sidecar_base_url == "http://localhost:5178"
@@ -177,35 +179,35 @@ class TestScalarCoercion:
     """Scalar settings must tolerate the string values produced by env config."""
 
     def test_bypass_false_string_keeps_protection_on(self):
-        settings = SidecarConnectionSettings.from_mapping(
-            bypass_local_network_restriction="false"
+        settings = SidecarConnectionSettings.from_config(
+            dict(bypass_local_network_restriction="false")
         )
         assert settings.bypass_local_network_restriction is False
 
     def test_bypass_true_string(self):
-        settings = SidecarConnectionSettings.from_mapping(
-            bypass_local_network_restriction="true"
+        settings = SidecarConnectionSettings.from_config(
+            dict(bypass_local_network_restriction="true")
         )
         assert settings.bypass_local_network_restriction is True
 
     @pytest.mark.parametrize("raw", ["0", "false", "False", "FALSE"])
     def test_bypass_falsy_strings(self, raw):
-        settings = SidecarConnectionSettings.from_mapping(
-            bypass_local_network_restriction=raw
+        settings = SidecarConnectionSettings.from_config(
+            dict(bypass_local_network_restriction=raw)
         )
         assert settings.bypass_local_network_restriction is False
 
     @pytest.mark.parametrize("raw", ["1", "true", "True", "TRUE"])
     def test_bypass_truthy_strings(self, raw):
-        settings = SidecarConnectionSettings.from_mapping(
-            bypass_local_network_restriction=raw
+        settings = SidecarConnectionSettings.from_config(
+            dict(bypass_local_network_restriction=raw)
         )
         assert settings.bypass_local_network_restriction is True
 
     @pytest.mark.parametrize("raw", [None, "", "   "])
     def test_unset_bypass_value_defaults_to_false(self, raw):
-        settings = SidecarConnectionSettings.from_mapping(
-            bypass_local_network_restriction=raw
+        settings = SidecarConnectionSettings.from_config(
+            dict(bypass_local_network_restriction=raw)
         )
         assert settings.bypass_local_network_restriction is False
 
@@ -214,11 +216,16 @@ class TestScalarCoercion:
     def test_unrecognized_bypass_value_from_configuration_is_rejected(
         self, raw, config_type
     ):
-        config = config_type(
+        values = dict(
             auth_type="EntraAuthSideCar",
             client_id="blueprint-id",
             SIDECAR_BASE_URL="http://example.com",
             BYPASS_LOCAL_NETWORK_RESTRICTION=raw,
+        )
+        config = (
+            Configuration(values)
+            if config_type is Configuration
+            else AgentAuthConfiguration(**values)
         )
         with pytest.raises(ValueError, match="BYPASS_LOCAL_NETWORK_RESTRICTION"):
             SidecarConnectionSettings.from_configuration(config)
@@ -226,29 +233,29 @@ class TestScalarCoercion:
             SidecarAuth(config)
 
     def test_retry_count_string_coerced_to_int(self):
-        settings = SidecarConnectionSettings.from_mapping(retry_count="5")
+        settings = SidecarConnectionSettings.from_config(dict(retry_count="5"))
         assert settings.retry_count == 5
         assert isinstance(settings.retry_count, int)
 
     def test_request_timeout_string_coerced_to_float(self):
-        settings = SidecarConnectionSettings.from_mapping(request_timeout="45")
+        settings = SidecarConnectionSettings.from_config(dict(request_timeout="45"))
         assert settings.request_timeout == 45.0
         assert isinstance(settings.request_timeout, float)
 
     def test_blank_numeric_strings_fall_back_to_defaults(self):
-        settings = SidecarConnectionSettings.from_mapping(
-            retry_count="", request_timeout=""
+        settings = SidecarConnectionSettings.from_config(
+            dict(retry_count="", request_timeout="")
         )
         assert settings.retry_count == 3
         assert settings.request_timeout == 30.0
 
     def test_invalid_retry_count_raises_clear_error(self):
         with pytest.raises(ValueError, match="RETRY_COUNT"):
-            SidecarConnectionSettings.from_mapping(RETRY_COUNT="abc")
+            SidecarConnectionSettings.from_config(dict(RETRY_COUNT="abc"))
 
     def test_invalid_request_timeout_raises_clear_error(self):
         with pytest.raises(ValueError, match="REQUEST_TIMEOUT"):
-            SidecarConnectionSettings.from_mapping(REQUEST_TIMEOUT="abc")
+            SidecarConnectionSettings.from_config(dict(REQUEST_TIMEOUT="abc"))
 
 
 class TestEnvScalarFlowEndToEnd:
@@ -278,7 +285,7 @@ class TestEnvScalarFlowEndToEnd:
         )
         cfg = load_configuration_from_env(env)
         with pytest.raises(SidecarAuthError):
-            ConnectionManager(provider_factory=SidecarAuth, **cfg)
+            ConnectionManager(provider_factory=SidecarAuth, config=cfg)
 
     def test_bypass_true_from_env_allows_public_url(self):
         env = self._env(
@@ -291,7 +298,7 @@ class TestEnvScalarFlowEndToEnd:
             }
         )
         cfg = load_configuration_from_env(env)
-        cm = ConnectionManager(provider_factory=SidecarAuth, **cfg)
+        cm = ConnectionManager(provider_factory=SidecarAuth, config=cfg)
         settings = cm.get_default_connection()._settings
         assert settings.bypass_local_network_restriction is True
 
@@ -306,7 +313,7 @@ class TestEnvScalarFlowEndToEnd:
             }
         )
         cfg = load_configuration_from_env(env)
-        cm = ConnectionManager(provider_factory=SidecarAuth, **cfg)
+        cm = ConnectionManager(provider_factory=SidecarAuth, config=cfg)
         settings = cm.get_default_connection()._settings
         assert settings.retry_count == 5
         assert settings.request_timeout == 45.0

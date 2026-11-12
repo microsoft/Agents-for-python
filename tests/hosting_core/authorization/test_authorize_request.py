@@ -16,6 +16,7 @@ from microsoft_agents.hosting.core.authorization import (
 from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
 from microsoft_agents.hosting.core.http import HttpResponse
 from tests._common.jwt_test_utils import generate_rsa_keypair, make_signed_jwt
+from tests._common import create_configuration
 
 _authorize_request_module = importlib.import_module(
     "microsoft_agents.hosting.core.authorization.jwt._authorize_request"
@@ -94,14 +95,16 @@ async def test_authorize_request_validates_bearer_token():
 async def test_root_configuration_anonymous_policy_overrides_service_connection(
     anonymous_allowed,
 ):
-    config = Configuration(
-        connections={
-            "SERVICE_CONNECTION": {
-                "settings": {"anonymous_allowed": not anonymous_allowed}
-            }
-        },
-        token_validation={"anonymous_allowed": anonymous_allowed},
-        _is_root_config=True,
+    config = create_configuration(
+        dict(
+            connections={
+                "SERVICE_CONNECTION": {
+                    "settings": {"anonymous_allowed": not anonymous_allowed}
+                }
+            },
+            token_validation={"anonymous_allowed": anonymous_allowed},
+        ),
+        is_root=True,
     )
     result = await _authorize_request(None, config)
     if anonymous_allowed:
@@ -121,7 +124,7 @@ async def test_root_configuration_authorizes_signed_token(monkeypatch, source):
     config = {
         "environment": root,
         "copy": Configuration(root),
-        "fork": Configuration.from_config(root, extra=True),
+        "fork": Configuration.from_config(root),
     }[source]
     private_key, public_key = generate_rsa_keypair()
 
@@ -152,8 +155,8 @@ def test_validator_cache_reuses_same_owner_and_isolates_different_owners():
         pass
 
     first_owner, second_owner = Owner(), Owner()
-    config = Configuration(
-        token_validation={"anonymous_allowed": True}, _is_root_config=True
+    config = create_configuration(
+        dict(token_validation={"anonymous_allowed": True}), is_root=True
     )
     resolve = _authorize_request_module._resolve_token_validator
     first = resolve(config, first_owner)

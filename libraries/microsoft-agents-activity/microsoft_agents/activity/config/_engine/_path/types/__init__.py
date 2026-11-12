@@ -7,6 +7,7 @@ from ._path_segment import (
     _SimplePathSegment,
     _Wildcard,
     _ExactPathSegment,
+    _SegmentValue,
 )
 from ._path import _Path, _PathProxy
 from ._user_dict import _UserDict
@@ -24,4 +25,5 @@ __all__ = [
     "_PathProxy",
     "_UserDict",
     "_UserList",
+    "_SegmentValue",
 ]

@@ -80,13 +80,13 @@ def _collect_helper(
 ) -> None:
 
     if not path_left:
-        collection[current_path.last] = current
+        collection[current_path[-1].value] = current
         return
 
     segment = path_left[0]
 
     for key, val in iter_steps(segment, current):
-        _collect_helper(val, path_left[1:], collection, current_path + str(key))
+        _collect_helper(val, path_left[1:], collection, current_path + key)
         if not isinstance(segment, _Wildcard):
             break
 
@@ -156,8 +156,8 @@ def _try_set(
                 current = next_obj
                 continue
             elif isinstance(current, MutableMapping):
-                current[segment.string] = {}
-                current = current[segment.string]
+                current[segment.value] = {}
+                current = current[segment.value]
             else:
                 non_mutable_mapping_err = True
         elif isinstance(current, MutableSequence):
@@ -184,7 +184,7 @@ def _try_set(
                 return False
             current[key] = value
         else:
-            current[path.last] = value
+            current[path[-1].value] = value
         return True
     elif isinstance(current, MutableSequence):
         matched, key, next_obj = step_once(path[-1], current)

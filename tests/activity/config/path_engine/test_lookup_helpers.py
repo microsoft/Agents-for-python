@@ -6,7 +6,7 @@ from types import MappingProxyType
 import pytest
 
 from microsoft_agents.activity.config import Configuration
-from microsoft_agents.activity.config._engine._path._query import _QueryDict
+from microsoft_agents.activity.config._engine._path._query import _QueryDict, _QueryList
 from microsoft_agents.activity.config._engine._path._utils import (
     _collect,
     _collect_with_paths,
@@ -121,3 +121,67 @@ def test_public_configuration_getters_and_section_paths_use_shared_lookup():
     assert section.get("Missing", 42) == 42
     assert section.has("Value")
     assert not section.has("value")
+
+
+@pytest.mark.parametrize("getter", [_get, _get_with_path])
+@pytest.mark.parametrize("path", [[""], ["", ""], _Path()])
+def test_getters_consistently_reject_paths_that_normalize_to_empty(getter, path):
+    with pytest.raises(ValueError):
+        getter({"Value": 7}, path)
+
+
+@pytest.mark.parametrize("factory", [dict, _QueryDict])
+@pytest.mark.parametrize("value", [False, 0, "", [], {}])
+def test_skip_none_selects_present_falsy_leaf_before_later_truthy_match(factory, value):
+    obj = factory(
+        {
+            "SECTION": {"Value": None},
+            "Section": {"Value": value},
+            "section": {"Value": 9},
+        }
+    )
+    path = _Path.from_strings("section", "value")
+
+    found, matched = _get_with_path(
+        obj, path, default=_MISSING, skip_none=True, none_is_missing=True
+    )
+
+    assert found == value
+    assert str(matched) == "Section::Value"
+    assert _get(obj, matched, default=_MISSING) is found
+
+
+@pytest.mark.parametrize("factory", [dict, _QueryDict])
+def test_collection_checks_duplicate_names_only_after_skipping_none(factory):
+    obj = factory({"Left": {"Value": None}, "Right": {"Value": 7}})
+    path = _Path(_Wildcard(), "Value")
+
+    assert _collect_with_paths(obj, path, skip_none=True) == {"Value": 7}
+    assert _collect(obj, path, skip_none=True) == [7]
+    with pytest.raises(KeyError, match="Duplicate key"):
+        _collect(obj, path)
+
+
+@pytest.mark.parametrize("factory", [dict, _QueryDict])
+def test_matched_paths_replay_literal_separator_and_wildcard_keys(factory):
+    obj = factory({"Section::Name": {"*": {"Value": None}}})
+    path = _Path.from_strings("SECTION::NAME", "*", "VALUE")
+
+    value, matched = _get_with_path(obj, path, default=_MISSING)
+
+    assert value is None
+    assert [segment.string for segment in matched] == ["Section::Name", "*", "Value"]
+    assert matched.is_simple
+    assert _get(obj, matched, default=_MISSING) is None
+
+
+@pytest.mark.skip(reason="Nondecimal Unicode digit handling is deferred.")
+@pytest.mark.parametrize("factory", [list, _QueryList])
+@pytest.mark.parametrize("digit", ["\u00b2", "\u2081", "\u2460"])
+def test_nondecimal_digit_path_is_an_unmatched_list_index_not_a_conversion_error(
+    factory, digit
+):
+    obj = factory([7, 8])
+
+    assert _get(obj, digit, default=_MISSING) is _MISSING
+    assert _get_with_path(obj, digit, default=_MISSING) == (_MISSING, None)

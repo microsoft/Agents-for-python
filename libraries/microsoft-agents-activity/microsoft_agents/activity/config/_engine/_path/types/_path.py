@@ -16,6 +16,7 @@ from ._path_segment import (
     _SimplePathSegment,
     _Wildcard,
     _ExactPathSegment,
+    _SegmentValue,
 )
 
 if TYPE_CHECKING:
@@ -30,12 +31,15 @@ class _Path:
     String rendering joins segments with ``::`` for display and diagnostics.
     """
 
-    def __init__(self, *segments: str | int | _PathSegment):
+    def __init__(self, *segments: _SegmentValue | _PathSegment):
+
+        def _raise_if_empty() -> bool:
+            raise ValueError("Path segments must not be empty")
 
         _segments = [
             segment if isinstance(segment, _PathSegment) else _ExactPathSegment(segment)
             for segment in segments
-            if segment
+            if (segment != "" or _raise_if_empty())
         ]
         _segments = [segment for segment in _segments if segment.string]
         self._segments = _segments
@@ -74,7 +78,7 @@ class _Path:
 
     @staticmethod
     def from_strings(
-        *segments: str | int, ignore_case: bool = True, ignore_underscores: bool = False
+        *segments: _SegmentValue, ignore_case: bool = True, ignore_underscores: bool = False
     ) -> _Path:
         return _Path(
             *(
@@ -88,7 +92,7 @@ class _Path:
         )
 
     @staticmethod
-    def exact(*segments: str | int) -> _Path:
+    def exact(*segments: _SegmentValue) -> _Path:
         return _Path.from_strings(
             *segments, ignore_case=False, ignore_underscores=False
         )
@@ -138,7 +142,7 @@ class _Path:
     def __len__(self) -> int:
         return len(self._segments)
 
-    def __add__(self, other: str | int | _Path | _PathSegment) -> _Path:
+    def __add__(self, other: _SegmentValue | _Path | _PathSegment) -> _Path:
         if isinstance(other, int):
             other = str(other)
         if isinstance(other, str):
@@ -152,4 +156,4 @@ class _Path:
     def __iter__(self) -> Iterator[_PathSegment]:
         return iter(self._segments)
 
-_PathProxy = str | int | Sequence[str] | _PathSegment | _Path
+_PathProxy = _SegmentValue | Sequence[_SegmentValue] | _PathSegment | _Path

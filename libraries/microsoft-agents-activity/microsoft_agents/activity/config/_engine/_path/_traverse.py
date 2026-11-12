@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
 
-from .types import _Wildcard, _MISSING, _Path, _PathProxy
+from .types import _Wildcard, _MISSING, _Path, _PathProxy, _SegmentValue
 from ._step import iter_steps
 
 
@@ -16,6 +16,8 @@ def _validate_singular_path(path: _PathProxy) -> None:
         raise ValueError("Path must be non-empty and simple.")
     elif isinstance(path, _Wildcard):
         raise ValueError("Path must not be a wildcard.")
+    elif isinstance(path, Sequence) and len(path) == 0:
+        raise ValueError("Path must be non-empty.")
 
 
 @dataclass
@@ -31,7 +33,7 @@ class _TraverseState:
     path: _Path
     current: Any
     path_index: int = 0
-    traversed_keys: list[str] = field(default_factory=list)
+    traversed_keys: list[_SegmentValue] = field(default_factory=list)
     finished: bool = False
 
     @property
@@ -57,7 +59,7 @@ def _traverse_helper(
     for key, next_obj in iter_steps(segment, state.current):
 
         state.path_index += 1
-        state.traversed_keys.append(str(key))
+        state.traversed_keys.append(key)
 
         if handle_inner or state.path_index == len(state.path):
             handler(state, next_obj)
@@ -99,7 +101,7 @@ class _LookupResult:
 
     found: bool = False
     value: Any = _MISSING
-    matched_keys: list[str] | None = None
+    matched_keys: list[_SegmentValue] | None = None
 
 
 def _lookup(

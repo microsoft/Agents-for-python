@@ -20,6 +20,7 @@ from microsoft_agents.hosting.core import (
 from microsoft_agents.hosting.core.authorization._helpers import (
     _CallableTokenCredential,
 )
+from tests._common import create_configuration
 
 _TEST_TOKEN_EXPIRATION = 2**31 - 1
 
@@ -47,7 +48,7 @@ class FakeProvider(AccessTokenProviderBase):
 class ConfiguredProvider(FakeProvider):
     def __init__(self, configuration: Configuration):
         self.received_config = configuration
-        self._settings = ConnectionSettingsBase.from_configuration(configuration)
+        self._settings = ConnectionSettingsBase.from_config(configuration)
 
     @property
     def config(self) -> ConnectionSettingsBase:
@@ -69,11 +70,15 @@ def test_configuration_manager_binds_aliases_and_routes_without_legacy_settings(
         {"service_url": "*", "connection": "SERVICE_CONNECTION"},
     ]
     config = Configuration(
-        connections={
-            "SERVICE_CONNECTION": {"settings": {"client_id": "default"}},
-            "OTHER": {"settings": {"client_id": "other"}},
-        },
-        connections_map={"first": rules[0], "second": rules[1]} if named_map else rules,
+        dict(
+            connections={
+                "SERVICE_CONNECTION": {"settings": {"client_id": "default"}},
+                "OTHER": {"settings": {"client_id": "other"}},
+            },
+            connections_map=(
+                {"first": rules[0], "second": rules[1]} if named_map else rules
+            ),
+        )
     )
     manager = ConnectionManager(ConfiguredProvider, config=config)
     provider = manager.get_token_provider(
@@ -150,11 +155,11 @@ def test_modern_factory_receives_settings_with_the_original_diagnostic_path(
     values = {"client_id": "client", "scopes": ["scope"]}
     section = {"settings": values} if nested else values
     root = {"connections": {"SERVICE_CONNECTION": section}}
-    manager = (
-        ConnectionManager(ConfiguredProvider, **root)
-        if use_kwargs
-        else ConnectionManager(ConfiguredProvider, config=Configuration(root))
-    )
+    if use_kwargs:
+        with pytest.warns(DeprecationWarning, match="Passing in keyword arguments"):
+            manager = ConnectionManager(ConfiguredProvider, **root)
+    else:
+        manager = ConnectionManager(ConfiguredProvider, config=Configuration(root))
     provider = manager.get_default_connection()
 
     assert provider.config.client_id == "client"
@@ -176,14 +181,15 @@ def test_legacy_manager_preserves_all_connection_audiences(explicit_instances):
     if explicit_instances:
         manager = ConnectionManager(FakeProvider, connections_configurations=configs)
     else:
-        manager = ConnectionManager(
-            FakeProvider,
-            connections_map=[],
-            CONNECTIONS={
-                name: {"SETTINGS": {"CLIENTID": config.CLIENT_ID}}
-                for name, config in configs.items()
-            },
-        )
+        with pytest.warns(DeprecationWarning, match="Passing in keyword arguments"):
+            manager = ConnectionManager(
+                FakeProvider,
+                connections_map=[],
+                CONNECTIONS={
+                    name: {"SETTINGS": {"CLIENTID": config.CLIENT_ID}}
+                    for name, config in configs.items()
+                },
+            )
     legacy = manager.get_default_connection_configuration()
     policy = JwtTokenValidator(legacy).config
 
@@ -213,9 +219,13 @@ def test_legacy_manager_entry_points_emit_deprecation_warnings():
 def test_modern_configuration_binding_does_not_use_deprecated_apis():
     with warnings.catch_warnings(record=True) as captured:
         warnings.simplefilter("always", DeprecationWarning)
-        config = Configuration(
-            connections={"SERVICE_CONNECTION": {"settings": {"client_id": "client"}}},
-            _is_root_config=True,
+        config = create_configuration(
+            dict(
+                connections={
+                    "SERVICE_CONNECTION": {"settings": {"client_id": "client"}}
+                }
+            ),
+            is_root=True,
         )
         manager = ConnectionManager(ConfiguredProvider, config=config)
         policy = JwtTokenValidator(config).config
@@ -275,9 +285,10 @@ ALT_BLUEPRINT_CONFIG = {
 
 class TestGenericConnectionManager:
     def _make(self, **kwargs):
-        return ConnectionManager(
-            provider_factory=FakeProvider, connections_configurations={}, **kwargs
-        )
+        with pytest.warns(DeprecationWarning, match="Passing in keyword arguments"):
+            return ConnectionManager(
+                provider_factory=FakeProvider, connections_configurations={}, **kwargs
+            )
 
     def _activity(
         self,
@@ -448,11 +459,12 @@ class TestGenericConnectionManager:
     def test_explicit_empty_connections_map_overrides_kwargs(self):
         # An explicit empty map must win over a CONNECTIONSMAP kwarg and disable
         # URL-based routing (falling back to the default connection).
-        cm = ConnectionManager(
-            provider_factory=FakeProvider,
-            connections_map=[],
-            **ENV_CONFIG,
-        )
+        with pytest.warns(DeprecationWarning, match="Passing in keyword arguments"):
+            cm = ConnectionManager(
+                provider_factory=FakeProvider,
+                connections_map=[],
+                **ENV_CONFIG,
+            )
         assert not cm._connections_map
         claims = ClaimsIdentity(claims={"aud": "api://service"})
         assert (

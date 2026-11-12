@@ -84,3 +84,34 @@ def test_user_list_accepts_generators_and_copies_input_storage():
 
     assert source == [1, 2]
     assert generated == [1, 2]
+
+
+@pytest.mark.parametrize("operation", ["iadd", "imul"])
+def test_user_list_in_place_operators_preserve_identity_and_nested_aliases(operation):
+    nested = {"Value": 7}
+    wrapped = _UserList([nested])
+    original = wrapped
+
+    if operation == "iadd":
+        wrapped += wrapped
+    else:
+        wrapped *= 2
+
+    assert wrapped is original
+    assert len(wrapped) == 2
+    assert wrapped[0] is wrapped[1] is nested
+
+
+def test_user_dict_failed_subclass_copy_restores_original_storage():
+    class FailingCopy(_UserDict):
+        def __copy__(self):
+            raise RuntimeError("copy failed")
+
+    source = FailingCopy({"Value": 7})
+
+    with pytest.raises(RuntimeError, match="copy failed"):
+        source.copy()
+
+    assert dict(source) == {"Value": 7}
+    source["Other"] = 8
+    assert dict(source) == {"Value": 7, "Other": 8}

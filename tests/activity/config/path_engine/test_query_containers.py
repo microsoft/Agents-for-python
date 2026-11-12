@@ -294,3 +294,135 @@ def test_query_list_slice_deletion_preserves_remaining_normalized_items(
 
     assert [item["Value"] for item in wrapped] == expected
     assert all(isinstance(item, _QueryDict) for item in wrapped)
+
+
+@pytest.mark.parametrize("operation", ["getitem", "contains", "get", "setdefault"])
+@pytest.mark.parametrize("key", ["1", "\u0661", "\uff11"])
+def test_query_dict_distinct_numeric_spellings_remain_literal_mapping_keys(
+    operation, key
+):
+    wrapped = _QueryDict({"01": 7})
+
+    if operation == "getitem":
+        with pytest.raises(KeyError):
+            wrapped[key]
+    elif operation == "contains":
+        assert key not in wrapped
+    elif operation == "get":
+        assert wrapped.get(key, 9) == 9
+    else:
+        assert wrapped.setdefault(key, 9) == 9
+        assert list(wrapped) == ["01", key]
+
+    assert wrapped["01"] == 7
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        {1: "first", "1": "second"},
+        {"1": "first", 1: "second"},
+    ],
+)
+def test_query_dict_constructor_numeric_aliases_leave_no_unindexed_keys_after_pop(
+    source,
+):
+    wrapped = _QueryDict(source)
+
+    wrapped.pop(1)
+
+    assert all(key in wrapped for key in wrapped)
+    for key in list(wrapped):
+        wrapped.pop(key)
+    assert not wrapped
+
+
+@pytest.mark.parametrize("index", [-1, -3])
+@pytest.mark.parametrize("operation", ["set", "delete"])
+def test_query_list_negative_integer_mutation_matches_builtin_list(index, operation):
+    expected = [0, 1, 2]
+    wrapped = _QueryList(expected)
+
+    if operation == "set":
+        expected[index] = {"Value": 7}
+        wrapped[index] = {"Value": 7}
+        assert isinstance(wrapped[index], _QueryDict)
+    else:
+        del expected[index]
+        del wrapped[index]
+
+    assert wrapped == expected
+
+
+@pytest.mark.skip(reason="Support for custom __index__ objects is deferred.")
+@pytest.mark.parametrize("operation", ["get", "set", "delete"])
+def test_query_list_accepts_integer_index_protocol(operation):
+    class Index:
+        def __index__(self):
+            return 1
+
+    wrapped = _QueryList([0, 1, 2])
+    index = Index()
+
+    if operation == "get":
+        assert wrapped[index] == 1
+    elif operation == "set":
+        wrapped[index] = {"Value": 7}
+        assert isinstance(wrapped[1], _QueryDict)
+        assert wrapped[1]["Value"] == 7
+    else:
+        del wrapped[index]
+        assert wrapped == [0, 2]
+
+
+def test_query_list_empty_path_read_is_rejected_as_an_invalid_path():
+    wrapped = _QueryList([7])
+
+    with pytest.raises(ValueError, match="[Ee]mpty|non-empty"):
+        wrapped[_Path()]
+
+
+def test_query_dict_union_normalizes_new_values_without_changing_either_input():
+    left = _QueryDict({"Left": {"Value": 1}})
+    right = {"Right": [{"Value": 2}]}
+
+    merged = left | right
+    reflected = right | left
+
+    for result in (merged, reflected):
+        assert isinstance(result, _QueryDict)
+        assert isinstance(result["Right"], _QueryList)
+        assert isinstance(result["Right"][0], _QueryDict)
+        assert result[_Path.from_strings("right", "0", "value")] == 2
+        assert result["Left"] is left["Left"]
+        result["Other"] = 3
+
+    assert "Other" not in left
+    assert "Other" not in right
+    assert isinstance(right["Right"], list)
+    assert isinstance(right["Right"][0], dict)
+
+
+@pytest.mark.parametrize("factory", [copy, lambda value: value.copy()])
+def test_query_dict_copy_preserves_collision_order_and_shared_nested_wrappers(factory):
+    source = _QueryDict({"Client_Id": {"Value": 1}, "CLIENT_ID": {"Value": 2}})
+    cloned = factory(source)
+    path = _Path.from_strings("client_id")
+
+    assert cloned[path] is source["Client_Id"]
+    del cloned[path]
+
+    assert cloned[path] is source["CLIENT_ID"]
+    assert source[path] is source["Client_Id"]
+    assert list(source) == ["Client_Id", "CLIENT_ID"]
+    assert list(cloned) == ["CLIENT_ID"]
+
+
+def test_query_list_negative_extended_slice_normalizes_and_preserves_positions():
+    wrapped = _QueryList([0, 1, 2, 3])
+
+    wrapped[::-2] = ({"Value": value} for value in (7, 8))
+
+    assert wrapped == [0, {"Value": 8}, 2, {"Value": 7}]
+    assert isinstance(wrapped[1], _QueryDict)
+    assert isinstance(wrapped[3], _QueryDict)

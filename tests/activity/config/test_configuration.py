@@ -2,10 +2,13 @@
 # Licensed under the MIT License.
 
 import traceback
+from collections.abc import MutableMapping
 
 import pytest
 
-from microsoft_agents.activity.config import Configuration, path, xpath
+from microsoft_agents.activity.config import Configuration, _legpath
+from tests._common import create_configuration
+from microsoft_agents.activity.config._metadata import _RootConfigMetadata
 
 
 @pytest.mark.parametrize(
@@ -19,24 +22,23 @@ from microsoft_agents.activity.config import Configuration, path, xpath
     ],
 )
 def test_scope_strings_use_shared_whitespace_and_comma_normalization(value, expected):
-    config = Configuration(scopes=value)
+    config = Configuration(dict(scopes=value))
 
     assert config.get_scopes("scopes") == expected
 
 
 def test_section_uses_matched_alias_and_nested_path():
-    config = Configuration(
-        {"Connections": {"Service": {"SETTINGS": {"Enabled": True}}}},
-        _is_root_config=True,
+    config = create_configuration(
+        {"Connections": {"Service": {"SETTINGS": {"Enabled": True}}}}, is_root=True
     )
 
-    connection = config.get_section(["CONNECTIONS", "Connections"])
-    settings = connection.get_section(["Service::settings", "Service::SETTINGS"])
+    connection = config.get_section(_legpath("connections"))
+    settings = connection.get_section(_legpath("Service", "settings"))
 
     assert connection._base_path == "Connections"
     assert settings._base_path == "Connections::Service::SETTINGS"
-    assert connection.is_root_config is False
-    assert settings.is_root_config is False
+    assert _RootConfigMetadata.get(connection) is False
+    assert _RootConfigMetadata.get(settings) is False
     assert settings.get_bool("Enabled") is True
 
 
@@ -53,14 +55,17 @@ def test_existing_configuration_section_is_rebased_without_modifying_original():
 
 
 @pytest.mark.parametrize("is_root", [False, True])
-def test_from_mapping_reuses_configuration_when_base_path_is_unchanged(is_root):
-    original = Configuration(
-        {"Enabled": True}, _base_path="Service", _is_root_config=is_root
+def test_from_config_copies_outer_mapping_and_preserves_metadata(is_root):
+    original = create_configuration(
+        {"Enabled": True}, is_root=is_root, _base_path="Service"
     )
 
-    assert Configuration.from_mapping(original) is original
-    assert Configuration.from_mapping(original, _base_path="Service") is original
-    assert Configuration.from_mapping(original, _is_root_config=is_root) is original
+    copy = Configuration.from_config(original)
+
+    assert copy is not original
+    assert copy == original
+    assert copy.base_path == "Service"
+    assert _RootConfigMetadata.get(copy) is is_root
 
 
 @pytest.mark.parametrize("is_root", [False, True])
@@ -68,34 +73,35 @@ def test_from_mapping_reuses_configuration_when_base_path_is_unchanged(is_root):
 def test_constructor_preserves_root_identity_when_copying_configuration(
     is_root, values
 ):
-    original = Configuration(values, _is_root_config=is_root)
+    original = create_configuration(values, is_root=is_root)
 
     copy = Configuration(original)
 
     assert copy is not original
-    assert copy == values
-    assert copy.is_root_config is is_root
+    assert copy == original
+    assert _RootConfigMetadata.get(copy) is is_root
 
 
-@pytest.mark.parametrize("factory", [Configuration, Configuration.from_mapping])
+@pytest.mark.parametrize("factory", [Configuration, Configuration.from_config])
 @pytest.mark.parametrize("is_root", [False, True])
 def test_explicit_root_override_does_not_change_original(factory, is_root):
-    original = Configuration({"Enabled": True}, _is_root_config=is_root)
+    original = create_configuration({"Enabled": True}, is_root=is_root)
 
-    copy = factory(original, _is_root_config=not is_root)
+    copy = factory(original)
+    _RootConfigMetadata.set(copy, not is_root)
 
     assert copy is not original
-    assert copy == original
-    assert copy.is_root_config is not is_root
-    assert original.is_root_config is is_root
+    assert copy["Enabled"] == original["Enabled"]
+    assert _RootConfigMetadata.get(copy) is not is_root
+    assert _RootConfigMetadata.get(original) is is_root
 
 
-def test_from_mapping_can_rebase_to_root():
+def test_empty_base_path_inherits_original_diagnostic_path():
     original = Configuration({"Enabled": True}, _base_path="Service")
 
-    rebased = Configuration.from_mapping(original, _base_path="")
+    rebased = Configuration.from_config(original, _base_path="")
 
-    assert rebased._base_path == ""
+    assert rebased._base_path == "Service"
     assert original._base_path == "Service"
 
 
@@ -123,7 +129,7 @@ def test_non_mapping_section_reports_matched_alias_without_its_value():
     settings = config.get_section("Settings")
 
     with pytest.raises(TypeError) as error:
-        settings.get_section("token", "TOKEN")
+        settings.get_section(_legpath("token"))
 
     assert str(error.value) == "Section Settings::TOKEN is not a mapping"
 
@@ -143,7 +149,7 @@ def test_conversion_errors_report_matched_full_path_without_input(getter, value)
     settings = config.get_section("Settings")
 
     with pytest.raises(ValueError) as error:
-        getattr(settings, getter)("value", "VALUE")
+        getattr(settings, getter)(_legpath("value"))
 
     assert "Settings::VALUE" in str(error.value)
     assert "Settings::value" not in str(error.value)
@@ -169,7 +175,7 @@ def test_conversion_errors_report_matched_full_path_without_input(getter, value)
 def test_diagnostic_paths_preserve_successful_conversion(getter, value, expected):
     settings = Configuration({"Settings": {"VALUE": value}}).get_section("Settings")
 
-    assert getattr(settings, getter)("value", "VALUE") == expected
+    assert getattr(settings, getter)(_legpath("value")) == expected
 
 
 @pytest.mark.parametrize(
@@ -226,24 +232,28 @@ def test_boolean_getters_reject_unrecognized_values_with_defaults(
         getattr(settings, getter)("Enabled", default=default)
 
 
-def test_null_value_preserves_matched_path_when_skipped():
+def test_skipped_null_value_has_no_matched_path():
     config = Configuration({"Settings": {"VALUE": None}})
     settings = config.get_section("Settings")
 
     value, matched_path = settings._get_with_path(
-        "value", "VALUE", default=None, skip_none=True
+        _legpath("value"), default=None, skip_none=True
     )
 
     assert value is None
-    assert matched_path == ["VALUE"]
-    assert settings.get_int("value", "VALUE", default=5) == 5
+    assert matched_path is None
+    assert settings.get_int(_legpath("value"), default=5) == 5
+
+    value, matched_path = settings._get_with_path(_legpath("value"))
+    assert value is None
+    assert str(matched_path) == "VALUE"
 
 
 def test_collected_sections_rebase_existing_configurations():
     original = Configuration({"Enabled": True}, _base_path="Previous")
     config = Configuration({"Entries": {"Service": original}}, _base_path="Root")
 
-    sections = config.get_sections(path("Entries", "*"))
+    sections = config.get_sections(_legpath("Entries", "*"))
 
     assert len(sections) == 1
     assert sections[0]._base_path == "Root::Entries::Service"
@@ -256,61 +266,64 @@ def test_non_mapping_collected_section_reports_full_path():
     )
 
     with pytest.raises(TypeError) as error:
-        config.get_sections(path("Entries", "*"))
+        config.get_sections(_legpath("Entries", "*"))
 
     assert str(error.value) == "Section Root::Entries::Service is not a mapping"
 
 
-def test_configuration_is_a_dictionary_with_positional_default_lookup():
+def test_configuration_is_a_mutable_mapping_with_positional_default_lookup():
     config = Configuration({"Enabled": False, "Optional": None})
     fallback = object()
 
-    assert isinstance(config, dict)
+    assert isinstance(config, MutableMapping)
     assert config.get("Enabled", fallback) is False
     assert config.get("Optional", fallback) is None
     assert config.get("Missing", fallback) is fallback
-    assert config.get(["Missing", "Enabled"], fallback) is False
+    assert config.get(["Missing", "Enabled"], fallback) is fallback
 
 
 @pytest.mark.parametrize("is_root", [False, True])
-def test_from_mapping_merges_defaults_without_mutating_inputs(is_root):
-    primary = Configuration({"Settings": {"Enabled": False}}, _is_root_config=is_root)
-    defaults = {"Settings": {"Enabled": True, "Count": 3}}
+def test_resolve_merges_defaults_without_mutating_inputs(is_root):
+    primary = create_configuration({"settings": {"enabled": False}}, is_root=is_root)
+    defaults = {"settings": {"enabled": True, "count": 3}}
+    original = dict(primary)
 
-    config = Configuration.from_mapping(primary, **defaults)
-    config["Settings"]["Count"] = 4
+    config = Configuration.resolve(primary, defaults)
+    config["settings"]["count"] = 4
 
-    assert config.get_bool("Settings::Enabled") is False
-    assert config.is_root_config is is_root
-    assert primary == {"Settings": {"Enabled": False}}
-    assert defaults == {"Settings": {"Enabled": True, "Count": 3}}
+    assert config.get_bool(["settings", "enabled"]) is False
+    assert _RootConfigMetadata.get(config) is is_root
+    assert primary == original
+    assert defaults == {"settings": {"enabled": True, "count": 3}}
 
 
 @pytest.mark.parametrize("is_root", [False, True])
 def test_from_config_forks_top_level_values_and_preserves_base_path(is_root):
-    original = Configuration(
-        {"Enabled": False}, _base_path="Service", _is_root_config=is_root
+    original = create_configuration(
+        {"Enabled": False}, is_root=is_root, _base_path="Service"
     )
 
-    fork = Configuration.from_config(original, Enabled=True, Count=3)
+    fork = Configuration.from_config(original)
     fork["Enabled"] = True
+    fork["Count"] = 3
 
     assert fork is not original
     assert fork._base_path == "Service"
-    assert fork.is_root_config is is_root
-    assert fork == {"Enabled": True, "Count": 3}
+    assert _RootConfigMetadata.get(fork) is is_root
+    assert fork["Enabled"] is True
     assert fork["Count"] == 3
     assert original["Enabled"] is False
     assert "Count" not in original
 
 
-def test_from_config_preserves_primary_values_over_fallbacks():
+def test_from_config_preserves_literal_key_spelling():
     original = Configuration({"Enabled": False})
 
-    assert Configuration.from_config(original, Enabled=True)["Enabled"] is False
+    assert Configuration.from_config(original)["Enabled"] is False
+    assert "enabled" not in Configuration.from_config(original)
 
 
-def test_constructor_makes_a_shallow_copy():
+def test_constructor_wraps_plain_nested_containers_without_sharing_them():
     source = {"Values": ["original"]}
     config = Configuration(source)
 
@@ -318,7 +331,7 @@ def test_constructor_makes_a_shallow_copy():
     source["Values"].append("shared")
 
     assert "New" not in config
-    assert config["Values"] == ["original", "shared"]
+    assert config["Values"] == ["original"]
 
 
 @pytest.mark.parametrize(
@@ -328,26 +341,30 @@ def test_constructor_makes_a_shallow_copy():
         [("CLIENTID", "compact"), ("CLIENT_ID", "upper"), ("client_id", "lower")],
     ],
 )
-def test_alias_precedence_does_not_depend_on_insertion_order(entries):
-    assert Configuration(dict(entries)).get_str(xpath("client_id")) == "compact"
+def test_matching_aliases_follow_source_insertion_order(entries):
+    assert Configuration(dict(entries)).get_str(_legpath("client_id")) == entries[0][1]
 
 
-def test_xpath_components_form_one_nested_path():
+def test_legacy_matching_components_form_one_nested_path():
     config = Configuration(
         {"AGENTAPPLICATION": {"USERAUTHORIZATION": {"Enabled": True}}}
     )
 
-    section = config.get_section(xpath("agent_application", "user_authorization"))
+    section = config.get_section(_legpath("agent_application", "user_authorization"))
 
     assert section.get_bool("Enabled") is True
     assert section._base_path == "AGENTAPPLICATION::USERAUTHORIZATION"
 
 
-@pytest.mark.parametrize("values", [["first", "second"], {"0": "first", "1": "second"}])
-def test_collect_str_selects_children_of_lists_and_indexed_mappings(values):
+@pytest.mark.parametrize(
+    "values, expected",
+    [(["first", "second"], []), ({"0": "first", "1": "second"}, ["first", "second"])],
+)
+def test_collect_wildcards_enumerate_mappings_not_lists(values, expected):
     config = Configuration({"audiences": values})
 
-    assert config.collect_str("audiences::*") == ["first", "second"]
+    assert config.collect_str(_legpath("audiences", "*")) == expected
+    assert config.collect_str(["audiences", "0"]) == ["first"]
 
 
 def test_collect_does_not_implicitly_flatten_selected_containers():
@@ -356,13 +373,13 @@ def test_collect_does_not_implicitly_flatten_selected_containers():
 
     assert config.collect("audiences") == [values]
     assert config.collect_str("audiences") == [str(values)]
-    assert config.collect_str("audiences::*") == values
+    assert config.collect_str(["audiences", "0"]) == ["first"]
 
 
-def test_collect_deduplicates_overlapping_paths_not_equal_values():
-    config = Configuration({"Values": ["same", "same"]})
+def test_collect_preserves_equal_values_under_distinct_source_keys():
+    config = Configuration({"Values": {"First": "same", "Second": "same"}})
 
-    assert config.collect_str("Values::*", "Values::0") == ["same", "same"]
+    assert config.collect_str(_legpath("Values", "*")) == ["same", "same"]
 
 
 @pytest.mark.parametrize(

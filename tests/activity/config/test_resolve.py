@@ -7,7 +7,11 @@ from types import MappingProxyType
 import pytest
 
 from microsoft_agents.activity.config import Configuration
-from microsoft_agents.activity.config._engine._resolve import _normalize, _resolve
+from microsoft_agents.activity.config._engine._resolve import (
+    _default_path_transformer,
+    _normalize,
+    _resolve,
+)
 
 
 @pytest.mark.parametrize(
@@ -20,7 +24,9 @@ from microsoft_agents.activity.config._engine._resolve import _normalize, _resol
 def test_normalize_sorts_indexed_mappings_numerically(indices):
     source = {"Values": MappingProxyType(indices), "Empty": {}, "List": []}
 
-    assert _normalize(MappingProxyType(source)) == {
+    assert _normalize(
+        MappingProxyType(source), path_transformer=_default_path_transformer
+    ) == {
         "Values": ["zero", "two", "ten"],
         "Empty": {},
         "List": [],
@@ -29,7 +35,27 @@ def test_normalize_sorts_indexed_mappings_numerically(indices):
 
 def test_normalize_rejects_duplicate_list_indices():
     with pytest.raises(ValueError, match="Duplicate configuration list indices"):
-        _normalize({"Values": {"0": "first", "00": "second"}})
+        _normalize(
+            {"Values": {"0": "first", "00": "second"}},
+            path_transformer=_default_path_transformer,
+        )
+
+
+@pytest.mark.parametrize("one", ["01", "\u0661", "\uff11"])
+def test_resolve_converts_decimal_spellings_in_indexed_children_to_list_positions(one):
+    assert _resolve({"Values": {one: "one", "00": "zero"}}) == {
+        "Values": ["zero", "one"]
+    }
+
+
+def test_resolve_preserves_decimal_key_spelling_in_mixed_mapping_children():
+    assert _resolve({"Values": {"01": "one", "Other": "keep"}}) == {
+        "Values": {"01": "one", "Other": "keep"}
+    }
+
+
+def test_resolve_preserves_decimal_key_spelling_at_the_root():
+    assert _resolve({"01": "one"}) == {"01": "one"}
 
 
 @pytest.mark.parametrize(
@@ -83,21 +109,21 @@ def test_resolve_empty_primary_list_clears_indexed_defaults():
     ],
 )
 def test_configuration_resolution_copies_all_nested_containers(as_defaults, entries):
-    source = {"Entries": entries}
+    source = {"entries": entries}
     original = deepcopy(source)
     if as_defaults:
-        result = Configuration.from_mapping({"Unrelated": True}, **source)
+        result = Configuration.resolve({"unrelated": True}, source)
     else:
-        result = Configuration.from_mapping(source, Unrelated=True)
+        result = Configuration.resolve(source, {"unrelated": True})
 
     assert source == original
-    assert result["Entries"] is not entries
+    assert result["entries"] is not entries
     if isinstance(entries[0], list):
-        scopes = result["Entries"][0][0]["Scopes"]
+        scopes = result["entries"][0][0]["scopes"]
     elif "Groups" in entries[0]:
-        scopes = result["Entries"][0]["Groups"][0]["Scopes"]
+        scopes = result["entries"][0]["groups"][0]["scopes"]
     else:
-        scopes = result["Entries"][0]["Scopes"]
+        scopes = result["entries"][0]["scopes"]
     assert scopes == ["read"]
     scopes.append("write")
     assert source == original
@@ -112,7 +138,7 @@ def test_normalize_copies_read_only_mappings_inside_nested_lists():
         ]
     }
 
-    result = _normalize(source)
+    result = _normalize(source, path_transformer=_default_path_transformer)
 
     assert result == {"Entries": [[{"Scopes": ["read"]}], []]}
     result["Entries"][0][0]["Scopes"].append("write")

@@ -115,7 +115,7 @@ def test_lookup_returns_snapshot_of_all_source_keys_including_list_indexes():
     first.matched_keys.append("local")
 
     assert first.value == second.value == 7
-    assert second.matched_keys == ["Section", "Items", "0", "Value"]
+    assert second.matched_keys == ["Section", "Items", 0, "Value"]
     assert _lookup(obj, path).matched_keys is None
 
 
@@ -132,3 +132,54 @@ def test_traverse_states_do_not_share_matched_key_storage():
 def test_singular_path_validation_rejects_empty_or_wildcard_paths(path):
     with pytest.raises(ValueError):
         _validate_singular_path(path)
+
+
+@pytest.mark.parametrize("factory", [dict, MappingProxyType, _UserDict, _QueryDict])
+@pytest.mark.parametrize("stored_key", ["01", "\u0661", "\uff11"])
+def test_mapping_steps_preserve_literal_decimal_spellings_for_all_mapping_wrappers(
+    factory, stored_key
+):
+    obj = factory({stored_key: 7})
+
+    assert list(iter_steps(_ExactPathSegment("1"), obj)) == []
+    assert list(iter_steps(_ExactPathSegment(stored_key), obj)) == [(stored_key, 7)]
+
+
+@pytest.mark.parametrize("factory", [list, tuple, _QueryList])
+@pytest.mark.parametrize("segment", ["-1", "1.0", " 1", "1 "])
+def test_sequence_steps_do_not_coerce_nondecimal_indexes(factory, segment):
+    obj = factory([7, 8])
+
+    assert list(iter_steps(_ExactPathSegment(segment), obj)) == []
+
+
+@pytest.mark.parametrize("factory", [dict, _QueryDict])
+def test_traversal_backtracks_through_scalar_and_short_list_candidates(factory):
+    obj = factory(
+        {
+            "Section": 7,
+            "SECTION": {"Items": []},
+            "section": {"Items": [0, {"Value": 9}]},
+        }
+    )
+    path = _Path.from_strings("section", "items", "1", "value")
+
+    result = _lookup(obj, path, include_path=True)
+
+    assert result.found
+    assert result.value == 9
+    assert result.matched_keys == ["section", "Items", 1, "Value"]
+
+
+@pytest.mark.parametrize("traverse", [_traverse, _traverse_leaves])
+def test_traversal_propagates_handler_failure_without_visiting_later_siblings(traverse):
+    visited = []
+
+    def handler(state, value):
+        visited.append(str(state.traversed_path()))
+        raise RuntimeError("handler failed")
+
+    with pytest.raises(RuntimeError, match="handler failed"):
+        traverse(_Path(_Wildcard()), {"First": 1, "Second": 2}, handler)
+
+    assert visited == ["First"]

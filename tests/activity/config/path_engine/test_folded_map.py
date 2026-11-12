@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import pytest
+
 from microsoft_agents.activity.config._engine._path._folded_map import (
     _FoldedMap,
     _get_folded_key,
@@ -56,3 +58,47 @@ def test_delete_preserves_colliding_entries_and_allows_reinsertion():
 
     assert index.update_entry("Client_Id", 3) == "Client_Id"
     assert index.get_entry(_ExactPathSegment("Client_Id")).value == 3
+
+
+@pytest.mark.parametrize("stored_key", ["01", "\u0661", "\uff11"])
+def test_noncanonical_decimal_keys_are_not_aliases_of_ascii_integer_keys(
+    stored_key,
+):
+    segment = _ExactPathSegment("1")
+    index = _FoldedMap({stored_key: "value"})
+
+    assert not segment.check(stored_key)
+    assert index.get_entry(segment) is None
+    entry = index.get_entry(_ExactPathSegment(stored_key))
+
+    assert entry is not None
+    assert (entry.key, entry.value) == (stored_key, "value")
+
+
+@pytest.mark.parametrize("operation", ["update", "delete"])
+def test_canonical_numeric_mutation_does_not_touch_a_leading_zero_key(operation):
+    index = _FoldedMap({"01": 7, "Other": 8})
+    segment = _ExactPathSegment("1")
+
+    if operation == "update":
+        assert index.update_entry(segment, 9) == "1"
+        assert index.get_entry(segment).value == 9
+    else:
+        assert index.delete_entry(segment) is None
+
+    assert index.get_entry(_ExactPathSegment("01")).value == 7
+    assert index.get_entry(_ExactPathSegment("Other")).value == 8
+
+
+def test_unicode_casefold_collision_retains_source_order_after_delete_and_reinsert():
+    index = _FoldedMap({"Straße": 1, "STRASSE": 2})
+    segment = _SimplePathSegment("strasse", ignore_case=True)
+
+    assert index.get_entry(segment).key == "Straße"
+    assert index.delete_entry(_ExactPathSegment("Straße")) == "Straße"
+    assert index.update_entry("Straße", 3) == "Straße"
+    assert [(entry.key, entry.value) for entry in index.get_bucket(segment)] == [
+        ("STRASSE", 2),
+        ("Straße", 3),
+    ]
+    assert index.get_entry(segment).key == "STRASSE"

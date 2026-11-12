@@ -53,7 +53,7 @@ class TestConnectionSettingsBase:
             AUTHORITYENDPOINT="https://authority",
             ALTERNATEBLUEPRINTCONNECTIONNAME="bp",
         )
-        settings = ConnectionSettingsBase.from_mapping(config)
+        settings = ConnectionSettingsBase.from_config(config)
         assert settings.client_id == "cid"
         assert settings.authority == "https://authority"
         assert settings.alternate_blueprint_connection_name == "bp"
@@ -68,7 +68,7 @@ class TestConnectionSettingsBase:
             "SCOPES": ["s1"],
             "ALT_BLUEPRINT_ID": "bp",
         }
-        settings = ConnectionSettingsBase.from_mapping(config)
+        settings = ConnectionSettingsBase.from_config(config)
         assert settings.client_id == "cid"
         assert settings.authority == "https://authority"
         assert settings.tenant_id == "tid"
@@ -86,7 +86,7 @@ class TestConnectionSettingsBase:
             "SCOPES": ["s1"],
             "ALTERNATEBLUEPRINTCONNECTIONNAME": "bp",
         }
-        settings = ConnectionSettingsBase.from_mapping(config)
+        settings = ConnectionSettingsBase.from_config(config)
         assert settings.client_id == "cid"
         assert settings.authority == "https://authority"
         assert settings.tenant_id == "tid"

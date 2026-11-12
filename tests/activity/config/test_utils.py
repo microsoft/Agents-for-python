@@ -6,18 +6,18 @@ from types import MappingProxyType
 
 import pytest
 
-from microsoft_agents.activity.config._engine._resolve import _resolve
-from microsoft_agents.activity.config._engine._utils import (
+from microsoft_agents.activity.config._engine import (
+    _Path,
     _MISSING,
     _get,
     _is_missing,
     _parse_env_var_name,
-    _path,
     _set,
     _try_set,
     _collect,
-    _xpath,
 )
+from microsoft_agents.activity.config._engine._resolve import _resolve, _path
+from microsoft_agents.activity.config._utils import _legpath
 
 
 @pytest.mark.parametrize("value", [None, False, 0, "", {}, []])
@@ -45,19 +45,19 @@ def test_parse_env_var_name_preserves_single_underscores_and_case():
 def test_get_returns_raw_values(value):
     mapping = MappingProxyType({"A": MappingProxyType({"B": value})})
 
-    assert _get(mapping, "A::B", default=_MISSING) is value
+    assert _get(mapping, ["A", "B"], default=_MISSING) is value
 
 
 @pytest.mark.parametrize("path", ["Missing", "A::Missing", "A::B::C"])
 def test_get_returns_default_for_missing_or_non_mapping_path(path):
-    assert _get({"A": {"B": "scalar"}}, path, default=_MISSING) is _MISSING
-    assert _get({"A": {"B": "scalar"}}, path) is None
+    assert _get({"A": {"B": "scalar"}}, path.split("::"), default=_MISSING) is _MISSING
+    assert _get({"A": {"B": "scalar"}}, path.split("::")) is None
 
 
 def test_try_set_creates_nested_mappings():
     mapping = {}
 
-    assert _try_set(mapping, "A::B::C", "value") is True
+    assert _try_set(mapping, ["A", "B", "C"], "value") is True
     assert mapping == {"A": {"B": {"C": "value"}}}
 
 
@@ -65,14 +65,14 @@ def test_try_set_creates_nested_mappings():
 def test_try_set_does_not_overwrite_existing_values_by_default(existing):
     mapping = {"A": {"B": existing}}
 
-    assert _try_set(mapping, "A::B", "replacement") is False
+    assert _try_set(mapping, ["A", "B"], "replacement") is False
     assert mapping["A"]["B"] is existing
 
 
 def test_try_set_can_explicitly_overwrite():
     mapping = {"A": {"B": "old"}}
 
-    assert _try_set(mapping, "A::B", "new", overwrite=True) is True
+    assert _try_set(mapping, ["A", "B"], "new", overwrite=True) is True
     assert mapping == {"A": {"B": "new"}}
 
 
@@ -81,7 +81,7 @@ def test_try_set_rejects_traversal_through_scalar(path):
     mapping = {"A": "scalar"}
 
     with pytest.raises(TypeError, match=path):
-        _try_set(mapping, path, "value")
+        _try_set(mapping, path.split("::"), "value")
 
     assert mapping == {"A": "scalar"}
 
@@ -90,7 +90,7 @@ def test_try_set_rejects_read_only_mapping():
     mapping = {"A": MappingProxyType({"B": "old"})}
 
     with pytest.raises(TypeError, match="A::B"):
-        _try_set(mapping, "A::B", "new")
+        _try_set(mapping, ["A", "B"], "new")
 
     assert mapping["A"]["B"] == "old"
 
@@ -98,7 +98,7 @@ def test_try_set_rejects_read_only_mapping():
 def test_set_overwrites_existing_leaf_and_preserves_siblings():
     mapping = {"A": {"B": "old", "C": "keep"}}
 
-    _set(mapping, "A::B", "new")
+    _set(mapping, ["A", "B"], "new")
 
     assert mapping == {"A": {"B": "new", "C": "keep"}}
 
@@ -160,10 +160,13 @@ def test_resolve_preserves_case_in_both_sources():
 
 
 def test_resolve_accepts_custom_path_transformer():
+    def transform(parts: list[str]) -> _Path:
+        return _Path.exact(*(segment for part in parts for segment in part.split("__")))
+
     assert _resolve(
         {"App__Name": "new"},
         {"App": {"Name": "old", "Enabled": True}},
-        path_transformer=lambda path: path.replace("__", "::"),
+        path_transformer=transform,
     ) == {"App": {"Name": "new", "Enabled": True}}
 
 
@@ -299,90 +302,44 @@ def test_resolve_merges_identical_empty_sections():
     assert result["A"] is not defaults["A"]
 
 
-def test_get_tries_alternative_paths_in_order():
-    assert _get({"A": 1, "B": 2}, "Missing", "B", "A") == 2
+def test_get_second_argument_is_a_default_not_an_alternative_path():
+    assert _get({"A": 1, "B": 2}, "Missing", "B") == "B"
 
 
 def test_get_can_skip_null_candidates():
-    assert _get({"A": None, "B": False}, "A", "B", skip_none=True) is False
+    assert _get({"A": None, "a": False}, _legpath("a"), skip_none=True) is False
 
 
 @pytest.mark.parametrize(
     "mapping, path, expected",
     [
-        ({"First": 1, "Second": 2}, "Second", [2]),
-        ({"Entries": ["first", "second"]}, "Entries::1", ["second"]),
-        ({"Entries": {"A": 1, "B": 2}}, "Entries::*", [1, 2]),
-        ({"Entries": [1, 2]}, "Entries::*", [1, 2]),
-        ({"Entries": [1, 2]}, "Missing::*", []),
+        ({"First": 1, "Second": 2}, ["Second"], [2]),
+        ({"Entries": ["first", "second"]}, ["Entries", "1"], ["second"]),
+        ({"Entries": {"A": 1, "B": 2}}, _legpath("Entries", "*"), [1, 2]),
+        ({"Entries": [1, 2]}, _legpath("Entries", "*"), []),
+        ({"Entries": [1, 2]}, _legpath("Missing", "*"), []),
     ],
 )
 def test_collect_selects_named_and_wildcard_paths(mapping, path, expected):
     assert _collect(mapping, path) == expected
 
 
-def test_xpath_has_stable_alias_precedence():
-    assert _xpath("client_id") == ["CLIENTID", "CLIENT_ID", "client_id"]
+@pytest.mark.parametrize("key", ["CLIENTID", "CLIENT_ID", "client_id", "clientId"])
+def test_legacy_path_matches_spelling_variants_without_renaming_keys(key):
+    mapping = {key: "client"}
+
+    assert _get(mapping, _legpath("client_id")) == "client"
+    assert list(mapping) == [key]
 
 
-def test_xpath_joins_path_components():
-    assert _xpath("agent_application", "user_authorization") == [
-        "AGENTAPPLICATION::USERAUTHORIZATION",
-        "AGENT_APPLICATION::USER_AUTHORIZATION",
-        "agent_application::user_authorization",
-    ]
+def test_legacy_path_components_form_one_nested_query():
+    mapping = {"AgentApplication": {"USER_AUTHORIZATION": "value"}}
+
+    assert _get(mapping, _legpath("agent_application", "user_authorization")) == "value"
 
 
-def test_xpath_three_components_deduplicates_equivalent_styles():
-    assert _xpath("a", "b", "c") == ["A::B::C", "a::b::c"]
+def test_legacy_path_does_not_split_a_literal_delimited_key():
+    mapping = {"agent_application::user_authorization": "literal"}
 
-
-@pytest.mark.parametrize(
-    "style, expected",
-    [
-        ("upper_snake", "AGENT_APPLICATION::USER_AUTHORIZATION::CLIENT_ID"),
-        ("lower_snake", "agent_application::user_authorization::client_id"),
-        ("camel", "agentApplication::userAuthorization::clientId"),
-        ("pascal", "AgentApplication::UserAuthorization::ClientId"),
-        ("all_caps", "AGENTAPPLICATION::USERAUTHORIZATION::CLIENTID"),
-    ],
-)
-def test_xpath_applies_only_the_enabled_style_to_every_component(style, expected):
-    options = {
-        "upper_snake": False,
-        "lower_snake": False,
-        "all_caps": False,
-        style: True,
-    }
-
-    assert _xpath(
-        "agent_application", "user_authorization", "client_id", **options
-    ) == [expected]
-
-
-@pytest.mark.parametrize(
-    "parts",
-    [
-        ("agent_application", "user_authorization"),
-        ("agent_application::user_authorization",),
-    ],
-)
-def test_xpath_sorts_complete_paths_without_mixing_enabled_styles(parts):
-    assert _xpath(*parts, camel=True, pascal=True) == [
-        "AGENTAPPLICATION::USERAUTHORIZATION",
-        "AGENT_APPLICATION::USER_AUTHORIZATION",
-        "AgentApplication::UserAuthorization",
-        "agentApplication::userAuthorization",
-        "agent_application::user_authorization",
-    ]
-
-
-@pytest.mark.parametrize("parts", [(), ("",), (" ",), ("a", "")])
-def test_xpath_empty_components_produce_no_aliases(parts):
-    assert _xpath(*parts) == []
-
-
-def test_xpath_all_styles_disabled_produces_no_aliases():
-    assert (
-        _xpath("client_id", upper_snake=False, lower_snake=False, all_caps=False) == []
-    )
+    assert _get(mapping, _legpath("agent_application::user_authorization")) == "literal"
+    assert _get(mapping, _legpath("agent_application", "user_authorization")) is None

@@ -170,3 +170,51 @@ def test_mutation_helpers_reject_empty_or_wildcard_paths_before_mutation(
             operation(obj, path)
 
     assert obj == {"Section": {"Value": 7}}
+
+
+@pytest.mark.parametrize("factory", [dict, _UserDict, _QueryDict])
+@pytest.mark.parametrize("key", [0, 1])
+def test_pop_preserves_integer_mapping_key_type_when_deleting(factory, key):
+    obj = factory({"Section": {key: None, "Keep": 7}})
+    path = _Path("Section", str(key))
+
+    assert _get(obj, path, default=_MISSING) is None
+    assert _pop(obj, path, default=_MISSING) is None
+    assert obj["Section"] == {"Keep": 7}
+    assert _pop(obj, path, default=_MISSING) is _MISSING
+
+
+@pytest.mark.parametrize("factory", [dict, _QueryDict])
+@pytest.mark.parametrize("operation", [_set, _pop])
+def test_canonical_numeric_mutation_preserves_a_distinct_leading_zero_key(
+    factory, operation
+):
+    obj = factory({"01": 7, "Keep": 8})
+
+    if operation is _set:
+        operation(obj, "1", 9)
+        assert list(obj) == ["01", "Keep", "1"]
+        assert obj["1"] == 9
+    else:
+        assert operation(obj, "1", default=_MISSING) is _MISSING
+        assert list(obj) == ["01", "Keep"]
+
+    assert obj["01"] == 7
+    assert obj["Keep"] == 8
+
+
+def test_pop_does_not_delete_string_alias_of_an_integer_mapping_key():
+    obj = {1: "first", "1": "second", "Keep": 7}
+
+    assert _pop(obj, "1") == "first"
+    assert list(obj.items()) == [("1", "second"), ("Keep", 7)]
+
+
+@pytest.mark.parametrize("factory", [dict, _QueryDict])
+def test_pop_backtracks_past_an_incomplete_case_insensitive_prefix(factory):
+    obj = factory({"Section": {}, "section": {"Value": None, "Keep": 7}})
+    path = _Path.from_strings("section", "value")
+
+    assert _pop(obj, path, default=_MISSING) is None
+    assert obj["Section"] == {}
+    assert obj["section"] == {"Keep": 7}

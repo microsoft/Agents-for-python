@@ -4,15 +4,15 @@
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from .types import _PathSegment, _SimplePathSegment
+from .types import _PathSegment, _SimplePathSegment, _SegmentValue
 
 
-def _get_folded_key(segment: str | _PathSegment) -> str:
+def _get_folded_key(segment: _SegmentValue | _PathSegment) -> str:
     return _ps(segment).folded
 
 
-def _ps(segment: str | _PathSegment) -> _PathSegment:
-    if isinstance(segment, str):
+def _ps(segment: _SegmentValue | _PathSegment) -> _PathSegment:
+    if isinstance(segment, (str, int)):
         return _SimplePathSegment(segment)
     return segment
 
@@ -20,7 +20,7 @@ def _ps(segment: str | _PathSegment) -> _PathSegment:
 @dataclass
 class _FoldedMapEntry:
 
-    key: str | int
+    key: _SegmentValue
     value: Any
 
 
@@ -37,7 +37,7 @@ class _FoldedMap:
         for key, val in data.items():
             self.update_entry(key, val)
 
-    def update_entry(self, segment: str | _PathSegment, value: Any) -> str:
+    def update_entry(self, segment: _SegmentValue | _PathSegment, value: Any) -> _SegmentValue:
         entries, entry = self._get_entry_and_bucket(segment)
         if entry is not None:
             entry.value = value
@@ -46,11 +46,11 @@ class _FoldedMap:
             if entries is None:
                 entries = []
                 self._data[_get_folded_key(segment)] = entries
-            segment_str = str(segment)
-            entries.append(_FoldedMapEntry(key=segment_str, value=value))
-            return segment_str
+            key_value = _PathSegment.get_value(segment)
+            entries.append(_FoldedMapEntry(key=key_value, value=value))
+            return key_value
 
-    def delete_entry(self, segment: str | _PathSegment) -> str | None:
+    def delete_entry(self, segment: _SegmentValue | _PathSegment) -> _SegmentValue | None:
         entries, entry = self._get_entry_and_bucket(segment)
         if entry is not None and entries is not None:
             key = entry.key
@@ -61,7 +61,7 @@ class _FoldedMap:
         return None
 
     def _get_entry_and_bucket(
-        self, segment: str | _PathSegment
+        self, segment: _SegmentValue | _PathSegment
     ) -> tuple[list[_FoldedMapEntry] | None, _FoldedMapEntry | None]:
         seg = _ps(segment)
         entries = self.get_bucket(segment)
@@ -71,7 +71,7 @@ class _FoldedMap:
                     return entries, entry
         return entries, None
 
-    def get_bucket(self, segment: str | _PathSegment) -> list[_FoldedMapEntry] | None:
+    def get_bucket(self, segment: _SegmentValue | _PathSegment) -> list[_FoldedMapEntry] | None:
         return self._data.get(_get_folded_key(segment), None)
 
     def get_entry(self, segment: _PathSegment) -> _FoldedMapEntry | None:

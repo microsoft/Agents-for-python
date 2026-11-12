@@ -47,8 +47,8 @@ def test_case_insensitive_matching_uses_unicode_casefold():
     assert segment.folded == "strasse"
 
 
-@pytest.mark.parametrize("target", [2, "2", "02"])
-def test_numeric_segments_match_list_index_representations(target):
+@pytest.mark.parametrize("target", [2, "2"])
+def test_numeric_segments_match_canonical_integer_representations(target):
     assert _ExactPathSegment("2").check(target)
     assert not _ExactPathSegment("3").check(target)
 
@@ -133,3 +133,62 @@ def test_missing_detection_does_not_confuse_present_falsy_values(value):
     assert _is_missing(_MISSING)
     assert _is_missing(_MissingType())
     assert not _is_missing(value)
+
+
+@pytest.mark.skip(reason="Nondecimal Unicode digit handling is deferred.")
+@pytest.mark.parametrize("digit", ["\u00b2", "\u2081", "\u2460"])
+def test_nondecimal_digit_segments_match_literal_keys_without_integer_conversion(digit):
+    segment = _ExactPathSegment(digit)
+
+    assert segment.check(digit)
+    assert not segment.check(1)
+    assert not segment.check("1")
+
+
+@pytest.mark.parametrize("digit", ["01", "\u0661", "\uff11"])
+def test_noncanonical_decimal_spellings_match_only_their_literal_key(digit):
+    segment = _ExactPathSegment(digit)
+
+    assert segment.check(digit)
+    assert not segment.check(1)
+    assert not segment.check("1")
+    assert not _ExactPathSegment("1").check(digit)
+
+
+@pytest.mark.parametrize("segments", [("Section", "Value"), ("0",)])
+def test_path_create_accepts_tuple_sequences_declared_by_path_proxy(segments):
+    path = _Path.create(segments)
+
+    assert path.check(_Path.create(list(segments)))
+    assert len(path) == len(segments)
+
+
+def test_path_reverse_slice_preserves_each_segment_policy():
+    path = _Path(
+        _SimplePathSegment("Client_Id", ignore_case=True, ignore_underscores=True),
+        _ExactPathSegment("Value"),
+        _Wildcard(),
+    )
+
+    reversed_path = path[::-1]
+
+    assert isinstance(reversed_path[0], _Wildcard)
+    assert reversed_path[1] is path[1]
+    assert reversed_path[2] is path[0]
+    assert reversed_path.check(_Path("Anything", "Value", "CLIENTID"))
+    assert not reversed_path.check(_Path("Anything", "value", "CLIENTID"))
+    assert list(path[1:1]) == []
+
+
+@pytest.mark.parametrize("factory", [_ExactPathSegment, _SimplePathSegment])
+def test_segment_construction_rejects_empty_strings(factory):
+    with pytest.raises(TypeError, match="[Ee]mpty"):
+        factory("")
+
+
+@pytest.mark.parametrize("segments", [[""], ["", ""], ["A", "", "B"]])
+def test_path_constructor_rejects_empty_segments_without_silently_dropping_them(
+    segments,
+):
+    with pytest.raises(ValueError, match="[Ee]mpty"):
+        _Path.create(segments)

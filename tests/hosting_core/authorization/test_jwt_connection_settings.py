@@ -45,8 +45,8 @@ def test_legacy_binding_preserves_explicit_issuers_without_internal_provider_ext
 def test_default_issuers_use_effective_tenant_and_cloud(
     tenant_id, authority, effective_tenant, cloud
 ):
-    settings = JwtConnectionSettings.from_mapping(
-        tenant_id=tenant_id, authority=authority
+    settings = JwtConnectionSettings.from_config(
+        dict(tenant_id=tenant_id, authority=authority)
     )
     assert settings.issuers == [
         f"https://api.botframework.{cloud}",
@@ -64,7 +64,7 @@ def test_default_issuers_use_effective_tenant_and_cloud(
     ],
 )
 def test_explicit_issuers_override_defaults(value):
-    settings = JwtConnectionSettings.from_mapping(
+    settings = JwtConnectionSettings.from_config(
         {"ISSUERS": value, "VALIDATE_ISSUER": "true", "ANONYMOUS_ALLOWED": "false"}
     )
     assert settings.issuers == [
@@ -85,13 +85,13 @@ def test_indexed_issuers_from_environment():
             }
         )
     )
-    connection = config.get_section("CONNECTIONS::SERVICE_CONNECTION")
+    connection = config.get_section(["CONNECTIONS", "SERVICE_CONNECTION"])
     assert connection["SETTINGS"]["ISSUERS"] == [
         "https://first.example.com/",
         "https://second.example.com/",
         "https://third.example.com/",
     ]
-    assert JwtConnectionSettings.from_configuration(connection).issuers == [
+    assert JwtConnectionSettings.from_config(connection).issuers == [
         "https://first.example.com/",
         "https://second.example.com/",
         "https://third.example.com/",
@@ -100,13 +100,13 @@ def test_indexed_issuers_from_environment():
 
 def test_unresolved_indexed_issuers_require_normalization():
     with pytest.raises(ValueError, match="ISSUERS"):
-        JwtConnectionSettings.from_mapping(
+        JwtConnectionSettings.from_config(
             {"ISSUERS": {"0": "https://first.example.com/"}}
         )
 
 
 def test_base_settings_bind_aliases_scopes_and_provider_extras():
-    settings = ConnectionSettingsBase.from_mapping(
+    settings = ConnectionSettingsBase.from_config(
         {
             "SETTINGS": {
                 "CLIENTID": "client",
