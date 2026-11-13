@@ -3,6 +3,7 @@ import jwt
 from datetime import datetime, timezone, timedelta
 
 from microsoft_agents.activity import ActivityTypes, TokenResponse
+from microsoft_agents.activity.config import Configuration
 
 from microsoft_agents.authentication.msal import MsalAuth, MsalConnectionManager
 
@@ -94,7 +95,7 @@ class TestEnv(FlowStateFixtures):
 
     @pytest.fixture
     def connection_manager(self):
-        return MsalConnectionManager(**AGENTIC_ENV_DICT)
+        return MsalConnectionManager(config=Configuration(AGENTIC_ENV_DICT))
 
     @pytest.fixture
     def auth_handler_settings(self):
@@ -109,7 +110,7 @@ class TestEnv(FlowStateFixtures):
         return ConnectorUserAuthorization(
             storage,
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            config=auth_handler_settings,
             auth_handler_id=DEFAULTS.auth_handler_id,
         )
 

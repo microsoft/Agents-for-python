@@ -85,16 +85,20 @@ class JwtTokenValidator:
             AgentAuthConfiguration | Configuration | TokenValidationConfiguration
         ),
     ):
-        """Initialize JWT validation from configuration or a bound policy.
+        """Set up checks for incoming access tokens.
 
-        Root Configuration input binds ``token_validation`` plus sibling
-        ``connections``. Scoped input binds policy fields only, without routing
-        defaults. A bound TokenValidationConfiguration is reused unchanged and
-        can supply connection routing directly.
+        Pass the full application Configuration from
+        ``load_configuration_from_env`` to read both ``token_validation`` and
+        ``connections``. Passing just the token-validation section reads only
+        its policy options; it does not find connection settings elsewhere.
 
-        :param configuration: Root/scoped Configuration, bound
-            TokenValidationConfiguration, or legacy AgentAuthConfiguration.
-            Legacy input is converted into the same policy and routing model.
+        For setup in code, pass a TokenValidationConfiguration with
+        ``connections`` or ``default_jwt_settings`` when needed to check
+        signatures. See that class for examples and default behavior.
+
+        :param configuration: Application Configuration, token-validation
+            options, a TokenValidationConfiguration object, or legacy
+            AgentAuthConfiguration.
         """
         if isinstance(configuration, AgentAuthConfiguration):
             self._config = TokenValidationConfiguration(
@@ -102,17 +106,15 @@ class JwtTokenValidator:
                 anonymous_allowed=configuration.ANONYMOUS_ALLOWED,
                 audiences=configuration._get_audiences(),
                 connections={
-                    conn_name: JwtConnectionSettings.from_mapping(conn._to_dict())
+                    conn_name: JwtConnectionSettings.from_config(conn._to_dict())
                     for conn_name, conn in configuration._connections.items()
                 },
-                default_jwt_settings=JwtConnectionSettings.from_mapping(
+                default_jwt_settings=JwtConnectionSettings.from_config(
                     configuration._to_dict()
                 ),
             )
         else:
-            self._config = TokenValidationConfiguration.from_configuration(
-                configuration
-            )
+            self._config = TokenValidationConfiguration.from_config(configuration)
 
     @property
     def config(self) -> TokenValidationConfiguration:

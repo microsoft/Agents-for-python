@@ -1,6 +1,6 @@
 import pytest
 
-from microsoft_agents.hosting.core import AuthHandler, AuthHandlerSettings
+from microsoft_agents.hosting.core import AuthHandler, AuthHandlerConfig
 from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.activity.config import Configuration
 
@@ -30,7 +30,7 @@ class TestAuthHandler:
         scopes = settings["SCOPES"]
 
         handler = (
-            AuthHandlerSettings.from_mapping(settings)
+            AuthHandlerConfig.from_config(settings)
             if from_mapping
             else AuthHandler("graph", **settings)
         )
@@ -100,7 +100,7 @@ class TestAuthHandler:
         )
 
 
-class TestAuthHandlerSettings:
+class TestAuthHandlerConfig:
     @pytest.mark.parametrize("from_configuration", [False, True])
     @pytest.mark.parametrize(
         "scopes",
@@ -118,12 +118,12 @@ class TestAuthHandlerSettings:
             "ALT_BLUEPRINT_NAME": "blueprint",
         }
         handler = (
-            AuthHandlerSettings.from_configuration(Configuration(settings))
+            AuthHandlerConfig.from_config(Configuration(settings))
             if from_configuration
-            else AuthHandlerSettings.from_mapping(settings)
+            else AuthHandlerConfig.from_config(settings)
         )
 
-        assert handler == AuthHandlerSettings(
+        assert handler == AuthHandlerConfig(
             name="graph",
             title="Sign in",
             text="Continue",
@@ -135,9 +135,9 @@ class TestAuthHandlerSettings:
         )
 
     def test_from_mapping_applies_optional_defaults(self):
-        handler = AuthHandlerSettings.from_mapping({"name": "graph"})
+        handler = AuthHandlerConfig.from_config({"name": "graph"})
 
-        assert handler == AuthHandlerSettings(
+        assert handler == AuthHandlerConfig(
             name="graph",
             title="",
             text="",
@@ -165,9 +165,9 @@ class TestAuthHandlerSettings:
         ids=["snake-case", "lowercase-environment"],
     )
     def test_from_mapping_accepts_different_key_styles(self, settings):
-        handler = AuthHandlerSettings.from_mapping(settings)
+        handler = AuthHandlerConfig.from_config(settings)
 
-        assert handler == AuthHandlerSettings(
+        assert handler == AuthHandlerConfig(
             name="graph",
             title="",
             text="",

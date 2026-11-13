@@ -28,7 +28,7 @@ No `SidecarConnectionManager` is needed — the generic connection manager dispa
 
   | Downstream API name | Used by | Configuration |
   |---|---|---|
-  | `botframework` | `ServiceConnection` (channel callbacks) | Scope `5a807f24-c9de-44ee-a3a7-329e88a00ffc/.default` |
+  | `botframework` | `SERVICE_CONNECTION` (channel callbacks) | Scope `5a807f24-c9de-44ee-a3a7-329e88a00ffc/.default` |
   | `agenticblueprint` | `get_agentic_application_token` | App-only (`RequestAppToken`), scope `api://AzureAdTokenExchange/.default` |
 
 ## Setup

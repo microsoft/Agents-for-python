@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from microsoft_agents.activity.config import (
     _Configurable,
     Configuration,
-    xpath,
+    _legpath as legpath,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,34 +36,46 @@ def _create_kwargs(
 ) -> dict:
     c = Configuration(kwargs)
     return dict(
-        name=_or_default(name, c.get_str(xpath("name"), default="")),
-        title=_or_default(title, c.get_str(xpath("title"), default="")),
-        text=_or_default(text, c.get_str(xpath("text"), default="")),
+        name=_or_default(name, c.get_str(legpath("name"), default="")),
+        title=_or_default(title, c.get_str(legpath("title"), default="")),
+        text=_or_default(text, c.get_str(legpath("text"), default="")),
         abs_oauth_connection_name=_or_default(
             abs_oauth_connection_name,
-            c.get_str(xpath("azurebotoauthconnectionname"), default=""),
+            c.get_str(legpath("azurebotoauthconnectionname"), default=""),
         ),
         obo_connection_name=_or_default(
-            obo_connection_name, c.get_str(xpath("oboconnectionname"), default="")
+            obo_connection_name, c.get_str(legpath("oboconnectionname"), default="")
         ),
         auth_type=_or_default(
-            auth_type, c.get_str(xpath("type"), default="UserAuthorization")
+            auth_type, c.get_str(legpath("type"), default="UserAuthorization")
         ).lower(),
-        scopes=Configuration.format_scopes(scopes or c.get(xpath("scopes"))),
+        scopes=Configuration.format_scopes(scopes or c.get(legpath("scopes"))),
         _alt_blueprint_name=_alt_blueprint_name
-        or c.get_strn(xpath("alt_blueprint_name")),
+        or c.get_strn(legpath("alt_blueprint_name")),
     )
 
 
 @dataclass
-class AuthHandlerSettings(_Configurable):
-    """Settings for one OAuth handler, independent of its runtime strategy.
+class AuthHandlerConfig(_Configurable):
+    """Settings for one named sign-in option, such as access to Microsoft Graph.
 
-    Construct with typed field values, or use ``from_mapping`` to bind
-    configuration aliases such as ``AZUREBOTOAUTHCONNECTIONNAME`` and ``TYPE``.
-    Mapping binding normalizes the authorization type and accepts scopes as a
-    list or a comma/whitespace-separated string. Direct construction expects a
-    scope list.
+    Create with keyword arguments, or use ``from_config`` to read a settings
+    dictionary. The latter also accepts configuration names such as
+    ``AZUREBOTOAUTHCONNECTIONNAME`` and converts scope text to a list::
+
+        >>> from microsoft_agents.hosting.core import AuthHandlerConfig
+        >>> handler = AuthHandlerConfig.from_config({
+        ...     "name": "graph",
+        ...     "AZUREBOTOAUTHCONNECTIONNAME": "graph-oauth",
+        ...     "scopes": "User.Read, Mail.Read",
+        ... })
+        >>> handler.abs_oauth_connection_name
+        'graph-oauth'
+        >>> handler.scopes
+        ['User.Read', 'Mail.Read']
+
+    When using constructor arguments instead, pass ``scopes`` as a list.
+    ``from_config`` also converts the authorization type to lowercase.
 
     :param name: Handler identifier; use the corresponding handlers-mapping key.
     :param title: Sign-in card title.
@@ -87,8 +99,8 @@ class AuthHandlerSettings(_Configurable):
     _alt_blueprint_name: str | None = None
 
     @classmethod
-    def _from_configuration(cls, config: Configuration) -> AuthHandlerSettings:
-        return AuthHandlerSettings(**_create_kwargs(**config))
+    def _from_config(cls, config: Configuration) -> AuthHandlerConfig:
+        return AuthHandlerConfig(**_create_kwargs(**config))
 
     @staticmethod
     def _format_scopes(scopes: str | list[str]) -> list[str]:
@@ -99,19 +111,19 @@ class AuthHandlerSettings(_Configurable):
         return [s for s in lst if s]
 
 
-class AuthHandler(AuthHandlerSettings):
-    """Deprecated compatibility constructor for AuthHandlerSettings.
+class AuthHandler(AuthHandlerConfig):
+    """Deprecated compatibility constructor for AuthHandlerConfig.
 
     Accepts legacy positional fields and configuration keyword aliases, and
-    emits a DeprecationWarning. Use AuthHandlerSettings for typed construction
-    or ``AuthHandlerSettings.from_mapping`` for configuration binding.
+    emits a DeprecationWarning. Use AuthHandlerConfig for typed construction
+    or ``AuthHandlerConfig.from_config`` for configuration binding.
     """
 
     def __init__(self, *args, **kwargs):
         """Bind legacy arguments and emit the constructor deprecation warning."""
 
         warnings.warn(
-            "AuthHandler is deprecated. Please use AuthHandlerSettings instead.",
+            "AuthHandler is deprecated. Please use AuthHandlerConfig instead.",
             DeprecationWarning,
             stacklevel=2,
         )

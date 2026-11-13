@@ -4,24 +4,42 @@
 from typing import Any, Mapping
 
 from .configuration import Configuration
-
 from ._logging import _configure_logging
+from ._engine._resolve import _resolve
+from ._metadata import _RootConfigMetadata
 
 
-def load_configuration_from_env(
-    env_vars: Mapping[str, Any], defaults: Mapping[str, Any] | None = None
-) -> Configuration:
-    """Resolve environment values and defaults into root configuration.
+def load_configuration_from_env(config_dict: Mapping[str, Any]) -> Configuration:
+    """Load application settings from environment variables or a dictionary.
 
-    Environment-style ``__`` paths are expanded and indexed mappings become
-    lists. Environment values take precedence over defaults without modifying
-    either input. The resolved logging section is applied before returning.
+    Pass ``os.environ`` to read the current process environment, or supply your
+    own dictionary. Names containing ``__`` or ``::`` become nested sections;
+    key capitalization is preserved. Values such as ``"30"`` and ``"false"``
+    remain strings until you read them with a typed getter.
 
-    :param env_vars: A mapping of environment variable names to their values.
-    :param defaults: Optional fallback values, either nested or environment-style.
-    :return: A Configuration with ``is_root_config=True``, suitable for binding
-        application-level settings. Extracted sections are scoped configurations.
+    For example, without changing the process environment::
+
+        >>> from microsoft_agents.activity.config import load_configuration_from_env
+        >>> config = load_configuration_from_env({
+        ...     "SERVICE__TIMEOUT": "30",
+        ...     "SERVICE__ENABLED": "false",
+        ... })
+        >>> config.get_int(["SERVICE", "TIMEOUT"])
+        30
+        >>> config.get_bool(["SERVICE", "ENABLED"])
+        False
+
+    The result represents the full application configuration. APIs such as
+    ``Authorization`` can use it to find their own sections automatically.
+    If a ``logging`` section is present, its log levels are applied as well.
+
+    This function accepts one dictionary. If settings come from several
+    sources, combine them first and decide which source should take precedence.
+
+    :param config_dict: Environment variables or other application settings.
+    :return: Configuration ready to pass to SDK application components.
     """
-    config = Configuration.resolve(env_vars, defaults or {}, _is_root_config=True)
+    config = Configuration(_resolve(config_dict))
+    _RootConfigMetadata.set(config, True)
     _configure_logging(config)
     return config

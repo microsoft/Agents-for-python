@@ -1,9 +1,11 @@
 from types import MappingProxyType
 
 from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.activity.config import Configuration
 
-from tests._common import create_env_var_dict
+from tests._common import create_env_var_dict, create_configuration
 from tests._common.data import DEFAULT_TEST_VALUES
+from microsoft_agents.activity.config._metadata import _RootConfigMetadata
 
 DEFAULTS = DEFAULT_TEST_VALUES()
 
@@ -102,9 +104,9 @@ CONNECTIONSMAP__1__SERVICEURL=agentic
 def test_load_configuration_from_env():
     input_dict = create_env_var_dict(ENV_RAW)
     config = load_configuration_from_env(input_dict)
-    assert config == ENV_DICT
-    assert config.is_root_config is True
-    assert config.get_section("CONNECTIONS").is_root_config is False
+    assert config == create_configuration(ENV_DICT, is_root=True)
+    assert _RootConfigMetadata.get(config) is True
+    assert _RootConfigMetadata.get(config.get_section("CONNECTIONS")) is False
 
 
 def test_load_configuration_from_read_only_mapping():
@@ -112,39 +114,40 @@ def test_load_configuration_from_read_only_mapping():
 
     config = load_configuration_from_env(input_mapping)
 
-    assert config == ENV_DICT
-    assert config.is_root_config is True
+    assert config == create_configuration(ENV_DICT, is_root=True)
+    assert _RootConfigMetadata.get(config) is True
 
 
 def test_load_configuration_from_empty_mapping():
     config = load_configuration_from_env({})
 
-    assert config == {}
-    assert config.is_root_config is True
+    assert config == create_configuration({}, is_root=True)
+    assert _RootConfigMetadata.get(config) is True
 
 
-def test_environment_values_override_defaults_and_preserve_custom_sections():
+def test_caller_resolves_defaults_before_loading_configuration():
     defaults = {
-        "CONNECTIONS": {
-            "SERVICE_CONNECTION": {
-                "SETTINGS": {"CLIENTID": "default-client", "TENANTID": "tenant"}
+        "connections": {
+            "service_connection": {
+                "settings": {"client_id": "default-client", "tenant_id": "tenant"}
             }
         },
-        "CUSTOM": {"ENABLED": "false"},
+        "custom": {"enabled": "false"},
     }
 
-    config = load_configuration_from_env(
-        {"CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "env-client"},
-        defaults=defaults,
+    resolved = Configuration._resolve(
+        {"connections__service_connection__settings__client_id": "env-client"},
+        defaults,
     )
+    config = load_configuration_from_env(resolved)
 
-    assert config["CONNECTIONS"]["SERVICE_CONNECTION"]["SETTINGS"] == {
-        "CLIENTID": "env-client",
-        "TENANTID": "tenant",
+    assert config["connections"]["service_connection"]["settings"] == {
+        "client_id": "env-client",
+        "tenant_id": "tenant",
     }
-    assert config["CUSTOM"] == {"ENABLED": "false"}
-    assert config.is_root_config is True
+    assert config["custom"] == {"enabled": "false"}
+    assert _RootConfigMetadata.get(config) is True
     assert (
-        defaults["CONNECTIONS"]["SERVICE_CONNECTION"]["SETTINGS"]["CLIENTID"]
+        defaults["connections"]["service_connection"]["settings"]["client_id"]
         == "default-client"
     )

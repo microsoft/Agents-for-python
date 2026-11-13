@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass, field
 
-from microsoft_agents.activity.config import Configuration, xpath
+from microsoft_agents.activity.config import Configuration, _legpath as legpath
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     AuthTypes,
@@ -13,7 +13,38 @@ from microsoft_agents.hosting.core import (
 
 @dataclass(frozen=True)
 class MsalConnectionSettings(ConnectionSettingsBase):
-    """MSAL-specific settings, bound independently of inbound JWT policy."""
+    """Credentials and options MSAL uses to request access tokens.
+
+    Create this object with keyword arguments, or call ``from_config`` with a
+    dictionary containing one connection's settings::
+
+        >>> from microsoft_agents.authentication.msal import MsalConnectionSettings
+        >>> settings = MsalConnectionSettings.from_config({
+        ...     "CLIENT_ID": "your-client-id",
+        ...     "TENANT_ID": "your-tenant-id",
+        ...     "CLIENT_SECRET": "<your-client-secret>",
+        ...     "SCOPES": "https://graph.microsoft.com/.default",
+        ... })
+        >>> settings.client_id
+        'your-client-id'
+        >>> settings.scopes
+        ['https://graph.microsoft.com/.default']
+
+    ``CLIENT_ID``, ``ClientId``, and ``client_id`` all populate ``client_id``.
+    You can also pass a connection entry containing a ``settings`` dictionary.
+    Do not pass the entire application configuration: select the connection
+    first, or let ``MsalConnectionManager`` do that for you.
+
+    The default authentication type is ``AuthTypes.client_secret``; provide
+    ``client_secret`` when using that type to acquire tokens. Other types have
+    their own required fields: certificate authentication requires
+    ``cert_pfx_file``, federated credentials require ``federated_client_id``,
+    and workload identity requires ``federated_token_file``.
+    These three requirements are checked when the settings object is created.
+
+    ``regional_authority`` can be used if ``azure_region`` is not supplied.
+    Unrecognized settings are available through ``extras``.
+    """
 
     auth_type: str = AuthTypes.client_secret
     client_secret: str | None = field(default=None, repr=False)
@@ -51,18 +82,19 @@ class MsalConnectionSettings(ConnectionSettingsBase):
         base.update(
             {
                 "auth_type": config.get_str(
-                    xpath("auth_type"), default=AuthTypes.client_secret
+                    legpath("auth_type"), default=AuthTypes.client_secret
                 ),
-                "client_secret": config.get_strn(xpath("client_secret")),
-                "cert_pfx_file": config.get_strn(xpath("cert_pfx_file")),
-                "send_x5c": config.get_bool(xpath("send_x5c"), default=False),
-                "connection_name": config.get_strn(xpath("connection_name")),
-                "federated_client_id": config.get_strn(xpath("federated_client_id")),
-                "federated_token_file": config.get_strn(xpath("federated_token_file")),
-                "idpm_resource": config.get_strn(xpath("idpm_resource")),
-                "azure_region": config.get_strn(
-                    xpath("azure_region"), xpath("regional_authority")
+                "client_secret": config.get_strn(legpath("client_secret")),
+                "cert_pfx_file": config.get_strn(legpath("cert_pfx_file")),
+                "send_x5c": config.get_bool(legpath("send_x5c"), default=False),
+                "connection_name": config.get_strn(legpath("connection_name")),
+                "federated_client_id": config.get_strn(legpath("federated_client_id")),
+                "federated_token_file": config.get_strn(
+                    legpath("federated_token_file")
                 ),
+                "idpm_resource": config.get_strn(legpath("idpm_resource")),
+                "azure_region": config.get_strn(legpath("azure_region"))
+                or config.get_strn(legpath("regional_authority")),
             }
         )
         return base

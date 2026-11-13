@@ -27,6 +27,7 @@ from microsoft_agents.activity import (
     TokenResponse,
 )
 from microsoft_agents.activity.config import Configuration
+from microsoft_agents.activity.config._metadata import _RootConfigMetadata
 from microsoft_agents.activity.activity_types import ActivityTypes
 
 from microsoft_agents.hosting.core.authorization._helpers import (
@@ -38,7 +39,7 @@ from ...storage import Storage
 from ...authorization import Connections
 from ..._oauth import _FlowStateTag
 from ..state import TurnState
-from .auth_handler import AuthHandlerSettings
+from .auth_handler import AuthHandlerConfig
 from ._sign_in_state import _SignInState
 from ._sign_in_response import _SignInResponse
 from ._handlers import (
@@ -47,7 +48,7 @@ from ._handlers import (
     _UserAuthorization,
     _AuthorizationHandler,
 )
-from .authorization_settings import AuthorizationSettings
+from .authorization_config import AuthorizationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -78,38 +79,47 @@ class Authorization:
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handlers: dict[str, AuthHandlerSettings] | None = None,
-        auto_sign_in: bool = False,
+        auth_handlers: (
+            list[AuthHandlerConfig] | dict[str, AuthHandlerConfig] | None
+        ) = None,
+        auto_sign_in: bool | None = None,
         *,
-        settings: Configuration | AuthorizationSettings | None = None,
+        config: Configuration | AuthorizationConfig | None = None,
         use_cache: bool = False,
         **kwargs,
     ):
-        """Create authorization flows from explicit or configured settings.
+        """Set up user sign-in using configured or explicitly supplied handlers.
 
-        Prefer settings containing a root Configuration from
-        ``load_configuration_from_env``, a scoped authorization section/mapping,
-        or a bound AuthorizationSettings instance. Root input reads
-        ``agent_application::user_authorization``; scoped input reads
-        ``handlers`` and ``auto_sign_in`` directly.
+        For ``config``, pass one of the following:
 
-        A nonempty auth_handlers mapping replaces configured handlers. Otherwise
-        the handlers from settings are used, with the first handler as the
-        default. Omitting all configuration creates an instance with no handlers.
+        * The full application Configuration returned by
+          ``load_configuration_from_env``. Sign-in options are read from
+          ``agent_application`` > ``user_authorization``.
+        * A dictionary or Configuration containing just ``handlers`` and
+          ``auto_sign_in``. See ``AuthorizationConfig`` for an example.
+        * An AuthorizationConfig object created in code.
+
+        A nonempty ``auth_handlers`` list or dictionary replaces handlers from
+        ``config``. An empty list or dictionary does not disable configured
+        handlers; it uses them instead. In a list, each handler's ``name`` is
+        its ID, and the last definition wins if names repeat.
+        The first handler is used when a sign-in call does not specify an ID.
+        Omitting all configuration creates an instance with no handlers.
 
         :param storage: The storage system to use for state management.
         :type storage: :class:`microsoft_agents.hosting.core.storage.Storage`
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections`
         :param auth_handlers: Optional explicit handler IDs and their settings.
-        :type auth_handlers: dict[str, AuthHandlerSettings] | None
-        :param auto_sign_in: Enable automatic sign-in. False defers to the value
-            in settings; it does not override a configured True.
-        :param settings: Root/scoped configuration or bound authorization settings.
-            When supplied, deprecated kwargs are ignored rather than merged.
+        :type auth_handlers: list[AuthHandlerConfig] | dict[str, AuthHandlerConfig] | None
+        :param auto_sign_in: Override configured automatic sign-in with True or
+            False. None uses the configured value.
+        :param config: Full application settings, sign-in options, or an
+            AuthorizationConfig object, as described above. When supplied,
+            deprecated kwargs are ignored rather than combined with config.
         :param use_cache: Retained for compatibility; currently has no effect.
         :param kwargs: Deprecated unpacked root configuration. Emits a
-            DeprecationWarning when nonempty, even if settings takes precedence.
+            DeprecationWarning when nonempty, even if config takes precedence.
         :raises ValueError: If storage is missing or a selected handler has an
             unsupported authorization type or invalid settings.
         """
@@ -129,28 +139,34 @@ class Authorization:
         if kwargs:
             warnings.warn(
                 "Passing configuration via kwargs is deprecated. "
-                "Use the 'settings' parameter instead.",
+                "Use the 'config' parameter instead.",
                 DeprecationWarning,
             )
-            if settings is not None:
+            if config is not None:
                 logger.warning(
-                    "Both 'settings' and 'kwargs' are provided. 'kwargs' will be ignored in favor of 'settings'."
+                    "Both 'config' and 'kwargs' are provided. 'kwargs' will be ignored in favor of 'config'."
                 )
 
-        auth_settings: AuthorizationSettings
-        if settings is None:
-            auth_settings = AuthorizationSettings.from_configuration(
-                Configuration(kwargs, _is_root_config=True)
-            )
-        elif isinstance(settings, Mapping):
-            auth_settings = AuthorizationSettings.from_mapping(settings)
-        elif isinstance(settings, AuthorizationSettings):
-            auth_settings = settings
+        auth_config: AuthorizationConfig
+        if config is None:
+            _RootConfigMetadata.set(kwargs, True)
+            auth_config = AuthorizationConfig.from_config(kwargs)
+        elif isinstance(config, Mapping):
+            auth_config = AuthorizationConfig.from_config(config)
+        elif isinstance(config, AuthorizationConfig):
+            auth_config = config
 
         self._handlers = {}
 
-        self._handler_settings = auth_handlers or auth_settings.handlers
-        self._auto_sign_in = auto_sign_in or auth_settings.auto_sign_in
+        if isinstance(auth_handlers, list):
+            auth_handlers = {handler.name: handler for handler in auth_handlers}
+
+        self._handler_settings = auth_handlers or auth_config.handlers
+        self._auto_sign_in = (
+            auto_sign_in
+            if auto_sign_in is not None
+            else (auth_config.auto_sign_in or False)
+        )
 
         # operations default to the first handler if none specified
         if self._handler_settings:
@@ -158,14 +174,7 @@ class Authorization:
             self._init_handlers()
 
     def _init_handlers(self) -> None:
-        """Initialize authorization variants based on the provided auth handlers.
-
-        This method maps the auth types to their corresponding authorization variants, and
-        it initializes an instance of each variant that is referenced.
-
-        :param auth_handlers: A dictionary of auth handler configurations.
-        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandlerSettings`]
-        """
+        """Instantiate configured strategies, matching authorization types without case."""
         for name, settings in self._handler_settings.items():
             auth_type = settings.auth_type.lower()
             if auth_type not in AUTHORIZATION_TYPE_MAP:
@@ -174,7 +183,7 @@ class Authorization:
             self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
                 connection_manager=self._connection_manager,
-                settings=settings,
+                config=settings,
             )
 
     @property

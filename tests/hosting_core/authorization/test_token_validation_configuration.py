@@ -12,10 +12,11 @@ from microsoft_agents.hosting.core.authorization.jwt import (
 )
 
 from tests._common.jwt_test_utils import generate_rsa_keypair, make_signed_jwt
+from tests._common import create_configuration
 
 
 def _root(**token_validation):
-    return Configuration(
+    return create_configuration(
         {
             "connections": {
                 "SERVICE_CONNECTION": {
@@ -31,14 +32,14 @@ def _root(**token_validation):
             },
             "token_validation": token_validation,
         },
-        _is_root_config=True,
+        is_root=True,
     )
 
 
 def test_absent_policy_uses_service_connection_and_all_connection_audiences():
     root = _root()
     del root["token_validation"]
-    policy = TokenValidationConfiguration.from_configuration(root)
+    policy = TokenValidationConfiguration.from_config(root)
     assert policy.tenant_id == "service-tenant"
     assert policy.audiences == ["service-client", "mcs-client"]
     assert policy.anonymous_allowed is True
@@ -60,7 +61,7 @@ def test_scoped_policy_and_bound_settings_initialization(source):
         anonymous_allowed=True,
     )
     if source == "mapping":
-        policy = TokenValidationConfiguration.from_mapping(values)
+        policy = TokenValidationConfiguration.from_config(values)
     else:
         config = {
             "configuration": Configuration(values),
@@ -84,7 +85,7 @@ def test_scoped_policy_and_bound_settings_initialization(source):
     ],
 )
 def test_explicit_policy_overrides_connection_defaults(values, expected):
-    policy = TokenValidationConfiguration.from_configuration(
+    policy = TokenValidationConfiguration.from_config(
         _root(audiences=values, tenant_id="explicit-tenant", anonymous_allowed=False)
     )
     assert policy.audiences == expected
@@ -97,7 +98,7 @@ def test_explicit_policy_overrides_connection_defaults(values, expected):
 
 @pytest.mark.parametrize("value", [None, [], "", "   "])
 def test_empty_audiences_use_connection_defaults(value):
-    policy = TokenValidationConfiguration.from_configuration(_root(audiences=value))
+    policy = TokenValidationConfiguration.from_config(_root(audiences=value))
     assert policy.audiences == ["service-client", "mcs-client"]
     assert policy.validate_audience("service-client")
     assert policy.validate_audience("mcs-client")
@@ -108,12 +109,12 @@ def test_empty_audiences_use_connection_defaults(value):
 )
 def test_unresolved_audience_mappings_are_rejected(value):
     with pytest.raises(ValueError, match="token_validation::audiences"):
-        TokenValidationConfiguration.from_configuration(_root(audiences=value))
+        TokenValidationConfiguration.from_config(_root(audiences=value))
 
 
 @pytest.mark.parametrize("audience", [None, "", [], ["mcs-client"], 123, {}])
 def test_malformed_audiences_are_not_matched_or_routed(audience):
-    policy = TokenValidationConfiguration.from_configuration(_root())
+    policy = TokenValidationConfiguration.from_config(_root())
     assert policy.validate_audience(audience) is False
     assert policy.get_connection_settings(audience) is None
 
@@ -240,7 +241,7 @@ def test_normalized_environment_policy_overrides_service_defaults(
             "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__ANONYMOUSALLOWED": "true",
         }
     )
-    policy = TokenValidationConfiguration.from_configuration(config)
+    policy = TokenValidationConfiguration.from_config(config)
     assert policy.audiences == expected
     assert not policy.validate_audience("service-client")
     assert policy.tenant_id == "explicit-tenant"
@@ -252,7 +253,7 @@ def test_no_service_connection_has_no_default_route_or_inherited_anonymous_acces
     config = _root()
     del config["connections"]["SERVICE_CONNECTION"]
     config["connections"]["MCS"]["settings"]["anonymous_allowed"] = True
-    policy = TokenValidationConfiguration.from_configuration(config)
+    policy = TokenValidationConfiguration.from_config(config)
     assert policy.audiences == ["mcs-client"]
     assert policy.tenant_id is None
     assert policy.anonymous_allowed is False
@@ -274,8 +275,8 @@ def test_no_service_connection_has_no_default_route_or_inherited_anonymous_acces
 )
 def test_invalid_configuration_reports_full_path(config, path, error_type):
     with pytest.raises(error_type) as error:
-        TokenValidationConfiguration.from_configuration(
-            Configuration(config, _is_root_config=True)
+        TokenValidationConfiguration.from_config(
+            create_configuration(config, is_root=True)
         )
     assert path in str(error.value)
     assert "invalid" not in str(error.value)
@@ -286,8 +287,8 @@ def test_invalid_configuration_reports_full_path(config, path, error_type):
 async def test_missing_routing_settings_reject_before_fetching_keys(
     monkeypatch, with_connection
 ):
-    config = Configuration(
-        token_validation={"audiences": ["explicit-client"]}, _is_root_config=True
+    config = create_configuration(
+        dict(token_validation={"audiences": ["explicit-client"]}), is_root=True
     )
     if with_connection:
         config["connections"] = {"MCS": {"settings": {"client_id": "mcs-client"}}}

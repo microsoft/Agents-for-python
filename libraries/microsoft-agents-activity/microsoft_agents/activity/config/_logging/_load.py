@@ -18,9 +18,9 @@ def _configure_logging(_config: Mapping | Configuration | _LoggingConfiguration)
     """
 
     if isinstance(_config, Mapping):
-        config = _LoggingConfiguration.from_mapping(_config)
+        config = _LoggingConfiguration.from_config(_config)
     else:
-        config = _LoggingConfiguration.from_configuration(_config)
+        config = _LoggingConfiguration.from_config(_config)
 
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(

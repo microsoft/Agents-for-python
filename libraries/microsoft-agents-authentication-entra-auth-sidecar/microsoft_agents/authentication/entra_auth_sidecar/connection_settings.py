@@ -10,7 +10,7 @@ from typing_extensions import Self
 from microsoft_agents.activity.config import (
     Configuration,
     coerce_bool,
-    xpath,
+    _legpath as legpath,
 )
 from microsoft_agents.hosting.core.authorization.connections import (
     AgentAuthConfiguration,
@@ -31,17 +31,34 @@ def _or_default(s: str | None, default: str) -> str:
 
 @dataclass(frozen=True)
 class SidecarConnectionSettings(ConnectionSettingsBase):
-    """
-    Connection settings for the sidecar-based token provider.
+    """Connection options for requesting tokens from the Entra ID sidecar.
 
-    Extends
-    :class:`microsoft_agents.hosting.core.authorization.connection_settings_base._ConnectionSettingsBase`
-    with the sidecar-specific fields, mirroring the .NET
-    ``Microsoft.Agents.Authentication.EntraAuthSidecar.SidecarConnectionSettings``
-    which derives from ``_ConnectionSettingsBase``. Bound from an
-    :class:`microsoft_agents.hosting.core.AgentAuthConfiguration` (or its raw
-    ``SETTINGS`` keyword arguments). No secrets/certificates are required: the
-    sidecar owns all credential management.
+    The sidecar manages credentials, so these settings do not need a client
+    secret or certificate. Create the object with keyword arguments, or use
+    ``from_config`` to read a dictionary for one connection::
+
+        >>> from microsoft_agents.authentication.entra_auth_sidecar import (
+        ...     SidecarConnectionSettings,
+        ... )
+        >>> settings = SidecarConnectionSettings.from_config({
+        ...     "SIDECAR_BASE_URL": "http://localhost:5178",
+        ...     "REQUEST_TIMEOUT": "15",
+        ...     "RETRY_COUNT": "2",
+        ... })
+        >>> settings.request_timeout
+        15.0
+        >>> settings.retry_count
+        2
+
+    For sidecar options, names such as ``REQUEST_TIMEOUT`` and
+    ``request_timeout`` are equivalent. A connection entry containing a
+    ``settings`` dictionary is also accepted; do not pass the whole application
+    configuration.
+
+    ``from_config`` also accepts an existing settings object or ``None`` for
+    defaults. ``from_configuration`` additionally supports the legacy
+    ``AgentAuthConfiguration`` type. Do not modify nested lists or dictionaries
+    after passing the settings to a provider.
     """
 
     service_name: str | None = DEFAULT_SERVICE_NAME
@@ -65,31 +82,31 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
         # An explicitly blank or whitespace-only value (e.g. binding yields "" or
         # "   ") must never produce an invalid sidecar endpoint path, so strip and
         # normalize to the defaults here.
-        _service_name = config.get_strn(xpath("service_name"))
+        _service_name = config.get_strn(legpath("service_name"))
         service_name = _or_default(_service_name, DEFAULT_SERVICE_NAME)
 
         blueprint_service_name = config.get_str(
-            xpath("blueprint_service_name"), default=DEFAULT_BLUEPRINT_SERVICE_NAME
+            legpath("blueprint_service_name"), default=DEFAULT_BLUEPRINT_SERVICE_NAME
         )
         blueprint_service_name = _or_default(
             blueprint_service_name, DEFAULT_BLUEPRINT_SERVICE_NAME
         )
 
-        sidecar_base_url = config.get_strn(xpath("sidecar_base_url"))
+        sidecar_base_url = config.get_strn(legpath("sidecar_base_url"))
 
         # Config values can arrive as strings from ``load_configuration_from_env``,
         # so coerce explicitly: ``bool("false")`` would otherwise be ``True`` and
         # silently disable the SSRF guard, and ``max(0, "5")`` would raise.
         bypass_local_network_restriction = config.get_bool(
-            xpath("bypass_local_network_restriction"),
+            legpath("bypass_local_network_restriction"),
             default=False,
         )
         request_timeout = config.get_float(
-            xpath("request_timeout"),
+            legpath("request_timeout"),
             default=DEFAULT_REQUEST_TIMEOUT_SECONDS,
         )
         retry_count = config.get_int(
-            xpath("retry_count"),
+            legpath("retry_count"),
             default=DEFAULT_RETRY_COUNT,
         )
 
@@ -109,8 +126,13 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
     def from_configuration(
         cls, config: Configuration | Mapping | AgentAuthConfiguration | Self
     ) -> Self:
+        """Read connection settings, including legacy AgentAuthConfiguration objects.
+
+        For dictionaries, Configuration, or an existing settings object, prefer
+        ``from_config``.
+        """
         if isinstance(config, AgentAuthConfiguration):
             return cls._from_agent_auth_config(config)
         if isinstance(config, Mapping):
-            config = Configuration.from_mapping(config)
-        return super().from_configuration(config)
+            config = Configuration.from_config(config)
+        return super().from_config(config)

@@ -42,8 +42,9 @@ from .app.streaming import (
 # App Auth
 from .app.oauth import (
     Authorization,
+    AuthorizationConfig,
+    AuthHandlerConfig,
     AuthHandler,
-    AuthHandlerSettings,
     AgenticUserAuthorization,
 )
 
@@ -157,7 +158,8 @@ __all__ = [
     "TempState",
     "Authorization",
     "AuthHandler",
-    "AuthHandlerSettings",
+    "AuthHandlerConfig",
+    "AuthorizationConfig",
     "AccessTokenProviderBase",
     "AuthenticationConstants",
     "AnonymousTokenProvider",

@@ -99,13 +99,15 @@ class TestLogConfig:
         summary = _summarize_auth_configs(
             {
                 "SERVICE_CONNECTION": Configuration(
-                    client_id="client-id-secret",
-                    tenant_id="tenant-id-secret",
-                    client_secret="client-secret",
-                    connection_name="configured-name",
-                    authority="https://login.microsoftonline.com/tenant/oauth2/v2.0/token",
-                    scopes=["scope1", "scope2"],
-                    anonymous_allowed=False,
+                    dict(
+                        client_id="client-id-secret",
+                        tenant_id="tenant-id-secret",
+                        client_secret="client-secret",
+                        connection_name="configured-name",
+                        authority="https://login.microsoftonline.com/tenant/oauth2/v2.0/token",
+                        scopes=["scope1", "scope2"],
+                        anonymous_allowed=False,
+                    )
                 )
             }
         )
@@ -155,7 +157,9 @@ class TestLogConfig:
 
     def test_log_config_uses_clean_parameterized_format(self):
         logger = Mock()
-        config_map = {"SERVICE_CONNECTION": Configuration(client_id="client-id-secret")}
+        config_map = {
+            "SERVICE_CONNECTION": Configuration(dict(client_id="client-id-secret"))
+        }
         connections_map = _ConnectionMap(
             [{"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "*"}]
         )

@@ -8,9 +8,9 @@ from typing import Mapping
 
 from microsoft_agents.activity.config import (
     Configuration,
-    _DictConfigurable,
     _get_str,
-    xpath,
+    _legpath as legpath,
+    _netpath as netpath,
 )
 
 
@@ -23,14 +23,20 @@ class _ConnectionMapItem:
 
 
 @dataclass(frozen=True)
-class _ConnectionMap(_DictConfigurable):
+class _ConnectionMap:
     items: list[_ConnectionMapItem] = field(default_factory=list)
 
     def __init__(
         self,
-        items: list[_ConnectionMapItem] | list[dict] | dict[str, dict] | None = None,
+        items: list[_ConnectionMapItem] | list[dict] | Mapping[str, dict] | None = None,
     ) -> None:
-        """Initialize a _ConnectionMap with a list of _ConnectionMapItem, a list of dicts, or a dict of dicts."""
+        """Bind ordered routing entries from a list or named mapping.
+
+        Entries use canonical ``audience`` and ``connection`` keys; service URL
+        lookup additionally ignores case and underscores. Named mapping keys
+        label entries only and do not supply a missing connection field.
+        Existing _ConnectionMapItem instances are reused.
+        """
 
         final_items: list[_ConnectionMapItem] = []
 
@@ -54,10 +60,12 @@ class _ConnectionMap(_DictConfigurable):
                 final_items.append(
                     _ConnectionMapItem(
                         service_url=val_config.get_str(
-                            *xpath("service_url"), default=""
+                            legpath("service_url"), default=""
                         ),
-                        audience=val_config.get_str(*xpath("audience"), default=""),
-                        connection=val_config.get_str(*xpath("connection"), default=""),
+                        audience=val_config.get_str(netpath("audience"), default=""),
+                        connection=val_config.get_str(
+                            netpath("connection"), default=""
+                        ),
                     )
                 )
 

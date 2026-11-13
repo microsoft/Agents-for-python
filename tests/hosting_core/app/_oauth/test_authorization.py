@@ -21,15 +21,15 @@ from microsoft_agents.hosting.core.app.oauth import (
     AgenticUserAuthorization,
     ConnectorUserAuthorization,
 )
-from microsoft_agents.hosting.core.app.oauth.authorization_settings import (
-    AuthorizationSettings,
+from microsoft_agents.hosting.core.app.oauth.authorization_config import (
+    AuthorizationConfig,
 )
 
 from microsoft_agents.hosting.core._oauth import _FlowStateTag
 
 from microsoft_agents.hosting.core import (
     AuthHandler,
-    AuthHandlerSettings,
+    AuthHandlerConfig,
     MemoryStorage,
 )
 
@@ -53,6 +53,7 @@ from tests._common.testing_objects import (
 )
 
 from ._common import create_testing_TurnContext, create_testing_Activity
+from tests._common import create_configuration
 
 DEFAULTS = DEFAULT_TEST_VALUES()
 FLOW_DATA = FLOW_TEST_DATA()
@@ -169,7 +170,7 @@ class TestAuthorizationSetup(TestEnv):
     def test_init_with_directly_constructed_settings(
         self, connection_manager, storage, auth_type, handler_class
     ):
-        settings = AuthHandlerSettings(
+        settings = AuthHandlerConfig(
             name="graph",
             title="Sign in",
             text="Continue",
@@ -184,6 +185,48 @@ class TestAuthorizationSetup(TestEnv):
         )
 
         assert isinstance(auth._resolve_handler("graph"), handler_class)
+
+    def test_handler_list_replaces_configured_handlers(
+        self, connection_manager, storage
+    ):
+        graph = AuthHandlerConfig(name="graph", scopes=["User.Read"])
+        mail = AuthHandlerConfig(name="mail", scopes=["Mail.Read"])
+        config = AuthorizationConfig(
+            handlers={"configured": AuthHandlerConfig(name="configured")}
+        )
+
+        auth = Authorization(
+            storage, connection_manager, auth_handlers=[graph, mail], config=config
+        )
+
+        assert list(auth._handlers) == ["graph", "mail"]
+        assert auth._resolve_handler("graph")._handler is graph
+        assert auth._resolve_handler("mail")._handler is mail
+        assert auth._default_handler_id == "graph"
+
+    def test_handler_list_duplicate_names_use_last_definition(
+        self, connection_manager, storage
+    ):
+        first = AuthHandlerConfig(name="graph", scopes=["User.Read"])
+        last = AuthHandlerConfig(name="graph", scopes=["Mail.Read"])
+
+        auth = Authorization(storage, connection_manager, auth_handlers=[first, last])
+
+        assert list(auth._handlers) == ["graph"]
+        assert auth._resolve_handler("graph")._handler is last
+
+    def test_empty_handler_list_uses_configured_handlers(
+        self, connection_manager, storage
+    ):
+        handler = AuthHandlerConfig(name="graph", scopes=["User.Read"])
+        config = AuthorizationConfig(handlers={"graph": handler})
+
+        auth = Authorization(
+            storage, connection_manager, auth_handlers=[], config=config
+        )
+
+        assert list(auth._handlers) == ["graph"]
+        assert auth._resolve_handler("graph")._handler is handler
 
     @pytest.mark.parametrize(
         "auth_type, handler_class",
@@ -204,7 +247,7 @@ class TestAuthorizationSetup(TestEnv):
         as_mapping,
         positional,
     ):
-        settings = AuthHandlerSettings.from_mapping(
+        settings = AuthHandlerConfig.from_config(
             {
                 "name": "graph",
                 "auth_type": auth_type,
@@ -216,7 +259,7 @@ class TestAuthorizationSetup(TestEnv):
         handler = (
             handler_class(storage, connection_manager, value)
             if positional
-            else handler_class(storage, connection_manager, settings=value)
+            else handler_class(storage, connection_manager, config=value)
         )
 
         assert handler._id == "graph"
@@ -266,7 +309,7 @@ class TestAuthorizationSetup(TestEnv):
             handler_config["SETTINGS"]["TYPE"] = auth_type
         else:
             handler_config["TYPE"] = auth_type
-        config = Configuration(
+        config = create_configuration(
             {
                 "AGENTAPPLICATION": {
                     "USERAUTHORIZATION": {
@@ -275,7 +318,7 @@ class TestAuthorizationSetup(TestEnv):
                     }
                 }
             },
-            _is_root_config=True,
+            is_root=True,
         )
 
         if config_argument == "kwargs":
@@ -284,21 +327,21 @@ class TestAuthorizationSetup(TestEnv):
             ):
                 auth = Authorization(storage, connection_manager, **config)
         else:
-            section = config.get_section("AGENTAPPLICATION::USERAUTHORIZATION")
+            section = config.get_section(["AGENTAPPLICATION", "USERAUTHORIZATION"])
             settings = {
                 "root": config,
                 "section": section,
                 "mapping": dict(section),
-                "bound": AuthorizationSettings.from_configuration(config),
+                "bound": AuthorizationConfig.from_config(config),
             }[config_argument]
             with warnings.catch_warnings():
                 warnings.simplefilter("error", DeprecationWarning)
-                auth = Authorization(storage, connection_manager, settings=settings)
+                auth = Authorization(storage, connection_manager, config=settings)
         handler = auth._resolve_handler("graph")
 
         assert isinstance(handler, handler_class)
         assert auth._auto_sign_in is True
-        assert handler._handler == AuthHandlerSettings(
+        assert handler._handler == AuthHandlerConfig(
             name="graph",
             title="Sign in",
             text="Continue",
@@ -309,15 +352,40 @@ class TestAuthorizationSetup(TestEnv):
             _alt_blueprint_name="blueprint",
         )
 
+    @pytest.mark.parametrize(
+        "configured, explicit, expected",
+        [
+            (False, None, False),
+            (False, False, False),
+            (False, True, True),
+            (True, None, True),
+            (True, False, False),
+            (True, True, True),
+        ],
+    )
+    def test_auto_sign_in_only_inherits_config_when_unspecified(
+        self, connection_manager, storage, configured, explicit, expected
+    ):
+        auth = Authorization(
+            storage,
+            connection_manager,
+            auto_sign_in=explicit,
+            config=Configuration({"auto_sign_in": configured}),
+        )
+
+        assert auth._auto_sign_in is expected
+
     @pytest.mark.parametrize("bound", [False, True])
     def test_explicit_settings_ignore_legacy_kwargs(
         self, connection_manager, storage, caplog, bound
     ):
         scoped = Configuration(
-            handlers={"graph": {"SETTINGS": {"SCOPES": "User.Read"}}},
-            auto_sign_in=False,
+            dict(
+                handlers={"graph": {"SETTINGS": {"SCOPES": "User.Read"}}},
+                auto_sign_in=False,
+            )
         )
-        settings = AuthorizationSettings.from_configuration(scoped) if bound else scoped
+        settings = AuthorizationConfig.from_config(scoped) if bound else scoped
         legacy = {
             "AGENTAPPLICATION": {
                 "USERAUTHORIZATION": {
@@ -328,22 +396,20 @@ class TestAuthorizationSetup(TestEnv):
         }
 
         with pytest.warns(DeprecationWarning, match="Passing configuration via kwargs"):
-            auth = Authorization(
-                storage, connection_manager, settings=settings, **legacy
-            )
+            auth = Authorization(storage, connection_manager, config=settings, **legacy)
 
         assert list(auth._handlers) == ["graph"]
         assert auth._resolve_handler("graph")._handler.scopes == ["User.Read"]
         assert auth._auto_sign_in is False
-        assert "'kwargs' will be ignored in favor of 'settings'" in caplog.text
+        assert "'kwargs' will be ignored in favor of 'config'" in caplog.text
 
     @pytest.mark.parametrize(
         "settings",
         [
             None,
-            Configuration(unrelated=True, _is_root_config=True),
+            create_configuration(dict(unrelated=True), is_root=True),
             Configuration(),
-            AuthorizationSettings(),
+            AuthorizationConfig(),
         ],
         ids=["omitted", "missing-root-section", "empty-section", "bound-defaults"],
     )
@@ -352,7 +418,7 @@ class TestAuthorizationSetup(TestEnv):
     ):
         with warnings.catch_warnings():
             warnings.simplefilter("error", DeprecationWarning)
-            auth = Authorization(storage, connection_manager, settings=settings)
+            auth = Authorization(storage, connection_manager, config=settings)
 
         assert auth._handlers == {}
         assert auth._auto_sign_in is False
@@ -367,7 +433,7 @@ class TestAuthorizationSetup(TestEnv):
     def test_legacy_settings_arguments_warn(
         self, connection_manager, storage, legacy_argument, handler_class
     ):
-        settings = AuthHandlerSettings.from_mapping({"name": "graph"})
+        settings = AuthHandlerConfig.from_config({"name": "graph"})
         value = settings if legacy_argument == "auth_handler" else vars(settings)
 
         with pytest.warns(

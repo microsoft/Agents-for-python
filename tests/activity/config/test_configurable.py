@@ -15,7 +15,7 @@ class ApplicationSettings(_Configurable):
     count: int
 
     @classmethod
-    def _from_configuration(cls, config: Configuration):
+    def _from_config(cls, config: Configuration):
         return cls(
             enabled=config.get_bool("enabled", default=False),
             count=config.get_int("count", default=0),
@@ -25,42 +25,42 @@ class ApplicationSettings(_Configurable):
 def test_binds_a_configuration_section():
     root = Configuration({"app": {"enabled": "true", "count": "4"}})
 
-    settings = ApplicationSettings.from_configuration(root.get_section("app"))
+    settings = ApplicationSettings.from_config(root.get_section("app"))
 
     assert settings == ApplicationSettings(enabled=True, count=4)
 
 
-def test_from_mapping_accepts_read_only_mappings_and_defaults():
+def test_from_config_accepts_read_only_mappings():
     source = MappingProxyType({"enabled": "false"})
 
-    settings = ApplicationSettings.from_mapping(source, enabled=True, count=3)
+    settings = ApplicationSettings.from_config(source)
 
-    assert settings == ApplicationSettings(enabled=False, count=3)
+    assert settings == ApplicationSettings(enabled=False, count=0)
     assert dict(source) == {"enabled": "false"}
 
 
-def test_from_configuration_reuses_bound_instances():
+def test_from_config_reuses_bound_instances():
     settings = ApplicationSettings(enabled=True, count=2)
 
-    assert ApplicationSettings.from_configuration(settings) is settings
+    assert ApplicationSettings.from_config(settings) is settings
 
 
-def test_from_configuration_none_binds_defaults():
-    assert ApplicationSettings.from_configuration(None) == ApplicationSettings(
+def test_from_config_none_binds_defaults():
+    assert ApplicationSettings.from_config(None) == ApplicationSettings(
         enabled=False, count=0
     )
 
 
-@pytest.mark.parametrize("value", [{}, "invalid", 3])
-def test_from_configuration_rejects_unbound_values(value):
+@pytest.mark.parametrize("value", ["invalid", 3])
+def test_from_config_rejects_unsupported_values(value):
     with pytest.raises(TypeError, match="ApplicationSettings"):
-        ApplicationSettings.from_configuration(value)
+        ApplicationSettings.from_config(value)
 
 
 def test_binding_preserves_section_paths_in_conversion_errors():
     root = Configuration({"app": {"count": "synthetic-secret"}})
 
     with pytest.raises(ValueError, match="app::count") as error:
-        ApplicationSettings.from_configuration(root.get_section("app"))
+        ApplicationSettings.from_config(root.get_section("app"))
 
     assert "synthetic-secret" not in str(error.value)

@@ -202,31 +202,26 @@ CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET=client-secret
 CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID=tenant-id
 ```
 
-Load the Configuration (Code from [main.py Quickstart Sample](https://github.com/microsoft/Agents/blob/main/samples/python/quickstart/src/main.py))
+Load the configuration and start the agent:
 
 ```python
+from os import environ
+
+from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.authentication.msal import MsalConnectionManager
+from microsoft_agents.hosting.aiohttp import CloudAdapter
+
 from .start_server import start_server
+
+agents_sdk_config = load_configuration_from_env(environ)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
+ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 
 start_server(
     agent_application=AGENT_APP,
-    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
+    adapter=ADAPTER,
+    config=agents_sdk_config,
 )
-```
-Then start the Agent (code snipped from (start_server.py Quickstart Sample](https://github.com/microsoft/Agents/blob/main/samples/python/quickstart/src/start_server.py)):
-
-```python
-def start_server(
-    agent_application: AgentApplication, auth_configuration: AgentAuthConfiguration
-):
-    async def entry_point(req: Request) -> Response:
-        agent: AgentApplication = req.app["agent_app"]
-        adapter: CloudAdapter = req.app["adapter"]
-        return await start_agent_process(
-            req,
-            agent,
-            adapter,
-        )
-[...]
 ```
 
 ## Typed Connection Settings
@@ -240,13 +235,15 @@ from microsoft_agents.authentication.msal import MsalConnectionManager
 
 connections = MsalConnectionManager(
     config=Configuration(
-        connections={
-            "SERVICE_CONNECTION": {
-                "settings": {
-                    "auth_type": "ClientSecret",
-                    "client_id": "your-client-id",
-                    "tenant_id": "your-tenant-id",
-                    "client_secret": "your-client-secret",
+        {
+            "connections": {
+                "SERVICE_CONNECTION": {
+                    "settings": {
+                        "auth_type": "ClientSecret",
+                        "client_id": "your-client-id",
+                        "tenant_id": "your-tenant-id",
+                        "client_secret": "your-client-secret",
+                    }
                 }
             }
         }
@@ -254,6 +251,10 @@ connections = MsalConnectionManager(
 )
 settings = connections.get_default_connection().config
 ```
+
+For one scoped settings mapping, use `MsalConnectionSettings.from_config(mapping)`
+and pass the result to `MsalAuth`. Each settings mapping describes one
+connection.
 
 Load credentials from your application's secure configuration rather than hardcoding
 them. Legacy constructor calls and the `provider.configuration` compatibility view

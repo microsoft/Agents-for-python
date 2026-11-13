@@ -9,7 +9,13 @@ from typing import cast, TypeVar
 from collections.abc import Callable
 
 from microsoft_agents.activity import Activity
-from microsoft_agents.activity.config import Configuration, xpath, _get, path
+from microsoft_agents.activity.config import (
+    Configuration,
+    _legpath as legpath,
+    _get,
+    _netpath,
+    wildcard,
+)
 
 from .agent_auth_configuration import AgentAuthConfiguration
 from ..access_token_provider_base import AccessTokenProviderBase
@@ -26,13 +32,17 @@ ConfigT = TypeVar("ConfigT", Configuration, AgentAuthConfiguration)
 
 class ConnectionManager(Connections):
     """
-    Generic, provider-agnostic connection manager.
+    Manage named connections and select the authentication provider to use.
 
-    Dispatches to any :class:`AccessTokenProviderBase` implementation. The
-    ``provider_factory`` callable determines which auth provider is instantiated
-    for each connection configuration, so new auth providers (MSAL, Entra ID
-    sidecar, future providers) can reuse the connection routing logic without
-    duplicating it.
+    Most applications use the connection manager supplied by their
+    authentication package, such as ``MsalConnectionManager``. This base class
+    accepts a ``provider_factory`` function for creating a provider from each
+    connection's settings.
+
+    Application configuration must define a ``connections`` dictionary with a
+    ``SERVICE_CONNECTION`` entry. This is the default connection.
+    Connection names ignore case but keep underscores significant:
+    ``service_connection`` also works, but ``ServiceConnection`` does not.
     """
 
     _connections: dict[str, AccessTokenProviderBase]
@@ -53,18 +63,27 @@ class ConnectionManager(Connections):
         **kwargs,
     ):
         """
-        Initialize the connection manager.
+        Create providers for the application's named connections.
 
         :param provider_factory: Factory creating an AccessTokenProviderBase from
             Configuration, or AgentAuthConfiguration for legacy connection inputs.
-        :type provider_factory: Callable[[AgentAuthConfiguration], AccessTokenProviderBase] | Callable[[Configuration], AccessTokenProviderBase]
-            Note: The factory's signature should match the type of configuration it expects. If using deprecated connection configurations, it should accept an :class:`AgentAuthConfiguration`. Otherwise, it should accept a :class:`Configuration`.
+        :type provider_factory: Callable[[AgentAuthConfiguration], AccessTokenProviderBase]
+            | Callable[[Configuration], AccessTokenProviderBase]
+        With ``config``, the factory receives a Configuration containing the
+        settings for one connection. Deprecated connection inputs instead
+        require a factory that accepts AgentAuthConfiguration.
         :param connections_configurations: (Deprecated) A dictionary of connection configurations.
         :type connections_configurations: dict[str, :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`]
         :param connections_map: (Deprecated) A list of connection mappings.
         :type connections_map: list[dict[str, str]]
-        :param config: The configuration for the connection manager.
+        :param config: Full application configuration containing ``connections``
+            and optional ``connections_map`` sections. For each connection,
+            the factory receives its ``settings`` dictionary, or the connection
+            dictionary itself if no ``settings`` dictionary exists.
+            When supplied, deprecated keyword configuration is ignored.
         :type config: :class:`microsoft_agents.activity.config.Configuration`
+        :param kwargs: Deprecated application configuration, used only if config
+            is absent. Prefer passing one Configuration through ``config``.
         :raises ValueError: If no service connection configuration is provided.
         """
 
@@ -72,6 +91,13 @@ class ConnectionManager(Connections):
         self._config_map = {}
         self._provider_factory = provider_factory
         self._deprecated_config_map = {}
+
+        if kwargs:
+            warnings.warn(
+                "Passing in keyword arguments is deprecated and will be removed in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if connections_configurations is not None or connections_map is not None:
             warnings.warn(
@@ -90,12 +116,8 @@ class ConnectionManager(Connections):
                     "Cannot provide both 'config' and deprecated connection configurations."
                 )
 
-            # ``load_configuration_from_env`` yields CONNECTIONSMAP as a list when it
-            # is configured (it collapses the parsed name->entry dict to a list) and
-            # as an empty dict ({}) only when unset. Normalize to a list so the guard
-            # also handles a raw dict passed via direct/manual construction and the
-            # empty-unset case, keeping the runtime shape consistent with the
-            # list[dict[str, str]] the class expects everywhere else.
+            # Retain legacy routing input; _ConnectionMap accepts either ordered
+            # entries or a named mapping.
             raw_connections_map = (
                 connections_map
                 if connections_map is not None
@@ -109,7 +131,7 @@ class ConnectionManager(Connections):
                 ) in connections_configurations.items():
                     self._deprecated_config_map[connection_name] = agent_auth_config
                     self._config_map[connection_name] = Configuration(
-                        **agent_auth_config.__dict__
+                        agent_auth_config.__dict__
                     )
                     self._connections[connection_name] = provider_factory(
                         agent_auth_config
@@ -118,8 +140,8 @@ class ConnectionManager(Connections):
                 raw_configurations: dict[str, dict] = kwargs.get("CONNECTIONS", {})
                 for connection_name, connection_settings in raw_configurations.items():
                     parsed_config = Configuration(
-                        **_get(connection_settings, *xpath("SETTINGS"), default={}),
-                        _base_path=path("CONNECTIONS", connection_name, "SETTINGS"),
+                        _get(connection_settings, legpath("SETTINGS"), default={}),
+                        _base_path=("CONNECTIONS", connection_name, "SETTINGS"),
                     )
                     auth_config = AgentAuthConfiguration.from_dict(parsed_config)
                     self._connections[connection_name] = provider_factory(auth_config)
@@ -134,15 +156,18 @@ class ConnectionManager(Connections):
             self._provider_factory = cast(
                 Callable[[Configuration], AccessTokenProviderBase], provider_factory
             )
-            config = Configuration.from_config(config, **kwargs)
+            config = Configuration._from_config_or_kwargs(
+                config, kwargs, ensure_root_config=True
+            )
 
-            raw_connections_map = config.get(xpath("connections_map"), [])
-            connection_configs = config.get_sections(*xpath("connections::*"))
+            raw_connections_map = config.get(legpath("connections_map"), [])
+            connection_configs = config.get_sections(legpath("connections", wildcard()))
 
             for section in connection_configs:
                 connection_name = section.key
-                parsed_config = section.get_section(xpath("settings"), default=section)
-                # parsed_config = Configuration(**_get(connection_settings, *xpath("SETTINGS"), default={}))
+                parsed_config = section.get_section(
+                    legpath("settings"), default=section
+                )
                 self._connections[connection_name] = self._provider_factory(
                     parsed_config
                 )
@@ -151,14 +176,17 @@ class ConnectionManager(Connections):
 
         self._connections_map = _ConnectionMap(raw_connections_map)
 
-        if not self._connections.get("SERVICE_CONNECTION", None):
+        if not _get(self._connections, _netpath("service_connection"), default=None):
             raise ValueError("No service connection configuration provided.")
 
         _log_config(logger, self._config_map, self._connections_map)
 
     def get_connection(self, connection_name: str | None) -> AccessTokenProviderBase:
         """
-        Get the OAuth connection for the agent.
+        Get a connection by name, ignoring case but preserving underscores.
+
+        ``None`` or an empty name selects the reserved ``service_connection``
+        name, equivalent to calling ``get_default_connection``.
 
         :param connection_name: The name of the connection.
         :type connection_name: str | None
@@ -166,8 +194,8 @@ class ConnectionManager(Connections):
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
         original_name = connection_name
-        connection_name = connection_name or "SERVICE_CONNECTION"
-        connection = self._connections.get(connection_name, None)
+        connection_name = connection_name or "service_connection"
+        connection = _get(self._connections, _netpath(connection_name), default=None)
         if not connection:
             if original_name:
                 raise ValueError(f"No connection found for '{original_name}'.")
@@ -179,12 +207,14 @@ class ConnectionManager(Connections):
 
     def get_default_connection(self) -> AccessTokenProviderBase:
         """
-        Get the default OAuth connection for the agent.
+        Get the reserved service connection, ignoring case but preserving underscores.
 
         :return: The default OAuth connection for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
-        connection = self._connections.get("SERVICE_CONNECTION", None)
+        connection = _get(
+            self._connections, _netpath("service_connection"), default=None
+        )
         if not connection:
             raise ValueError(
                 "No default service connection found. Expected 'SERVICE_CONNECTION'."
@@ -273,7 +303,8 @@ class ConnectionManager(Connections):
         """
         Get the deprecated default AgentAuthConfiguration compatibility view.
 
-        Prefer :meth:`get_default_connection_config`.
+        Prefer ``get_default_connection().config``. This compatibility view is
+        available only for managers initialized through the legacy provider path.
         :return: The default connection configuration for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
         """
@@ -283,7 +314,9 @@ class ConnectionManager(Connections):
             DeprecationWarning,
             stacklevel=2,
         )
-        config = self._deprecated_config_map.get("SERVICE_CONNECTION")
+        config = _get(
+            self._deprecated_config_map, legpath("service_connection"), default=None
+        )
         if not config:
             raise ValueError(
                 "get_default_connection_configuration() is only available for "

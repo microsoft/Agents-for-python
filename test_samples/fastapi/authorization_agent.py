@@ -41,7 +41,7 @@ agents_sdk_config = load_configuration_from_env(environ)
 STORAGE = MemoryStorage()
 CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, settings=agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
 AUTH_HANDLER_IDS = ("GRAPH", "GITHUB", "MCS")

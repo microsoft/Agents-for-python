@@ -27,14 +27,18 @@ class AccessTokenProviderBase(Protocol):
     @property
     def config(self) -> ConnectionSettingsBase:
         """
-        Bound provider-specific settings extending ConnectionSettingsBase.
+        The settings this provider uses, such as MsalConnectionSettings.
+
+        Provider implementations should return their ConnectionSettingsBase
+        subclass here. For older providers that only expose ``configuration``,
+        this default creates settings from that legacy object on each access.
 
         :return: The provider's typed connection settings.
         """
         # Convert the deprecated configuration to the new connection settings format.
         from .connections.connection_settings_base import ConnectionSettingsBase
 
-        return ConnectionSettingsBase.from_mapping(**self.configuration._to_dict())
+        return ConnectionSettingsBase.from_config(self.configuration._to_dict())
 
     @abstractmethod
     async def get_access_token(

@@ -5,29 +5,29 @@ import logging
 
 import pytest
 
-from microsoft_agents.activity.config import Configuration
 from microsoft_agents.activity.config._logging._logging_configuration import (
     _LoggingConfiguration,
 )
+from tests._common import create_configuration
 
 
 def test_missing_logging_configuration_has_no_level_entries():
-    assert _LoggingConfiguration.from_mapping({}).log_levels == []
+    assert _LoggingConfiguration.from_config({}).log_levels == []
 
 
 @pytest.mark.parametrize("source", ["root", "section", "mapping"])
 def test_root_and_scoped_logging_configuration_bind_the_same_settings(source):
-    root = Configuration(
+    root = create_configuration(
         {
             "logging": {"log_level": {"My.Namespace": "debug"}},
             "log_level": {"Wrong.Namespace": "error"},
         },
-        _is_root_config=True,
+        is_root=True,
     )
     section = root.get_section("logging")
     config = {"root": root, "section": section, "mapping": dict(section)}[source]
 
-    settings = _LoggingConfiguration.from_mapping(config)
+    settings = _LoggingConfiguration.from_config(config)
 
     assert [(entry.namespace, entry.level) for entry in settings.log_levels] == [
         ("my.namespace", logging.DEBUG)
@@ -36,7 +36,7 @@ def test_root_and_scoped_logging_configuration_bind_the_same_settings(source):
 
 @pytest.mark.parametrize("key", ["log_level", "LOG_LEVEL", "LOGLEVEL"])
 def test_logging_level_aliases_bind_namespace_and_level(key):
-    settings = _LoggingConfiguration.from_mapping({key: {"My.Namespace": "debug"}})
+    settings = _LoggingConfiguration.from_config({key: {"My.Namespace": "debug"}})
 
     assert len(settings.log_levels) == 1
     assert settings.log_levels[0].namespace == "my.namespace"
@@ -46,9 +46,9 @@ def test_logging_level_aliases_bind_namespace_and_level(key):
 @pytest.mark.parametrize("value", ["DEBUG", [], 1])
 def test_non_mapping_log_levels_are_rejected(value):
     with pytest.raises(ValueError):
-        _LoggingConfiguration.from_mapping({"LOGLEVEL": value})
+        _LoggingConfiguration.from_config({"LOGLEVEL": value})
 
 
 def test_unrecognized_log_level_is_rejected():
     with pytest.raises(ValueError):
-        _LoggingConfiguration.from_mapping({"LOGLEVEL": {"default": "not-a-level"}})
+        _LoggingConfiguration.from_config({"LOGLEVEL": {"default": "not-a-level"}})
