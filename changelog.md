@@ -12,6 +12,10 @@
 - **Connection Configuration**: Added `Configuration`-based initialization to `ConnectionManager` and `MsalConnectionManager`, with typed audience/service-URL routing maps supporting lists and named mappings. Consolidated shared connection APIs under `authorization.connections` while retaining legacy import paths and constructor inputs.
 - **Typed Authentication Provider Settings**: Added `MsalConnectionSettings` and migrated `SidecarConnectionSettings` to derive from `ConnectionSettingsBase`. MSAL and Entra sidecar providers now accept bound settings or `Configuration` and expose typed settings through `.config`, while retaining legacy `AgentAuthConfiguration` inputs and the existing environment-loader contract.
 
+## Bug Fixes
+
+- **Channel Service Client Cleanup**: Fixed unclosed connector and user-token clients when conversation creation fails or is cancelled, or when client initialization fails during proactive or incoming activity processing (#650).
+
 ---
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.9.0

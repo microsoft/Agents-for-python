@@ -264,56 +264,64 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         use_anonymous_auth_callback = claims_identity.allow_anonymous
 
-        # Create the connector client to use for outbound requests.
-        connector_client = (
-            await self._channel_service_client_factory.create_connector_client(
-                None,
-                claims_identity,
-                service_url,
-                audience,
-                use_anonymous=use_anonymous_auth_callback,
-            )
-        )
-
-        # Make the actual create conversation call using the connector.
-        create_conversation_result = (
-            await connector_client.conversations.create_conversation(
-                conversation_parameters
-            )
-        )
-
-        # Create the create activity to communicate the results to the application.
-        create_activity = self._create_create_activity(
-            create_conversation_result, channel_id, service_url, conversation_parameters
-        )
-
-        # Create a turn context and run the pipeline.
-        context = self._create_turn_context(
-            claims_identity,
-            None,
-            create_activity,
-        )
-        context.services.set(ConnectorClientBase, connector_client)
-        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = (
-            connector_client  # for back-compat
-        )
-
-        # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
-        user_token_client = (
-            await self._channel_service_client_factory.create_user_token_client(
-                context, claims_identity, use_anonymous_auth_callback
-            )
-        )
-        context.services.set(UserTokenClientBase, user_token_client)
-        context.turn_state[self.USER_TOKEN_CLIENT_KEY] = (
-            user_token_client  # for back-compat
-        )
-
-        # Run the pipeline and release resources in reverse registration order.
         async with AsyncExitStack() as cleanup:
+
+            # Create the connector client to use for outbound requests.
+            connector_client = (
+                await self._channel_service_client_factory.create_connector_client(
+                    None,
+                    claims_identity,
+                    service_url,
+                    audience,
+                    use_anonymous=use_anonymous_auth_callback,
+                )
+            )
+
+            # Make the actual create conversation call using the connector.
+            try:
+                create_conversation_result = (
+                    await connector_client.conversations.create_conversation(
+                        conversation_parameters
+                    )
+                )
+            except BaseException:
+                await connector_client.close()
+                raise
+
+            # Create the create activity to communicate the results to the application.
+            create_activity = self._create_create_activity(
+                create_conversation_result,
+                channel_id,
+                service_url,
+                conversation_parameters,
+            )
+
+            # Create a turn context and run the pipeline.
+            context = self._create_turn_context(
+                claims_identity,
+                None,
+                create_activity,
+            )
             cleanup.push_async_callback(context._aclose)
-            cleanup.push_async_callback(user_token_client.close)
             cleanup.push_async_callback(connector_client.close)
+
+            context.services.set(ConnectorClientBase, connector_client)
+            context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = (
+                connector_client  # for back-compat
+            )
+
+            # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
+            user_token_client = (
+                await self._channel_service_client_factory.create_user_token_client(
+                    context, claims_identity, use_anonymous_auth_callback
+                )
+            )
+            cleanup.push_async_callback(user_token_client.close)
+
+            context.services.set(UserTokenClientBase, user_token_client)
+            context.turn_state[self.USER_TOKEN_CLIENT_KEY] = (
+                user_token_client  # for back-compat
+            )
             await self.run_pipeline(context, callback)
 
     async def process_proactive(
@@ -326,43 +334,45 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         use_anonymous_auth_callback = claims_identity.allow_anonymous
 
-        # Create a turn context and run the pipeline.
-        context = self._create_turn_context(
-            claims_identity,
-            audience,
-            activity=continuation_activity,
-        )
-
-        user_token_client = (
-            await self._channel_service_client_factory.create_user_token_client(
-                context, claims_identity, use_anonymous_auth_callback
-            )
-        )
-        context.services.set(UserTokenClientBase, user_token_client)
-        context.turn_state[self.USER_TOKEN_CLIENT_KEY] = (
-            user_token_client  # for back-compat
-        )
-
-        # Create the connector client to use for outbound requests.
-        connector_client = (
-            await self._channel_service_client_factory.create_connector_client(
-                context,
-                claims_identity,
-                continuation_activity.service_url,
-                audience,
-                use_anonymous=use_anonymous_auth_callback,
-            )
-        )
-        context.services.set(ConnectorClientBase, connector_client)
-        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = (
-            connector_client  # for back-compat
-        )
-
-        # Run the pipeline and release resources in reverse registration order.
         async with AsyncExitStack() as cleanup:
+
+            # Create a turn context and run the pipeline.
+            context = self._create_turn_context(
+                claims_identity,
+                audience,
+                activity=continuation_activity,
+            )
             cleanup.push_async_callback(context._aclose)
+
+            user_token_client = (
+                await self._channel_service_client_factory.create_user_token_client(
+                    context, claims_identity, use_anonymous_auth_callback
+                )
+            )
             cleanup.push_async_callback(user_token_client.close)
+
+            context.services.set(UserTokenClientBase, user_token_client)
+            context.turn_state[self.USER_TOKEN_CLIENT_KEY] = (
+                user_token_client  # for back-compat
+            )
+
+            # Create the connector client to use for outbound requests.
+            connector_client = (
+                await self._channel_service_client_factory.create_connector_client(
+                    context,
+                    claims_identity,
+                    continuation_activity.service_url,
+                    audience,
+                    use_anonymous=use_anonymous_auth_callback,
+                )
+            )
             cleanup.push_async_callback(connector_client.close)
+
+            context.services.set(ConnectorClientBase, connector_client)
+            context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = (
+                connector_client  # for back-compat
+            )
+
             await self.run_pipeline(context, callback)
 
     def _resolve_if_connector_client_is_needed(self, activity: Activity) -> bool:
@@ -416,51 +426,52 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         use_anonymous_auth_callback = claims_identity.allow_anonymous
 
-        # Create a turn context and run the pipeline.
-        context = self._create_turn_context(
-            claims_identity,
-            outgoing_audience,
-            activity=activity,
-        )
+        async with AsyncExitStack() as cleanup:
 
-        # Create a UserTokenClient instance for the OAuth flow.
-        user_token_client = (
-            await self._channel_service_client_factory.create_user_token_client(
-                context, claims_identity, use_anonymous_auth_callback
+            # Create a turn context and run the pipeline.
+            context = self._create_turn_context(
+                claims_identity,
+                outgoing_audience,
+                activity=activity,
             )
-        )
-        context.services.set(UserTokenClientBase, user_token_client)
-        context.turn_state[self.USER_TOKEN_CLIENT_KEY] = (
-            user_token_client  # for back-compat
-        )
+            cleanup.push_async_callback(context._aclose)
 
-        # Create the connector client to use for outbound requests.
-        connector_client: ConnectorClientBase | None = None
-        if self._resolve_if_connector_client_is_needed(activity):
-            connector_client = (
-                await self._channel_service_client_factory.create_connector_client(
-                    context,
-                    claims_identity,
-                    activity.service_url,
-                    outgoing_audience,
-                    scopes,
-                    use_anonymous_auth_callback,
+            # Create a UserTokenClient instance for the OAuth flow.
+            user_token_client = (
+                await self._channel_service_client_factory.create_user_token_client(
+                    context, claims_identity, use_anonymous_auth_callback
                 )
             )
-            context.services.set(ConnectorClientBase, connector_client)
-            context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = (
-                connector_client  # for back-compat
+            cleanup.push_async_callback(user_token_client.close)
+
+            context.services.set(UserTokenClientBase, user_token_client)
+            context.turn_state[self.USER_TOKEN_CLIENT_KEY] = (
+                user_token_client  # for back-compat
             )
 
-        async with AsyncExitStack() as cleanup:
-            cleanup.push_async_callback(context._aclose)
-            cleanup.push_async_callback(user_token_client.close)
-            if connector_client:
+            # Create the connector client to use for outbound requests.
+            connector_client: ConnectorClientBase | None = None
+            if self._resolve_if_connector_client_is_needed(activity):
+                connector_client = (
+                    await self._channel_service_client_factory.create_connector_client(
+                        context,
+                        claims_identity,
+                        activity.service_url,
+                        outgoing_audience,
+                        scopes,
+                        use_anonymous_auth_callback,
+                    )
+                )
                 cleanup.push_async_callback(connector_client.close)
+
+                context.services.set(ConnectorClientBase, connector_client)
+                context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = (
+                    connector_client  # for back-compat
+                )
             await self.run_pipeline(context, callback)
 
-        # If there are any results they will have been left on the TurnContext.
-        return self._process_turn_results(context)
+            # If there are any results they will have been left on the TurnContext.
+            return self._process_turn_results(context)
 
     def create_claims_identity(self, agent_app_id: str = "") -> ClaimsIdentity:
         """
