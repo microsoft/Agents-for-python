@@ -86,6 +86,9 @@ class _SimplePathSegment(_PathSegment):
             )
         return False
 
+    def is_exact(self) -> bool:
+        return not self._ignore_case and not self._ignore_underscores
+
     def _transform(self, string: str) -> str:
 
         if self._ignore_case:

@@ -3,6 +3,7 @@
 
 import pytest
 
+from microsoft_agents.activity.config import wildcard
 from microsoft_agents.activity.config._engine._path.types import (
     _MISSING,
     _MissingType,
@@ -132,16 +133,24 @@ def test_legacy_and_net_factories_apply_different_underscore_policies():
     assert not net.check(_Path("clientid", "SETTINGS"))
 
 
-@pytest.mark.parametrize("factory", [_legpath, _netpath])
-def test_path_factories_create_wildcard_segments(factory):
+@pytest.mark.parametrize("factory", [_legpath, _netpath, _Path])
+def test_path_factories_preserve_literal_asterisk_segments(factory):
     path = factory("Connections", "*")
+
+    assert path.is_simple
+    assert isinstance(path[-1], _SimplePathSegment)
+    assert path[-1].check("*")
+    assert not path[-1].check("Service")
+    assert not path[-1].check(0)
+
+
+def test_path_accepts_explicit_wildcard_segments():
+    path = _Path("Connections", wildcard())
 
     assert not path.is_simple
     assert isinstance(path[-1], _Wildcard)
     assert path[-1].check("Service")
     assert path[-1].check(0)
-    assert not _Path("*").is_simple
-    assert isinstance(_Path("*")[0], _Wildcard)
 
 
 @pytest.mark.parametrize("value", [None, False, 0, "", {}, []])
