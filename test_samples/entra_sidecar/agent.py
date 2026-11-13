@@ -43,7 +43,7 @@ agents_sdk_config = load_configuration_from_env(environ)
 # sidecar without a real tenant/app registration. Set TOKENVALIDATION__ENABLED=true
 # (and a real CLIENTID/TENANTID) for any non-local deployment.
 TOKEN_VALIDATION_ENABLED = agents_sdk_config.get_bool(
-    "TOKENVALIDATION::ENABLED", default=False
+    ["TOKENVALIDATION", "ENABLED"], default=False
 )
 
 STORAGE = MemoryStorage()
