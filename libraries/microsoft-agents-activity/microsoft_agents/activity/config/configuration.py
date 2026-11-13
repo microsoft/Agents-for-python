@@ -51,25 +51,55 @@ def _norm_path_transform(parts: list[str]) -> _Path:
 
 
 class Configuration(_QueryDict, _MappingConfigurable):
-    """Dictionary-backed configuration with path lookup and typed conversion.
+    """Read settings from nested dictionaries and lists, with type conversion.
 
-    Use string keys for direct lookup and lists of segments for nested lookup.
-    Matching is exact unless an internal path object supplies a different
-    case/underscore policy. Collection methods accept explicit wildcard segments.
+    Pass a dictionary, then use a string for one key or a list of keys for a
+    nested value. Values keep their original types until you request a
+    conversion with a method such as ``get_int`` or ``get_bool``::
 
-    Use integer segments for list positions, including negative indexes:
-    ``config.get(["items", 0, "name"])`` reads the first item's name.
-    The string ``"0"`` selects a mapping key, not a list position.
+        >>> from microsoft_agents.activity.config import Configuration
+        >>> config = Configuration({
+        ...     "service": {"timeout": "30", "enabled": "false"},
+        ...     "servers": [{"name": "first"}, {"name": "last"}],
+        ... })
+        >>> config.get(["service", "timeout"])
+        '30'
+        >>> config.get_int(["service", "timeout"])
+        30
+        >>> config.get_bool(["service", "enabled"])
+        False
+        >>> config.get("missing", default="fallback")
+        'fallback'
 
-    Construction copies the outer mapping and recursively wraps plain nested
-    mappings and sequences. Existing query wrappers can remain shared.
-    Source normalization and merging are handled by the internal resolver.
-    Extracted sections carry source paths for diagnostics.
+    Key matching is case-sensitive: ``"service"`` and ``"Service"`` are different
+    keys. Use a list such as ``["service", "timeout"]`` for nested lookup, not
+    ``"service::timeout"``. List positions require integers; negative indexes
+    count from the end::
 
-    Plain mappings are scoped by default. Root configurations, such as those
-    returned by ``load_configuration_from_env``, let settings binders locate
-    their sections within the application configuration. Root identity is
-    explicit metadata, independent of the diagnostic base path.
+        >>> config.get(["servers", 0, "name"])
+        'first'
+        >>> config.get(["servers", -1, "name"])
+        'last'
+        >>> config.get(["servers", "0", "name"], default="not found")
+        'not found'
+
+    You can also update values using dictionary operations::
+
+        >>> config["service"]["timeout"] = "45"
+        >>> config.get_int(["service", "timeout"])
+        45
+
+    Use ``get_section`` to work with one nested dictionary, and ``wildcard()``
+    with collection methods to read values from several dictionaries.
+    The string ``"*"`` is a literal key, not a wildcard.
+
+    For environment-style names such as ``SERVICE__TIMEOUT``, use
+    ``load_configuration_from_env`` instead. That function also prepares the
+    result for SDK APIs that accept the full application configuration.
+
+    Construction copies ordinary dictionaries and wraps nested dictionaries and
+    lists. Wrapping another Configuration is not a deep copy: nested containers
+    may be shared.
     """
 
     def __init__(
@@ -77,12 +107,13 @@ class Configuration(_QueryDict, _MappingConfigurable):
         original: Mapping | None = None,
         _base_path: str | Sequence[str] | None = None,
     ):
-        """Wrap a mapping without expanding key names or coercing values.
+        """Create configuration from a dictionary, keeping key names and values.
 
-        :param original: The original mapping to initialize the configuration from.
-        :param _base_path: Diagnostic path as a string or sequence of strings.
-            An omitted or empty path inherits the original object's base path,
-            if present.
+        :param original: Settings to read, or ``None`` for empty configuration.
+            Environment-style names are not expanded here; use
+            ``load_configuration_from_env`` when that is needed.
+        :param _base_path: Internal prefix used to identify settings in error
+            messages. Normally supplied automatically by ``get_section``.
         """
         super().__init__(original or {})
         if not isinstance(_base_path, str) and _base_path is not None:
@@ -94,12 +125,19 @@ class Configuration(_QueryDict, _MappingConfigurable):
 
     @property
     def base_path(self) -> str:
-        """Source path used in diagnostics."""
+        """Location of this section in the original configuration.
+
+        For example, ``config.get_section("service").base_path`` is ``"service"``.
+        Error messages include this location to help identify the setting.
+        """
         return self._base_path
 
     @property
     def key(self) -> str:
-        """Last source-path segment, or an empty string when no path is set."""
+        """Name of this section, such as ``"service"`` after ``get_section("service")``.
+
+        Returns an empty string for configuration without a section path.
+        """
         if not self._key:
             self._key = (
                 self._base_path.rsplit(_PATH_SEPARATOR, maxsplit=1)[-1]
@@ -139,11 +177,15 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def from_config(
         cls, base: Mapping | None, *, _base_path: str | None = None
     ) -> Configuration:
-        """Create a wrapper, retaining mapping metadata and diagnostic source path.
+        """Create Configuration from a dictionary or another Configuration.
 
-        ``None`` creates empty scoped configuration. Key spelling is preserved.
-        A nonempty ``_base_path`` rebases diagnostics without modifying the input.
-        Existing nested query wrappers may remain shared.
+        ``None`` creates empty configuration. Existing key names and section
+        locations are preserved. Nested values may be shared when copying
+        another Configuration.
+
+        :param base: Settings to wrap.
+        :param _base_path: Internal override for the section location shown in
+            error messages; it does not change the input.
         """
         _base_path = _base_path or getattr(base, "_base_path", None)
         return Configuration(base, _base_path=_base_path)
@@ -182,11 +224,25 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get(
         self, key: _PathProxy, default: Any = None, *, skip_none: bool = False
     ) -> Any:
-        """Return the first value matching one path, or ``default`` if absent.
+        """Read a value without changing its type, or return a default if missing.
 
-        Use a string key for direct lookup or a list of segments for nested
-        lookup. ``skip_none=True`` continues searching matching candidates
-        until a non-``None`` value is found. Wildcard paths are not accepted.
+        Use a string for one key or a list of keys and integer indexes for a
+        nested value. A stored ``None`` is returned unchanged unless
+        ``skip_none=True``, which treats it as missing. To read multiple values
+        using ``wildcard()``, use ``collect`` instead.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration
+            >>> config = Configuration({"service": {"timeout": "30", "note": None}})
+            >>> config.get(["service", "timeout"])
+            '30'
+            >>> config.get(["service", "missing"], default="fallback")
+            'fallback'
+            >>> config.get(["service", "note"], default="fallback") is None
+            True
+            >>> config.get(["service", "note"], default="fallback", skip_none=True)
+            'fallback'
         """
         path = _Path.create(key)
         try:
@@ -209,14 +265,28 @@ class Configuration(_QueryDict, _MappingConfigurable):
         section: _PathProxy,
         default: Configuration | None | _MissingType = _MISSING,
     ) -> Configuration | None:
-        """Retrieve a section of the configuration, returning it as a Configuration object.
+        """Read one nested dictionary as Configuration.
 
-        :param section: A key or path to a mapping.
-        :param default: Returned if the section is absent, or its value is
-            ``None``. Without a default, absence raises ``KeyError``.
-        :return: The retrieved section as a Configuration object, or the default value if not found.
-        :raises KeyError: If the section is not found and no default is provided.
-        :raises TypeError: If the section is found but is not a mapping.
+        Lookups on the returned object start inside that section. Its
+        ``base_path`` records the section's location for error messages::
+
+            >>> from microsoft_agents.activity.config import Configuration
+            >>> config = Configuration({"service": {"timeout": "30"}})
+            >>> service = config.get_section("service")
+            >>> service.get_int("timeout")
+            30
+            >>> service.base_path
+            'service'
+            >>> service.key
+            'service'
+            >>> config.get_section("missing", default=None) is None
+            True
+
+        :param section: One key or a list of keys leading to a dictionary.
+        :param default: Value to return if the section is missing or ``None``.
+        :raises KeyError: If the section is missing and no default is provided.
+        :raises TypeError: If the value is not a dictionary. A stored ``None``
+            also raises this error when no default is provided.
         """
         path = _Path.create(section)
         val, found_path = self._get_with_path(path, default=default)
@@ -231,12 +301,26 @@ class Configuration(_QueryDict, _MappingConfigurable):
         raise TypeError(f"Section {base_path} is not a mapping")
 
     def get_sections(self, section: _PathProxy) -> list[Configuration]:
-        """Retrieve all subsections of the specified section as Configuration objects.
+        """Read several nested dictionaries as a list of Configuration objects.
 
-        :param section: A path, optionally containing internal wildcard segments.
-        :return: A list of Configuration objects representing the subsections.
-        :raises TypeError: If a matched value is not a mapping.
-        :raises KeyError: If multiple matches have the same final source key.
+        Put ``wildcard()`` in the path to visit every key at that dictionary
+        level. If nothing matches, return an empty list::
+
+            >>> from microsoft_agents.activity.config import Configuration, wildcard
+            >>> config = Configuration({
+            ...     "services": {
+            ...         "first": {"timeout": "10"},
+            ...         "second": {"timeout": "20"},
+            ...     },
+            ... })
+            >>> sections = config.get_sections(["services", wildcard()])
+            >>> [section.key for section in sections]
+            ['first', 'second']
+            >>> [section.get_int("timeout") for section in sections]
+            [10, 20]
+
+        :param section: One key or a list of keys, indexes, and wildcards.
+        :raises TypeError: If any matched value is not a dictionary.
         """
         path = _Path.create(section)
         map = _collect_with_paths(self, path)
@@ -266,12 +350,23 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_bool(
         self, path: _PathProxy, default: bool | None | _MissingType = _MISSING
     ) -> bool | None:
-        """Convert a matched value to a bool, skipping ``None`` candidates.
+        """Read a setting as a boolean.
 
-        Strings accept ``true/1`` and ``false/0``, ignoring case and whitespace.
+        Strings accept ``"true"``/``"1"`` and ``"false"``/``"0"``, ignoring case
+        and surrounding whitespace. Unlike ``bool("false")``, this correctly
+        reads the string ``"false"`` as False.
         Missing or blank values return an explicit default; without one they
         raise ``KeyError`` or ``ValueError``. Invalid nonempty values raise
         ``ValueError`` even when a default is supplied.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration
+            >>> config = Configuration({"enabled": "false"})
+            >>> config.get_bool("enabled")
+            False
+            >>> config.get_bool("missing", default=True)
+            True
 
         :param path: A key or path.
         :param default: Fallback for missing, ``None``, or blank values.
@@ -281,7 +376,10 @@ class Configuration(_QueryDict, _MappingConfigurable):
         return _handle_bool(val, default, self._resolve_path(found_path or path))
 
     def get_booln(self, path: _PathProxy, default: bool | None = None) -> bool | None:
-        """Call ``get_bool`` with a nullable default, ``None`` unless supplied."""
+        """Read a boolean, returning ``None`` for missing or blank settings by default.
+
+        Like ``get_bool``, invalid nonempty values still raise ``ValueError``.
+        """
         return self.get_bool(path, default=default)
 
     @overload
@@ -293,12 +391,24 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_int(
         self, path: _PathProxy, default: int | None | _MissingType = _MISSING
     ) -> int | None:
-        """Convert a matched value to an int, skipping ``None`` candidates.
+        """Read a setting as an integer.
 
-        Decimal and float-form strings are accepted; float-form values are
-        truncated. Blank values and bools use an explicit default. Missing
-        values without a default raise ``KeyError``; unset or invalid values
-        can raise ``ValueError``.
+        Accept numeric strings such as ``"5"`` and ``"5.9"``; fractional parts
+        are discarded. Missing, ``None``, blank, and boolean values use the
+        default when one is supplied. Without a default, missing values raise
+        ``KeyError`` and blank or boolean values raise ``ValueError``.
+        Invalid nonempty values raise ``ValueError`` even with a default.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration
+            >>> config = Configuration({"retries": "3", "limit": "5.9"})
+            >>> config.get_int("retries")
+            3
+            >>> config.get_int("limit")
+            5
+            >>> config.get_int("missing", default=10)
+            10
 
         :param path: A key or path.
         :param default: Fallback for missing or unset values.
@@ -308,7 +418,17 @@ class Configuration(_QueryDict, _MappingConfigurable):
         return _handle_int(val, default, self._resolve_path(found_path or path))
 
     def get_intn(self, path: _PathProxy, default: int | None = None) -> int | None:
-        """Call ``get_int`` with a nullable default, ``None`` unless supplied."""
+        """Read an integer, returning ``None`` for missing or blank settings by default.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration
+            >>> config = Configuration()
+            >>> config.get_intn("optional_limit") is None
+            True
+            >>> config.get_intn("optional_limit", default=10)
+            10
+        """
         return self.get_int(path, default=default)
 
     @overload
@@ -320,11 +440,21 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_float(
         self, path: _PathProxy, default: float | None | _MissingType = _MISSING
     ) -> float | None:
-        """Convert a matched value to a float, skipping ``None`` candidates.
+        """Read a setting as a floating-point number.
 
-        Blank values and bools use an explicit default. Missing values without
-        a default raise ``KeyError``; unset or invalid values can raise
-        ``ValueError``.
+        Missing, ``None``, blank, and boolean values use the default when one is
+        supplied. Without a default, missing values raise ``KeyError`` and
+        blank or boolean values raise ``ValueError``. Invalid nonempty values
+        raise ``ValueError`` even with a default.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration
+            >>> config = Configuration({"delay": "0.5"})
+            >>> config.get_float("delay")
+            0.5
+            >>> config.get_float("missing", default=1.0)
+            1.0
 
         :param path: A key or path.
         :param default: Fallback for missing or unset values.
@@ -336,7 +466,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_floatn(
         self, path: _PathProxy, default: float | None = None
     ) -> float | None:
-        """Call ``get_float`` with a nullable default, ``None`` unless supplied."""
+        """Read a float, returning ``None`` for missing or blank settings by default."""
         return self.get_float(path, default=default)
 
     @overload
@@ -348,10 +478,20 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_str(
         self, path: _PathProxy, default: str | None | _MissingType = _MISSING
     ) -> str | None:
-        """Convert a matched value to a string, skipping ``None`` candidates.
+        """Read a setting as a string.
 
         Existing strings, including empty strings, are preserved. Other values
-        use ``str()``. Missing values without a default raise ``KeyError``.
+        are converted with ``str()``. Missing or ``None`` values use the default,
+        or raise ``KeyError`` if no default was supplied.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration
+            >>> config = Configuration({"port": 3978, "label": ""})
+            >>> config.get_str("port")
+            '3978'
+            >>> config.get_str("label", default="agent")
+            ''
 
         :param path: A key or path.
         :param default: Fallback for a missing or ``None`` value.
@@ -361,17 +501,29 @@ class Configuration(_QueryDict, _MappingConfigurable):
         return _handle_str(val, default, self._resolve_path(found_path or path))
 
     def get_strn(self, path: _PathProxy, default: str | None = None):
-        """Call ``get_str`` with a nullable default, ``None`` unless supplied."""
+        """Read a string, returning ``None`` for missing settings by default."""
         return self.get_str(path, default=default)
 
     def get_str_list(
         self, path: _PathProxy, default: list[str] | None = None
     ) -> list[str]:
-        """Read a string list, skipping ``None`` matches and list elements.
+        """Read a list of strings from a list or a text setting.
 
-        Sequence elements are converted to strings. Scalar text is split on
-        commas when present, otherwise on whitespace. Use ``get_scopes`` when
-        both separators must be handled together. Mapping values are rejected.
+        List elements are converted to strings and ``None`` elements are
+        omitted. Text is split on commas if any are present, otherwise on
+        whitespace. Use ``get_scopes`` to split on both at once.
+        Dictionaries are not accepted.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration
+            >>> config = Configuration({"roles": "read, write", "ids": [1, None, 2]})
+            >>> config.get_str_list("roles")
+            ['read', 'write']
+            >>> config.get_str_list("ids")
+            ['1', '2']
+            >>> config.get_str_list("missing")
+            []
 
         :param path: A key or path.
         :param default: Fallback list; missing values return ``[]`` if omitted.
@@ -403,12 +555,20 @@ class Configuration(_QueryDict, _MappingConfigurable):
     def get_items(
         self, path: _PathProxy, default: dict | None = None
     ) -> Iterable[tuple[Any, Any]]:
-        """Return mapping entries or enumerated sequence elements at one path.
+        """Read a dictionary's key/value pairs or a list's index/value pairs.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration
+            >>> config = Configuration({"labels": {"name": "agent"}, "ports": [3978]})
+            >>> list(config.get_items("labels"))
+            [('name', 'agent')]
+            >>> list(config.get_items("ports"))
+            [(0, 3978)]
 
         :param path: A key or path.
-        :param default: Fallback value inspected when no match exists.
-        :return: A mapping's items view, an enumeration of a non-text sequence,
-            or an empty list for other values.
+        :param default: Dictionary to use if the setting is missing.
+        :return: Iterable of pairs, or an empty list for other value types.
         """
         base = _get(self, path, default=default)
         if isinstance(base, Mapping):
@@ -420,26 +580,57 @@ class Configuration(_QueryDict, _MappingConfigurable):
         return []
 
     def collect(self, path: _PathProxy) -> list[Any]:
-        """Collect all matching leaves, including ``None``, in traversal order.
+        """Read all values matching a path, including ``None`` values.
 
-        Use explicit internal wildcard segments to enumerate mapping keys.
-        Matching leaves must have distinct final source keys, or ``KeyError``
-        is raised. Sequence traversal requires a numeric segment.
+        Use ``wildcard()`` to match every key at one dictionary level. Results
+        follow dictionary insertion order, and a missing path returns ``[]``.
+        A wildcard does not enumerate list positions; use an integer index
+        for those. The string ``"*"`` selects a literal key.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration, wildcard
+            >>> config = Configuration({
+            ...     "services": {
+            ...         "first": {"timeout": 10},
+            ...         "second": {"timeout": 20},
+            ...     },
+            ... })
+            >>> config.collect(["services", wildcard(), "timeout"])
+            [10, 20]
+            >>> config.collect(["missing", wildcard()])
+            []
         """
         return _collect(self, _Path.create(path))
 
     def collect_str(self, _path: _PathProxy) -> list[str]:
-        """Collect matches as strings, omitting ``None`` values."""
+        """Like ``collect``, but convert results to strings and omit ``None``.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration, wildcard
+            >>> config = Configuration({"values": {"first": 1, "second": None}})
+            >>> config.collect_str(["values", wildcard()])
+            ['1']
+        """
         path = _Path.create(_path)
         vals = _collect(self, path)
         vals = [_handle_str(v, None, path) for v in vals if v is not None]
         return [v for v in vals if v is not None]
 
     def get_scopes(self, _path: _PathProxy) -> list[str]:
-        """Retrieve a list of scopes from the configuration.
+        """Read OAuth scopes as a list.
 
-        Strings split on both commas and whitespace; mutable sequences are
-        copied without coercing their elements. Other value types are rejected.
+        Text can separate scopes with commas, whitespace, or both. A configured
+        list is copied without changing its elements. Missing or ``None`` values
+        return ``[]``; other value types raise ``ValueError``.
+
+        Example::
+
+            >>> from microsoft_agents.activity.config import Configuration
+            >>> config = Configuration({"scopes": "User.Read, Mail.Read Files.Read"})
+            >>> config.get_scopes("scopes")
+            ['User.Read', 'Mail.Read', 'Files.Read']
 
         :param _path: A key or path.
         :return: The scopes as a list, or an empty list if absent.
@@ -456,7 +647,11 @@ class Configuration(_QueryDict, _MappingConfigurable):
 
     @staticmethod
     def format_scopes(scopes: str | list[str] | None) -> list[str]:
-        """Split strings on commas and whitespace, copy lists, or map None to []."""
+        """Convert scope text or a scope list to a list, without reading a setting.
+
+        Split text on commas and whitespace, copy existing lists, and return
+        ``[]`` for ``None``.
+        """
         if scopes is None:
             return []
         if isinstance(scopes, str):
@@ -485,7 +680,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
 
 
 class _Configurable(ABC):
-    """Bind typed settings from a Configuration or reuse an already-bound object."""
+    """Shared ``from_config`` helper for SDK settings classes."""
 
     @classmethod
     @abstractmethod
@@ -493,13 +688,15 @@ class _Configurable(ABC):
 
     @classmethod
     def from_config(cls, config: Mapping | Self | None) -> Self:
-        """Bind a mapping or Configuration, reuse settings, or bind defaults.
+        """Create settings from a dictionary or Configuration.
 
-        Plain mappings are wrapped with their key names preserved.
-        Existing instances of this settings class are returned unchanged.
-        ``None`` binds an empty scoped Configuration.
+        Passing an existing instance of this settings class returns it
+        unchanged. Pass ``None`` to use the class's default settings; validation
+        still applies if the class requires particular values.
 
-        :raises TypeError: If config is not a supported input type.
+        :param config: A dictionary, Configuration, existing settings object,
+            or ``None``.
+        :raises TypeError: If the input is not one of those types.
         """
 
         if isinstance(config, cls):
@@ -515,12 +712,12 @@ class _Configurable(ABC):
 
 
 class _RootConfigurable(_Configurable, ABC):
-    """Bind settings from either application-level or scoped configuration.
+    """Support both a full application configuration and one component's settings.
 
-    Subclasses implement root and scoped binding separately. Dispatch uses root
-    metadata stored in the mapping.
-    A root binder locates its own section, while a scoped binder reads fields
-    directly. Passing None uses the scoped binder with empty configuration.
+    Configuration from ``load_configuration_from_env`` represents the full
+    application, so each subclass finds its own section. An ordinary dictionary
+    or Configuration is read as that component's settings directly.
+    Passing ``None`` reads an empty settings dictionary.
     """
 
     @classmethod

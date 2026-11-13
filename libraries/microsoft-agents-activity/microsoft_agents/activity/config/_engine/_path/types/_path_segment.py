@@ -58,8 +58,8 @@ class _SimplePathSegment(_PathSegment):
     """Match one key with explicit case and underscore policies.
 
     The broader folded form is only an index bucket key; ``check`` applies the
-    requested policy. Decimal segments compare by numeric value, including
-    comparisons with integer mapping keys.
+    requested policy. Integer and string keys remain distinct: ``1`` does not
+    match ``"1"``.
     """
 
     def __init__(

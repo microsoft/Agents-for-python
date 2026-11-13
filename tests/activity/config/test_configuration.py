@@ -6,7 +6,7 @@ from collections.abc import MutableMapping
 
 import pytest
 
-from microsoft_agents.activity.config import Configuration, _legpath
+from microsoft_agents.activity.config import Configuration, _legpath, wildcard
 from tests._common import create_configuration
 from microsoft_agents.activity.config._metadata import _RootConfigMetadata
 
@@ -252,7 +252,7 @@ def test_collected_sections_rebase_existing_configurations():
     original = Configuration({"Enabled": True}, _base_path="Previous")
     config = Configuration({"Entries": {"Service": original}}, _base_path="Root")
 
-    sections = config.get_sections(_legpath("Entries", "*"))
+    sections = config.get_sections(_legpath("Entries") + wildcard())
 
     assert len(sections) == 1
     assert sections[0]._base_path == "Root::Entries::Service"
@@ -265,7 +265,7 @@ def test_non_mapping_collected_section_reports_full_path():
     )
 
     with pytest.raises(TypeError) as error:
-        config.get_sections(_legpath("Entries", "*"))
+        config.get_sections(_legpath("Entries") + wildcard())
 
     assert str(error.value) == "Section Root::Entries::Service is not a mapping"
 
@@ -371,7 +371,7 @@ def test_legacy_matching_components_form_one_nested_path():
 def test_collect_wildcards_enumerate_mappings_not_lists(values, index, expected):
     config = Configuration({"audiences": values})
 
-    assert config.collect_str(_legpath("audiences", "*")) == expected
+    assert config.collect_str(_legpath("audiences") + wildcard()) == expected
     assert config.collect_str(["audiences", index]) == ["first"]
 
 
@@ -387,7 +387,7 @@ def test_collect_does_not_implicitly_flatten_selected_containers():
 def test_collect_preserves_equal_values_under_distinct_source_keys():
     config = Configuration({"Values": {"First": "same", "Second": "same"}})
 
-    assert config.collect_str(_legpath("Values", "*")) == ["same", "same"]
+    assert config.collect_str(_legpath("Values") + wildcard()) == ["same", "same"]
 
 
 @pytest.mark.parametrize(

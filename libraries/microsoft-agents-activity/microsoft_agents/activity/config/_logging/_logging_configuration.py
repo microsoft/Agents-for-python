@@ -36,11 +36,13 @@ class _LogLevelEntry:
 
 @dataclass(frozen=True)
 class _LoggingConfiguration(_RootConfigurable):
-    """Bind namespace log levels from root configuration or a logging section.
+    """Read logger levels from a ``logging`` section or full application settings.
 
-    ``from_config`` uses root metadata to choose ``logging`` / ``log_level``
-    traversal or a scoped ``log_level`` lookup. These setting names ignore case
-    and underscores. Missing entries produce no level overrides.
+    A logging section contains a ``log_level`` dictionary, such as
+    ``{"log_level": {"default": "INFO", "microsoft_agents": "WARNING"}}``.
+    Full application configuration from ``load_configuration_from_env`` is
+    searched for its ``logging`` section first. Setting names ignore case and
+    underscores. If no levels are configured, existing levels are unchanged.
     """
 
     log_levels: list[_LogLevelEntry]

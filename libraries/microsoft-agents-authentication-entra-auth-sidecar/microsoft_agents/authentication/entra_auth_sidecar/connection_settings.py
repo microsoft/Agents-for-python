@@ -31,18 +31,34 @@ def _or_default(s: str | None, default: str) -> str:
 
 @dataclass(frozen=True)
 class SidecarConnectionSettings(ConnectionSettingsBase):
-    """
-    Connection settings for the sidecar-based token provider.
+    """Connection options for requesting tokens from the Entra ID sidecar.
 
-    Extends :class:`microsoft_agents.hosting.core.ConnectionSettingsBase`.
-    Construct directly or use ``from_config`` for scoped mappings,
-    Configuration, an existing settings instance, or defaults. Sidecar-specific
-    field matching ignores case and underscores; the shared base defines
-    connection-level fields.
+    The sidecar manages credentials, so these settings do not need a client
+    secret or certificate. Create the object with keyword arguments, or use
+    ``from_config`` to read a dictionary for one connection::
 
-    The ``from_configuration`` compatibility method additionally accepts legacy
-    AgentAuthConfiguration. No secrets/certificates are required: the sidecar
-    owns credential management. Frozen fields do not make nested values immutable.
+        >>> from microsoft_agents.authentication.entra_auth_sidecar import (
+        ...     SidecarConnectionSettings,
+        ... )
+        >>> settings = SidecarConnectionSettings.from_config({
+        ...     "SIDECAR_BASE_URL": "http://localhost:5178",
+        ...     "REQUEST_TIMEOUT": "15",
+        ...     "RETRY_COUNT": "2",
+        ... })
+        >>> settings.request_timeout
+        15.0
+        >>> settings.retry_count
+        2
+
+    For sidecar options, names such as ``REQUEST_TIMEOUT`` and
+    ``request_timeout`` are equivalent. A connection entry containing a
+    ``settings`` dictionary is also accepted; do not pass the whole application
+    configuration.
+
+    ``from_config`` also accepts an existing settings object or ``None`` for
+    defaults. ``from_configuration`` additionally supports the legacy
+    ``AgentAuthConfiguration`` type. Do not modify nested lists or dictionaries
+    after passing the settings to a provider.
     """
 
     service_name: str | None = DEFAULT_SERVICE_NAME
@@ -110,9 +126,10 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
     def from_configuration(
         cls, config: Configuration | Mapping | AgentAuthConfiguration | Self
     ) -> Self:
-        """Compatibility binder that also converts legacy AgentAuthConfiguration.
+        """Read connection settings, including legacy AgentAuthConfiguration objects.
 
-        Prefer ``from_config`` for mappings, Configuration, or bound settings.
+        For dictionaries, Configuration, or an existing settings object, prefer
+        ``from_config``.
         """
         if isinstance(config, AgentAuthConfiguration):
             return cls._from_agent_auth_config(config)

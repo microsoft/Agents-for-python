@@ -56,13 +56,15 @@ class MsalAuth(AccessTokenProviderBase):
             Configuration | MsalConnectionSettings | AgentAuthConfiguration
         ),
     ):
-        """Initializes the MsalAuth class with the given configuration.
+        """Create an MSAL token provider for one connection.
 
-        :param msal_configuration: Scoped Configuration or bound MsalConnectionSettings.
-            AgentAuthConfiguration remains accepted for deprecated compatibility.
-            Bind a plain mapping with ``MsalConnectionSettings.from_config`` or
-            wrap it in Configuration before constructing the provider. Bound
-            settings are reused; do not mutate their nested values after use.
+        :param msal_configuration: MsalConnectionSettings, or a Configuration
+            containing one connection's settings. For a dictionary, use
+            ``MsalConnectionSettings.from_config(your_settings)`` first.
+            Do not pass the whole application's configuration. Legacy
+            AgentAuthConfiguration is still accepted but is deprecated.
+            Existing settings objects are reused; do not change their nested
+            lists or dictionaries after creating the provider.
         :type msal_configuration: Configuration | MsalConnectionSettings | AgentAuthConfiguration
         """
         config = msal_configuration
@@ -95,7 +97,7 @@ class MsalAuth(AccessTokenProviderBase):
     def configuration(self) -> AgentAuthConfiguration:
         """Return the deprecated AgentAuthConfiguration compatibility view.
 
-        Use :attr:`config` for the bound MsalConnectionSettings instead.
+        Use :attr:`config` to read the MsalConnectionSettings instead.
 
         :return: The legacy authentication configuration.
         :rtype: AgentAuthConfiguration
@@ -111,7 +113,10 @@ class MsalAuth(AccessTokenProviderBase):
 
     @property
     def config(self) -> MsalConnectionSettings:
-        """Return the bound MSAL settings; nested mutable values remain mutable.
+        """Return the MSAL settings this provider uses.
+
+        This is not a copy. Do not change lists or dictionaries inside it after
+        creating the provider.
 
         :return: The MSAL connection settings.
         :rtype: MsalConnectionSettings

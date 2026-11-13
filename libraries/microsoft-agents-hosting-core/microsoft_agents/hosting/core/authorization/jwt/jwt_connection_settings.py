@@ -17,12 +17,16 @@ from ..connections import ConnectionSettingsBase
 
 @dataclass(frozen=True)
 class JwtConnectionSettings(ConnectionSettingsBase):
-    """Provider-independent connection settings for inbound JWT validation.
+    """Connection options used to check access tokens on incoming requests.
 
-    Construct directly or bind scoped settings with ``from_config``. Empty
-    issuer lists are populated from tenant and authority during initialization,
-    so direct and bound construction share the same defaults. Nonempty explicit
-    issuer lists are preserved. Provider credentials are not required.
+    These settings identify the client, tenant, and permitted token issuers;
+    they do not request tokens and do not require a client secret or certificate.
+    Create the object with keyword arguments or call ``from_config`` with one
+    connection's settings dictionary.
+
+    If ``issuers`` is omitted or empty, default issuer addresses are generated
+    from ``tenant_id`` and ``authority``. A nonempty issuer list is kept as
+    supplied. Both constructor arguments and ``from_config`` use these defaults.
     """
 
     validate_issuer: bool = False

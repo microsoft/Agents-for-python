@@ -19,23 +19,49 @@ from .jwt_connection_settings import JwtConnectionSettings
 
 @dataclass(frozen=True)
 class TokenValidationConfiguration(_Configurable):
-    """JWT acceptance policy and connection settings used for key discovery.
+    """Settings that determine which incoming access tokens the agent accepts.
 
-    Root input binds policy fields from ``token_validation`` and routing settings
-    from sibling ``connections``. Nonempty explicit audiences take precedence;
-    otherwise all configured client IDs become accepted audiences. Missing tenant
-    and anonymous-access policy values inherit from ``SERVICE_CONNECTION``.
-    Explicit ``anonymous_allowed=False`` disables anonymous access.
+    ``audiences`` lists the client IDs that a token may be intended for.
+    ``anonymous_allowed`` controls whether requests without authentication are
+    allowed.
 
-    Scoped input binds only ``tenant_id``, ``audiences``, and
-    ``anonymous_allowed``; it does not discover connections outside that section.
-    For programmatic token validation, construct this dataclass with
-    ``connections`` and/or ``default_jwt_settings`` to supply routing as well as
-    the acceptance policy.
+    To read the full application's settings, first use
+    ``load_configuration_from_env``. ``from_config`` then reads
+    ``token_validation`` and ``connections`` automatically. If no nonempty
+    audience list is provided, the configured connection client IDs are used::
 
-    Use ``from_config`` to bind a mapping/Configuration or reuse a bound policy.
-    Root dispatch depends on mapping metadata, not on the presence of section
-    names. Use canonical ``connections`` and ``audiences`` keys for exact lookup.
+        >>> from microsoft_agents.activity.config import load_configuration_from_env
+        >>> from microsoft_agents.hosting.core.authorization.jwt import (
+        ...     TokenValidationConfiguration,
+        ... )
+        >>> config = load_configuration_from_env({
+        ...     "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENT_ID": "your-client-id",
+        ...     "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANT_ID": "your-tenant-id",
+        ... })
+        >>> policy = TokenValidationConfiguration.from_config(config)
+        >>> policy.audiences
+        ['your-client-id']
+        >>> policy.tenant_id
+        'your-tenant-id'
+
+    The tenant ID and anonymous-access option also fall back to
+    ``SERVICE_CONNECTION`` when not set in ``token_validation``.
+    An explicit ``anonymous_allowed=False`` always disables anonymous access.
+
+    To supply just the token-validation options, pass those fields directly::
+
+        >>> policy = TokenValidationConfiguration.from_config({
+        ...     "audiences": ["your-client-id"],
+        ...     "anonymous_allowed": False,
+        ... })
+        >>> policy.validate_audience("your-client-id")
+        True
+
+    A plain dictionary is read as these fields, not searched for nested
+    application sections. It does not supply connection details for checking
+    token signatures. For programmatic setup that also needs those details,
+    pass ``connections`` or ``default_jwt_settings`` to the constructor.
+    Passing an existing instance to ``from_config`` returns it unchanged.
     """
 
     tenant_id: str | None = None
@@ -92,7 +118,10 @@ class TokenValidationConfiguration(_Configurable):
         )
 
     def validate_audience(self, aud: Any) -> bool:
-        """Check a nonempty string audience against the case-insensitive allowlist."""
+        """Return whether a token's audience is in the accepted client ID list.
+
+        Comparison ignores case. Empty or non-string values are not accepted.
+        """
         if not aud or not isinstance(aud, str):
             return False
         for target_audience in self.audiences:
@@ -101,10 +130,11 @@ class TokenValidationConfiguration(_Configurable):
         return False
 
     def get_connection_settings(self, aud: Any) -> JwtConnectionSettings | None:
-        """Match a valid string audience to a connection, falling back to the default.
+        """Find the connection whose client ID matches a token's audience.
 
-        This selects routing only; ``validate_audience`` decides whether the
-        audience is accepted. Invalid or empty audience values return None.
+        If no client ID matches, return ``default_jwt_settings``. Empty or
+        non-string audiences return ``None``. This only selects settings;
+        call ``validate_audience`` to check whether the audience is allowed.
         """
         if not aud or not isinstance(aud, str):
             return None

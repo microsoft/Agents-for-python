@@ -62,11 +62,15 @@ class SidecarAuth(AccessTokenProviderBase):
         *,
         sidecar_client: SidecarHttpClient | None = None,
     ):
-        """Bind scoped settings or reuse a SidecarConnectionSettings instance.
+        """Create a token provider using one connection's sidecar settings.
 
-        Legacy AgentAuthConfiguration remains accepted. ``sidecar_client``
-        supplies an existing transport; otherwise URL validation and HTTP
-        settings are applied when constructing the provider's transport.
+        Pass SidecarConnectionSettings or a Configuration for one connection,
+        not the full application configuration. Legacy AgentAuthConfiguration
+        is also accepted.
+
+        Supply ``sidecar_client`` to use an existing HTTP client. Otherwise a
+        client is created using the configured URL, timeout, and retry count,
+        after validating the URL.
         """
         if isinstance(configuration, AgentAuthConfiguration):
             self._configuration = configuration
@@ -103,9 +107,10 @@ class SidecarAuth(AccessTokenProviderBase):
     def configuration(self) -> AgentAuthConfiguration:
         """Return the deprecated legacy configuration supplied at construction.
 
-        Configuration-based and typed-settings construction do not create this
-        compatibility view and raise ``ValueError`` here. Use ``config`` for
-        bound provider settings in all construction modes.
+        If the provider was created with Configuration or
+        SidecarConnectionSettings, this raises ``ValueError`` instead.
+        Use ``config`` to read the settings regardless of how the provider was
+        created.
         """
 
         warnings.warn(
@@ -124,6 +129,7 @@ class SidecarAuth(AccessTokenProviderBase):
 
     @property
     def config(self) -> SidecarConnectionSettings:
+        """Return the SidecarConnectionSettings this provider uses, not a copy."""
         return self._settings
 
     @property

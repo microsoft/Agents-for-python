@@ -25,20 +25,36 @@ _KNOWN_KWARGS_CACHE: dict[type[ConnectionSettingsBase], dict[str, bool]] = {}
 
 @dataclass(frozen=True)
 class ConnectionSettingsBase(_Configurable):
-    """Provider-independent settings constructed directly or with ``from_config``.
+    """Settings shared by authentication providers, such as client and tenant IDs.
 
-    Binding accepts a scoped mapping/Configuration, or a connection definition
-    with a literal ``settings`` child. It does not search an application root.
-    Use canonical field names for exact lookups; individual provider binders
-    explicitly opt into legacy case/underscore matching where supported.
-    Unrecognized keys are retained in ``extras``; an explicit ``extras`` mapping
-    overrides matching unrecognized keys.
+    Construct with keyword arguments, or call ``from_config`` with a dictionary
+    for one connection. If that dictionary has a ``settings`` section, its
+    contents are used. The method does not search the application's
+    ``connections`` section for you.
 
-    An already-bound instance is reused by ``from_config``. ``None`` binds
-    defaults. Legacy AgentAuthConfiguration conversion is a separate internal
-    compatibility path.
-    Frozen fields cannot be reassigned, but scopes and extras remain mutable.
-    Treat those containers as read-only after handing settings to a provider.
+    For example, a connection entry can include additional provider options::
+
+        >>> from microsoft_agents.hosting.core import ConnectionSettingsBase
+        >>> settings = ConnectionSettingsBase.from_config({
+        ...     "settings": {
+        ...         "client_id": "your-client-id",
+        ...         "custom_option": "custom-value",
+        ...     },
+        ... })
+        >>> settings.client_id
+        'your-client-id'
+        >>> settings.extras["custom_option"]
+        'custom-value'
+
+    Use the field names shown on the settings class. Common alternatives such
+    as ``CLIENT_ID`` and ``ClientId`` are also accepted for ``client_id``.
+    Unrecognized keys are kept in ``extras``; a separate ``extras`` dictionary
+    takes precedence over unrecognized keys with the same spelling.
+
+    ``from_config`` returns an existing settings instance unchanged, and
+    ``None`` selects defaults. Fields cannot be reassigned after construction,
+    but ``scopes`` and ``extras`` can still be changed. Do not modify those
+    containers after passing the settings to an authentication provider.
     """
 
     client_id: str | None = None
@@ -50,7 +66,10 @@ class ConnectionSettingsBase(_Configurable):
 
     @property
     def extras(self) -> Configuration:
-        """Return unrecognized provider settings, not an immutable copy."""
+        """Additional provider options that are not declared fields on this class.
+
+        This returns the stored configuration, not a copy.
+        """
         return self._extras
 
     @classmethod

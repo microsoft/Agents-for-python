@@ -6,6 +6,7 @@ from types import MappingProxyType
 
 import pytest
 
+from microsoft_agents.activity.config import wildcard
 from microsoft_agents.activity.config._engine import (
     _Path,
     _MISSING,
@@ -315,13 +316,19 @@ def test_get_can_skip_null_candidates():
     [
         ({"First": 1, "Second": 2}, ["Second"], [2]),
         ({"Entries": ["first", "second"]}, ["Entries", 1], ["second"]),
-        ({"Entries": {"A": 1, "B": 2}}, _legpath("Entries", "*"), [1, 2]),
-        ({"Entries": [1, 2]}, _legpath("Entries", "*"), []),
-        ({"Entries": [1, 2]}, _legpath("Missing", "*"), []),
+        ({"Entries": {"A": 1, "B": 2}}, _legpath("Entries") + wildcard(), [1, 2]),
+        ({"Entries": [1, 2]}, _legpath("Entries") + wildcard(), []),
+        ({"Entries": [1, 2]}, _legpath("Missing") + wildcard(), []),
     ],
 )
 def test_collect_selects_named_and_wildcard_paths(mapping, path, expected):
     assert _collect(mapping, path) == expected
+
+
+def test_collect_literal_asterisk_path_does_not_enumerate_other_keys():
+    mapping = {"Entries": {"*": "literal", "Other": "other"}}
+
+    assert _collect(mapping, _legpath("Entries", "*")) == ["literal"]
 
 
 @pytest.mark.parametrize("key", ["CLIENTID", "CLIENT_ID", "client_id", "clientId"])

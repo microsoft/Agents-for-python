@@ -1,26 +1,23 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Dictionary-backed configuration and typed settings binding.
+"""Read application settings and create SDK settings objects.
 
-``Configuration`` wraps nested mappings and sequences, preserving values and
-key names. Use string keys for direct lookup and lists of segments for nested
-lookup. Internal path objects supply case, underscore, and wildcard policies.
+Use ``Configuration`` for nested dictionaries and lists, with methods such as
+``get_int`` and ``get_bool`` to convert values when reading them. Use
+``load_configuration_from_env`` for environment-style names such as
+``CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENT_ID``.
 
-Source resolution, lookup, and settings binding are separate responsibilities.
-The internal resolver normalizes and merges sources. The environment
-loader accepts a single caller-supplied mapping, delegates normalization to the
-resolver, applies logging, and marks its result as application-root input.
-Typed getters perform conversion only when values are requested.
+For nested lookup, pass a list of keys, such as ``["service", "timeout"]``.
+Use integer indexes for lists and ``wildcard()`` to collect values from all keys
+at a dictionary level. The string ``"*"`` is a literal key.
 
-Settings classes bind mappings through ``from_config`` and reuse already-bound
-instances. Root-aware binders use mapping metadata to distinguish
-application-root input from scoped settings. Ordinary mappings and extracted
-sections are scoped inputs unless they carry root metadata.
+SDK settings classes provide ``from_config`` to read a dictionary or
+Configuration instead of supplying each constructor argument separately.
+See each class's examples for the dictionary shape it expects.
 
-The private ``_engine`` package supplies traversal, mutation, normalization,
-and coercion. Underscore-prefixed exports, including path factories, are private
-SDK implementation helpers.
+Names starting with an underscore, including the path factories and ``_engine``
+package, are internal implementation helpers.
 """
 
 from ._load_configuration import load_configuration_from_env

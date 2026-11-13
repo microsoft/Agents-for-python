@@ -27,10 +27,11 @@ class AccessTokenProviderBase(Protocol):
     @property
     def config(self) -> ConnectionSettingsBase:
         """
-        Bound provider-specific settings extending ConnectionSettingsBase.
+        The settings this provider uses, such as MsalConnectionSettings.
 
-        Providers should override this property to expose their bound settings.
-        The compatibility default rebinds the legacy configuration on each call.
+        Provider implementations should return their ConnectionSettingsBase
+        subclass here. For older providers that only expose ``configuration``,
+        this default creates settings from that legacy object on each access.
 
         :return: The provider's typed connection settings.
         """

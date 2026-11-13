@@ -12,7 +12,7 @@ from microsoft_agents.activity.config._engine._path.types import (
     _Wildcard,
     _is_missing,
 )
-from microsoft_agents.activity.config._utils import _legpath, _netpath
+from microsoft_agents.activity.config._utils import _get_segments, _legpath, _netpath
 
 
 @pytest.mark.parametrize(
@@ -133,6 +133,26 @@ def test_legacy_and_net_factories_apply_different_underscore_policies():
     assert not net.check(_Path("clientid", "SETTINGS"))
 
 
+@pytest.mark.parametrize(
+    "factory, kwargs",
+    [
+        (_get_segments, {"ignore_case": True, "ignore_underscores": True}),
+        (_legpath, {}),
+        (_netpath, {}),
+    ],
+)
+def test_path_helpers_preserve_supplied_segment_policies(factory, kwargs):
+    exact = _SimplePathSegment("Client_Id")
+
+    segments = factory("PARENT_KEY", exact, **kwargs)
+    path = _Path(*segments)
+
+    assert segments[1] is exact
+    assert path.check(_Path("parent_key", "Client_Id"))
+    assert not path.check(_Path("parent_key", "CLIENT_ID"))
+    assert not path.check(_Path("parent_key", "ClientId"))
+
+
 @pytest.mark.parametrize("factory", [_legpath, _netpath, _Path])
 def test_path_factories_preserve_literal_asterisk_segments(factory):
     path = factory("Connections", "*")
@@ -144,11 +164,13 @@ def test_path_factories_preserve_literal_asterisk_segments(factory):
     assert not path[-1].check(0)
 
 
-def test_path_accepts_explicit_wildcard_segments():
-    path = _Path("Connections", wildcard())
+@pytest.mark.parametrize("factory", [_Path, _get_segments, _legpath, _netpath])
+def test_path_accepts_explicit_wildcard_segments(factory):
+    marker = wildcard()
+    path = _Path(*factory("Connections", marker))
 
     assert not path.is_simple
-    assert isinstance(path[-1], _Wildcard)
+    assert path[-1] is marker
     assert path[-1].check("Service")
     assert path[-1].check(0)
 

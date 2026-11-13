@@ -82,11 +82,12 @@ class _CollectEntry:
 def _collect_with_paths(
     mapping: Mapping, path: _PathProxy, *, skip_none: bool = False
 ) -> dict[_Path, _CollectEntry]:
-    """Collect leaves into a dictionary keyed by rendered full matched paths.
+    """Collect values into a dictionary keyed by their matched path objects.
 
     Explicit wildcard segments enumerate mapping keys; integer segments index
-    sequences. Repeated leaf names under distinct paths remain separate.
-    Duplicate rendered paths raise ``KeyError``. ``skip_none`` omits ``None`` leaves.
+    sequences. Keys retain integer/string segment types instead of using display
+    strings. Repeated leaf names under distinct paths remain separate.
+    ``skip_none`` omits ``None`` values.
     """
     collection: dict[_Path, _CollectEntry] = {}
 

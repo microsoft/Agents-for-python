@@ -63,16 +63,27 @@ def _handle_bool(
 
 
 def coerce_bool(value: Any, default: bool | None = None, name: str = "value") -> bool:
-    """Coerce a config value (possibly an env string) to a bool.
+    """Convert one value to a boolean, without looking up a configuration key.
 
-    Environment variables always arrive as strings, so ``bool("false")`` would
-    be ``True``. Recognized truthy spellings are ``1/true`` and falsy spellings
-    are ``0/false`` (case-insensitive).
+    Accept ``"true"``/``"1"`` and ``"false"``/``"0"``, ignoring case and
+    surrounding whitespace. Unlike Python's ``bool("false")``, this reads the
+    string ``"false"`` as False.
 
-    An empty/whitespace-only string or ``None`` is treated as *unset* (not as an
-    explicit ``false``). Unset and unrecognized values return the default, or
-    raise ``ValueError`` if no non-None default was supplied.
-    Errors identify the setting without including its input value.
+    Missing, blank, or unrecognized values return a supplied True/False default;
+    otherwise they raise ``ValueError``. Unlike ``Configuration.get_bool``, this
+    helper also uses its default for invalid nonempty text.
+
+    Example::
+
+        >>> from microsoft_agents.activity.config import coerce_bool
+        >>> coerce_bool("false")
+        False
+        >>> coerce_bool("not a boolean", default=False)
+        False
+
+    :param value: Value to convert.
+    :param default: Boolean to use if conversion is not possible.
+    :param name: Setting name to include in error messages, without its value.
     """
     new_default = default if default is not None else _MISSING
     try:
@@ -126,12 +137,24 @@ def _handle_int(
 
 
 def coerce_int(value: Any, default: int | None = None, name: str = "value") -> int:
-    """Coerce a config value (possibly an env string) to an int.
+    """Convert one value to an integer, without looking up a configuration key.
 
-    Empty/``None`` values fall back to ``default``. Bools are treated as unset
-    (a stray ``True``/``False`` is not a meaningful count). Numeric strings such
-    as ``"5"`` or ``"5.0"`` are accepted; anything else raises ``ValueError``
-    naming the offending setting.
+    Accept numbers and numeric strings such as ``"5"`` or ``"5.9"``, discarding
+    fractional parts. Blank values, ``None``, and booleans use a supplied
+    default, or raise ``ValueError`` without one. Invalid nonempty text always
+    raises ``ValueError``.
+
+    Example::
+
+        >>> from microsoft_agents.activity.config import coerce_int
+        >>> coerce_int("5")
+        5
+        >>> coerce_int(None, default=3)
+        3
+
+    :param value: Value to convert.
+    :param default: Integer to use for a missing or blank value.
+    :param name: Setting name to include in error messages, without its value.
     """
     new_default = default if default is not None else _MISSING
     return _handle_int(value, new_default, name)
@@ -178,11 +201,23 @@ def _handle_float(
 def coerce_float(
     value: Any, default: float | None = None, name: str = "value"
 ) -> float:
-    """Coerce a config value (possibly an env string) to a float.
+    """Convert one value to a float, without looking up a configuration key.
 
-    Empty/``None`` values fall back to ``default``. Bools are treated as unset.
-    Anything that is not parseable as a float raises ``ValueError`` naming the
-    offending setting.
+    Blank values, ``None``, and booleans use a supplied default, or raise
+    ``ValueError`` without one. Invalid nonempty text always raises
+    ``ValueError``.
+
+    Example::
+
+        >>> from microsoft_agents.activity.config import coerce_float
+        >>> coerce_float("0.5")
+        0.5
+        >>> coerce_float(None, default=1.0)
+        1.0
+
+    :param value: Value to convert.
+    :param default: Number to use for a missing or blank value.
+    :param name: Setting name to include in error messages, without its value.
     """
     new_default = default if default is not None else _MISSING
     return _handle_float(value, new_default, name)

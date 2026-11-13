@@ -13,16 +13,37 @@ from microsoft_agents.hosting.core import (
 
 @dataclass(frozen=True)
 class MsalConnectionSettings(ConnectionSettingsBase):
-    """MSAL settings constructed directly or bound with ``from_config``.
+    """Credentials and options MSAL uses to request access tokens.
 
-    Binding accepts scoped settings or a connection's literal ``settings``
-    child, independently of inbound JWT policy. Provider-specific keys ignore
-    case and underscores. ``regional_authority`` is a fallback for
-    ``azure_region``; unknown settings remain in ``extras``.
+    Create this object with keyword arguments, or call ``from_config`` with a
+    dictionary containing one connection's settings::
 
-    Certificate, federated-credential, and workload-identity modes require
-    ``cert_pfx_file``, ``federated_client_id``, and ``federated_token_file``,
-    respectively. Validation runs for direct and bound construction.
+        >>> from microsoft_agents.authentication.msal import MsalConnectionSettings
+        >>> settings = MsalConnectionSettings.from_config({
+        ...     "CLIENT_ID": "your-client-id",
+        ...     "TENANT_ID": "your-tenant-id",
+        ...     "CLIENT_SECRET": "<your-client-secret>",
+        ...     "SCOPES": "https://graph.microsoft.com/.default",
+        ... })
+        >>> settings.client_id
+        'your-client-id'
+        >>> settings.scopes
+        ['https://graph.microsoft.com/.default']
+
+    ``CLIENT_ID``, ``ClientId``, and ``client_id`` all populate ``client_id``.
+    You can also pass a connection entry containing a ``settings`` dictionary.
+    Do not pass the entire application configuration: select the connection
+    first, or let ``MsalConnectionManager`` do that for you.
+
+    The default authentication type is ``AuthTypes.client_secret``; provide
+    ``client_secret`` when using that type to acquire tokens. Other types have
+    their own required fields: certificate authentication requires
+    ``cert_pfx_file``, federated credentials require ``federated_client_id``,
+    and workload identity requires ``federated_token_file``.
+    These three requirements are checked when the settings object is created.
+
+    ``regional_authority`` can be used if ``azure_region`` is not supplied.
+    Unrecognized settings are available through ``extras``.
     """
 
     auth_type: str = AuthTypes.client_secret

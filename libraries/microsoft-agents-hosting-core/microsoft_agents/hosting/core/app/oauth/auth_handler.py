@@ -57,13 +57,25 @@ def _create_kwargs(
 
 @dataclass
 class AuthHandlerConfig(_Configurable):
-    """Settings for one OAuth handler, independent of its runtime strategy.
+    """Settings for one named sign-in option, such as access to Microsoft Graph.
 
-    Construct with typed field values, or use ``from_config`` to bind
-    configuration aliases such as ``AZUREBOTOAUTHCONNECTIONNAME`` and ``TYPE``.
-    Mapping binding normalizes the authorization type and accepts scopes as a
-    list or a comma/whitespace-separated string. Direct construction expects a
-    scope list.
+    Create with keyword arguments, or use ``from_config`` to read a settings
+    dictionary. The latter also accepts configuration names such as
+    ``AZUREBOTOAUTHCONNECTIONNAME`` and converts scope text to a list::
+
+        >>> from microsoft_agents.hosting.core import AuthHandlerConfig
+        >>> handler = AuthHandlerConfig.from_config({
+        ...     "name": "graph",
+        ...     "AZUREBOTOAUTHCONNECTIONNAME": "graph-oauth",
+        ...     "scopes": "User.Read, Mail.Read",
+        ... })
+        >>> handler.abs_oauth_connection_name
+        'graph-oauth'
+        >>> handler.scopes
+        ['User.Read', 'Mail.Read']
+
+    When using constructor arguments instead, pass ``scopes`` as a list.
+    ``from_config`` also converts the authorization type to lowercase.
 
     :param name: Handler identifier; use the corresponding handlers-mapping key.
     :param title: Sign-in card title.

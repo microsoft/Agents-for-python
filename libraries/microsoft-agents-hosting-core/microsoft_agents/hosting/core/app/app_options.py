@@ -82,11 +82,11 @@ class ApplicationOptions:
 
     authorization_handlers: dict[str, AuthHandlerConfig] | None = None
     """
-    Optional mapping of OAuth handler IDs to AuthHandlerConfig.
-    A nonempty mapping overrides configured handlers when AgentApplication
-    creates its Authorization instance. Otherwise handlers may be bound from
-    application configuration. Prefer AuthHandlerConfig over the deprecated
-    AuthHandler constructor.
+    Optional dictionary of sign-in handler IDs and AuthHandlerConfig objects.
+    A nonempty dictionary replaces handlers from application configuration when
+    AgentApplication creates Authorization. An empty dictionary or None uses
+    configured handlers instead; it does not disable them.
+    Use AuthHandlerConfig rather than the deprecated AuthHandler constructor.
     """
 
     proactive: ProactiveOptions | None = None

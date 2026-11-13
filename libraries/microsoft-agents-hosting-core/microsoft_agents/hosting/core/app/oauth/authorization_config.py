@@ -19,21 +19,45 @@ from .auth_handler import AuthHandlerConfig
 
 @dataclass(frozen=True)
 class AuthorizationConfig(_RootConfigurable):
-    """Application-level OAuth options and named handler definitions.
+    """Choose the agent's sign-in options and named OAuth handlers.
 
-    Root configuration traverses ``agent_application`` / ``user_authorization``. Scoped
-    configuration reads ``auto_sign_in`` and ``handlers`` directly. A missing
-    section binds the defaults: no handlers and automatic sign-in disabled.
+    Each handler describes one way users can sign in. To read only these
+    options, pass a dictionary with ``auto_sign_in`` and ``handlers``::
 
-    Construct this dataclass directly with AuthHandlerConfig values, or bind
-    a mapping or Configuration with ``from_config``. In mapped
-    configuration, each handler has a ``settings`` mapping and an optional
-    ``type`` at handler level. A nested ``auth_type`` is used when the outer
-    type is absent. The handler key supplies its name, overriding a nested name.
-    Automatic sign-in and handler-section names ignore case and underscores.
+        >>> from microsoft_agents.hosting.core import AuthorizationConfig
+        >>> options = AuthorizationConfig.from_config({
+        ...     "auto_sign_in": True,
+        ...     "handlers": {
+        ...         "graph": {
+        ...             "type": "UserAuthorization",
+        ...             "settings": {
+        ...                 "AZUREBOTOAUTHCONNECTIONNAME": "graph-oauth",
+        ...                 "scopes": "User.Read",
+        ...             },
+        ...         },
+        ...     },
+        ... })
+        >>> options.auto_sign_in
+        True
+        >>> options.handlers["graph"].abs_oauth_connection_name
+        'graph-oauth'
+
+    For full application configuration returned by
+    ``load_configuration_from_env``, these options are read from
+    ``agent_application`` > ``user_authorization`` automatically.
+    If the section is missing, there are no handlers and automatic sign-in is
+    disabled.
+
+    In a handler dictionary, ``type`` selects the authorization flow and
+    ``settings`` contains its options. If ``type`` is absent, a nested
+    ``auth_type`` is used instead. The dictionary key, such as ``"graph"``,
+    supplies the handler name even if a different name appears in its settings.
+
+    You can also construct AuthorizationConfig directly with AuthHandlerConfig
+    objects. Names such as ``AUTO_SIGN_IN`` and ``auto_sign_in`` are equivalent.
 
     :param auto_sign_in: Whether to attempt sign-in automatically before routes.
-    :param handlers: Handler IDs mapped to bound AuthHandlerConfig instances.
+    :param handlers: Dictionary of handler IDs and AuthHandlerConfig objects.
     """
 
     auto_sign_in: bool = False

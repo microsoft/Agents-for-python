@@ -88,19 +88,23 @@ class Authorization:
         use_cache: bool = False,
         **kwargs,
     ):
-        """Create authorization flows from explicit or configured settings.
+        """Set up user sign-in using configured or explicitly supplied handlers.
 
-        Pass ``config`` as a root Configuration from
-        ``load_configuration_from_env``, a scoped authorization section/mapping,
-        or a bound AuthorizationConfig instance. Root input traverses
-        ``agent_application`` / ``user_authorization``; scoped input reads
-        ``handlers`` and ``auto_sign_in`` directly.
+        For ``config``, pass one of the following:
 
-        A nonempty auth_handlers list or mapping replaces configured handlers.
-        Lists are keyed by each handler's name; duplicate names retain the last
-        definition. Empty lists/mappings fall back to configured handlers.
-        The first handler is the default. Omitting all configuration creates an
-        instance with no handlers.
+        * The full application Configuration returned by
+          ``load_configuration_from_env``. Sign-in options are read from
+          ``agent_application`` > ``user_authorization``.
+        * A dictionary or Configuration containing just ``handlers`` and
+          ``auto_sign_in``. See ``AuthorizationConfig`` for an example.
+        * An AuthorizationConfig object created in code.
+
+        A nonempty ``auth_handlers`` list or dictionary replaces handlers from
+        ``config``. An empty list or dictionary does not disable configured
+        handlers; it uses them instead. In a list, each handler's ``name`` is
+        its ID, and the last definition wins if names repeat.
+        The first handler is used when a sign-in call does not specify an ID.
+        Omitting all configuration creates an instance with no handlers.
 
         :param storage: The storage system to use for state management.
         :type storage: :class:`microsoft_agents.hosting.core.storage.Storage`
@@ -110,8 +114,9 @@ class Authorization:
         :type auth_handlers: list[AuthHandlerConfig] | dict[str, AuthHandlerConfig] | None
         :param auto_sign_in: Override configured automatic sign-in with True or
             False. None uses the configured value.
-        :param config: Root/scoped configuration or bound authorization settings.
-            When supplied, deprecated kwargs are ignored rather than merged.
+        :param config: Full application settings, sign-in options, or an
+            AuthorizationConfig object, as described above. When supplied,
+            deprecated kwargs are ignored rather than combined with config.
         :param use_cache: Retained for compatibility; currently has no effect.
         :param kwargs: Deprecated unpacked root configuration. Emits a
             DeprecationWarning when nonempty, even if config takes precedence.

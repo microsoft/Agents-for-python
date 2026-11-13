@@ -14,6 +14,7 @@ from microsoft_agents.activity.config import (
     _legpath as legpath,
     _get,
     _netpath,
+    wildcard,
 )
 
 from .agent_auth_configuration import AgentAuthConfiguration
@@ -31,13 +32,17 @@ ConfigT = TypeVar("ConfigT", Configuration, AgentAuthConfiguration)
 
 class ConnectionManager(Connections):
     """
-    Generic, provider-agnostic connection manager.
+    Manage named connections and select the authentication provider to use.
 
-    Dispatches to any :class:`AccessTokenProviderBase` implementation. The
-    ``provider_factory`` callable determines which auth provider is instantiated
-    for each connection configuration, so new auth providers (MSAL, Entra ID
-    sidecar, future providers) can reuse the connection routing logic without
-    duplicating it.
+    Most applications use the connection manager supplied by their
+    authentication package, such as ``MsalConnectionManager``. This base class
+    accepts a ``provider_factory`` function for creating a provider from each
+    connection's settings.
+
+    Application configuration must define a ``connections`` dictionary with a
+    ``SERVICE_CONNECTION`` entry. This is the default connection.
+    Connection names ignore case but keep underscores significant:
+    ``service_connection`` also works, but ``ServiceConnection`` does not.
     """
 
     _connections: dict[str, AccessTokenProviderBase]
@@ -58,27 +63,27 @@ class ConnectionManager(Connections):
         **kwargs,
     ):
         """
-        Initialize the connection manager.
+        Create providers for the application's named connections.
 
         :param provider_factory: Factory creating an AccessTokenProviderBase from
             Configuration, or AgentAuthConfiguration for legacy connection inputs.
         :type provider_factory: Callable[[AgentAuthConfiguration], AccessTokenProviderBase]
             | Callable[[Configuration], AccessTokenProviderBase]
-        The factory's signature must match the configuration type:
-        :class:`AgentAuthConfiguration` for deprecated connection inputs or
-        :class:`Configuration` for ``config``.
+        With ``config``, the factory receives a Configuration containing the
+        settings for one connection. Deprecated connection inputs instead
+        require a factory that accepts AgentAuthConfiguration.
         :param connections_configurations: (Deprecated) A dictionary of connection configurations.
         :type connections_configurations: dict[str, :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`]
         :param connections_map: (Deprecated) A list of connection mappings.
         :type connections_map: list[dict[str, str]]
-        :param config: Application configuration containing ``connections`` and
-            optional ``connections_map`` sections. Each connection's ``settings``
-            section (or the connection section itself) is passed to the factory.
+        :param config: Full application configuration containing ``connections``
+            and optional ``connections_map`` sections. For each connection,
+            the factory receives its ``settings`` dictionary, or the connection
+            dictionary itself if no ``settings`` dictionary exists.
             When supplied, deprecated keyword configuration is ignored.
         :type config: :class:`microsoft_agents.activity.config.Configuration`
-        :param kwargs: Deprecated application configuration used only if config
-            is absent. This fallback uses the Configuration-based factory path
-            unless deprecated positional connection arguments select legacy mode.
+        :param kwargs: Deprecated application configuration, used only if config
+            is absent. Prefer passing one Configuration through ``config``.
         :raises ValueError: If no service connection configuration is provided.
         """
 
@@ -156,7 +161,7 @@ class ConnectionManager(Connections):
             )
 
             raw_connections_map = config.get(legpath("connections_map"), [])
-            connection_configs = config.get_sections(legpath("connections", "*"))
+            connection_configs = config.get_sections(legpath("connections", wildcard()))
 
             for section in connection_configs:
                 connection_name = section.key
