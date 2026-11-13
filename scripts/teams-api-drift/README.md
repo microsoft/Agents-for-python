@@ -34,6 +34,12 @@ commands test that exact version. An unsupported interpreter or unresolved
 dependency is a failed extraction, never evidence of an unchanged API. On
 Windows, use `.teams-api-comparison\candidate\Scripts\python.exe`.
 
+For upstream dependency defects without a patch fix, add a targeted pip constraints
+file at `constraints/<API-version>.txt`. Extraction and candidate preparation use
+it only when present; other versions install normally. For example,
+[constraints/2.1.0.txt](./constraints/2.1.0.txt) keeps common below 2.2.0 because API
+2.1.0 imports `httpx` but common 2.2.0 switched to `httpx2`.
+
 Each command has one bounded role and reads its inputs from arguments. The GitHub
 Actions workflows compose these commands, record step outcomes, decide whether
 Copilot and publication are allowed, upload evidence, and enforce the final

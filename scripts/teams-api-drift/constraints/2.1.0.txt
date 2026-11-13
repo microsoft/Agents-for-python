@@ -1,0 +1,2 @@
+# Common 2.2.0 uses httpx2; API 2.1.0 still imports httpx.
+microsoft-teams-common<2.2.0
