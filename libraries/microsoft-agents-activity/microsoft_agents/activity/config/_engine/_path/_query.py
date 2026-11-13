@@ -35,10 +35,11 @@ def _normalize_value(value: Any) -> Any:
 class _QueryList(_UserList):
     """List wrapper that normalizes inserted mappings and sequences.
 
-    Integer and slice reads retain list semantics, including negative indexes.
-    Internal paths traverse nonnegative numeric positions. Membership uses
-    ordinary value equality. Slice replacements are normalized before the
-    backing list is changed, and extended slices retain Python's length rules.
+    Integer and slice reads retain list semantics. Integer-valued path segments
+    also support negative indexes; numeric strings do not index sequences.
+    Membership uses ordinary value equality. Slice replacements are normalized
+    before the backing list is changed, and extended slices retain Python's
+    length rules.
     """
 
     def __init__(
@@ -78,7 +79,9 @@ class _QueryList(_UserList):
 
         if isinstance(index, _PathSegment):
             if not isinstance(index.value, int):
-                raise TypeError("List index must be an integer or a digit string.")
+                raise TypeError(
+                    "List index must be an integer or integer-valued segment."
+                )
 
         if isinstance(index, (int, _PathSegment)):
             index = index.value if isinstance(index, _PathSegment) else index
@@ -92,7 +95,7 @@ class _QueryList(_UserList):
                 matched_keys=[index] if include_path else [],
             )
 
-        raise TypeError("List index must be an integer or a digit string.")
+        raise TypeError("List index must be an integer or integer-valued segment.")
 
     def __getitem__(self, index: Any) -> Any:
         if isinstance(index, (slice, int)):
@@ -116,7 +119,9 @@ class _QueryList(_UserList):
 
         if isinstance(index, _PathSegment):
             if not isinstance(index.value, int):
-                raise TypeError("List index must be an integer or a digit string.")
+                raise TypeError(
+                    "List index must be an integer or integer-valued segment."
+                )
 
         if isinstance(index, (int, _PathSegment)):
             index = index.value if isinstance(index, _PathSegment) else index
@@ -125,7 +130,7 @@ class _QueryList(_UserList):
                 raise IndexError("List index out of range.")
             super().__setitem__(index, _normalize_value(item))
             return
-        raise TypeError("List index must be an integer or a digit string.")
+        raise TypeError("List index must be an integer or integer-valued segment.")
 
     def __delitem__(self, index: Any) -> None:
         from ._utils import _pop
@@ -143,7 +148,9 @@ class _QueryList(_UserList):
 
         if isinstance(index, _PathSegment):
             if not isinstance(index.value, int):
-                raise TypeError("List index must be an integer or a digit string.")
+                raise TypeError(
+                    "List index must be an integer or integer-valued segment."
+                )
 
         if isinstance(index, (int, _PathSegment)):
             index = index.value if isinstance(index, _PathSegment) else index
@@ -152,7 +159,7 @@ class _QueryList(_UserList):
                 raise IndexError("List index out of range.")
             super().__delitem__(index)
             return
-        raise TypeError("List index must be an integer or a digit string.")
+        raise TypeError("List index must be an integer or integer-valued segment.")
 
 
 class _QueryDict(_UserDict):

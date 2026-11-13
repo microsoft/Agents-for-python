@@ -82,11 +82,11 @@ class _CollectEntry:
 def _collect_with_paths(
     mapping: Mapping, path: _PathProxy, *, skip_none: bool = False
 ) -> dict[_SegmentValue, _CollectEntry]:
-    """Collect leaves into a dictionary keyed by each final stored key.
+    """Collect leaves into a dictionary keyed by rendered full matched paths.
 
-    Explicit wildcard segments enumerate mapping keys; numeric segments index
-    sequences. Duplicate final keys raise ``KeyError``.
-    ``skip_none`` omits ``None`` leaves.
+    Explicit wildcard segments enumerate mapping keys; integer segments index
+    sequences. Repeated leaf names under distinct paths remain separate.
+    Duplicate rendered paths raise ``KeyError``. ``skip_none`` omits ``None`` leaves.
     """
     collection: dict[str, _CollectEntry] = {}
 
@@ -132,12 +132,18 @@ def _try_set(
     positions must exist too, otherwise ``IndexError`` is raised. Traversing an
     existing scalar or assigning to a read-only parent raises ``TypeError``.
 
+    Assignment selects the first matching parent at each level without
+    backtracking. With case/underscore-insensitive paths, an incomplete earlier
+    branch can shadow an existing complete match, even with overwrite disabled.
+    Use exact paths when matching sibling names are ambiguous.
+
     :param obj: Mutable mapping or sequence to modify.
     :param _path: A key, list of segments, or internal path object.
     :param value: The value to set.
     :param overwrite: Allow replacement of an existing match. Replacement keeps
         its stored key spelling and mapping position.
-    :return: False for an existing match when overwrite is disabled, else True.
+    :return: False if the selected parent already contains a match and overwrite
+        is disabled, else True.
     """
     path = _Path.create(_path)
 

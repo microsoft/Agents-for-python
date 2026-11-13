@@ -5,19 +5,22 @@
 
 A path is a sequence of segment policies. Simple segments can optionally ignore
 case and/or underscores. Wildcard segments enumerate mappings, while sequence
-traversal uses nonnegative numeric segments. Single-value lookup and mutation
-reject wildcards.
+traversal requires integer-valued segments and supports negative indexes.
+Numeric strings do not index sequences. Single-value lookup and mutation reject
+wildcards.
 
 Query dictionaries maintain casefolded, underscore-free candidate buckets.
 Every candidate is checked against the requested segment policy, preserving
 source spelling and insertion order. More than one spelling can match a simple
-segment, so traversal must backtrack when an earlier candidate has no matching
-descendant.
+segment, so lookup and deletion backtrack when an earlier candidate has no
+matching descendant. Assignment selects parents greedily; see ``_try_set`` for
+ambiguous-path limitations.
 
 Traversal retains the original path, advances an integer cursor, and maintains
 a stack of actual source keys. Value-only lookup does not materialize paths;
 matched-path lookup copies keys only when a result is found. Collection results
-are keyed by final source keys; duplicate final keys raise ``KeyError``.
+are keyed by rendered full matched paths. Repeated leaf names under different
+paths remain separate; duplicate rendered paths raise ``KeyError``.
 
 Mapping mutation can create missing mapping parents but does not grow lists to
 satisfy missing indexes. Query-container mutations normalize new values and keep

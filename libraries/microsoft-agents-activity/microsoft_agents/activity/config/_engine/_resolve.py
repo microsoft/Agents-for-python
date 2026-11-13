@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 from ._path.types._missing import _MISSING
 from ._path import _Path, _get, _get_with_path, _try_set
@@ -44,7 +44,9 @@ def _expand_paths(
     def copy_value(value: Any) -> Any:
         if isinstance(value, Mapping):
             return _expand_paths(value, path_transformer)
-        if isinstance(value, list):
+        if isinstance(value, Sequence) and not isinstance(
+            value, (str, bytes, bytearray)
+        ):
             return [copy_value(item) for item in value]
         return value
 

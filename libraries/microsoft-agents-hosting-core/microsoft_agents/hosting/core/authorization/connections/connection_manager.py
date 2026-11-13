@@ -171,7 +171,7 @@ class ConnectionManager(Connections):
 
         self._connections_map = _ConnectionMap(raw_connections_map)
 
-        if not _get(self._connections, legpath("service_connection"), default=None):
+        if not _get(self._connections, _netpath("service_connection"), default=None):
             raise ValueError("No service connection configuration provided.")
 
         _log_config(logger, self._config_map, self._connections_map)
@@ -181,8 +181,7 @@ class ConnectionManager(Connections):
         Get a connection by name, ignoring case but preserving underscores.
 
         ``None`` or an empty name selects the reserved ``service_connection``
-        name. Use ``get_default_connection`` for legacy underscore-insensitive
-        matching of that reserved name.
+        name, equivalent to calling ``get_default_connection``.
 
         :param connection_name: The name of the connection.
         :type connection_name: str | None
@@ -203,13 +202,13 @@ class ConnectionManager(Connections):
 
     def get_default_connection(self) -> AccessTokenProviderBase:
         """
-        Get the reserved service connection, ignoring case and underscores.
+        Get the reserved service connection, ignoring case but preserving underscores.
 
         :return: The default OAuth connection for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
         connection = _get(
-            self._connections, legpath("service_connection"), default=None
+            self._connections, _netpath("service_connection"), default=None
         )
         if not connection:
             raise ValueError(

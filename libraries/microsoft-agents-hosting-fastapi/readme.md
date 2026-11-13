@@ -181,16 +181,31 @@ pip install microsoft-agents-hosting-fastapi
 ## Usage
 
 ```python
+from os import environ
+
 from fastapi import FastAPI, Request
-from microsoft_agents.hosting.fastapi import start_agent_process, CloudAdapter
+from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.authentication.msal import MsalConnectionManager
+from microsoft_agents.hosting.core import MemoryStorage
+from microsoft_agents.hosting.fastapi import (
+    CloudAdapter,
+    jwt_authorization_decorator,
+    start_agent_process,
+)
 from microsoft_agents.hosting.core.app import AgentApplication
 
+agents_sdk_config = load_configuration_from_env(environ)
 app = FastAPI()
-connection_manager = MsalConnectionManager(**agents_sdk_config)
+app.state.agent_configuration = agents_sdk_config
+connection_manager = MsalConnectionManager(config=agents_sdk_config)
 adapter = CloudAdapter(connection_manager=connection_manager)
-agent_app = AgentApplication()
+agent_app = AgentApplication(
+    connection_manager=connection_manager,
+    storage=MemoryStorage(),
+)
 
 @app.post("/api/messages")
+@jwt_authorization_decorator
 async def messages(request: Request):
     return await start_agent_process(request, agent_app, adapter)
 ```

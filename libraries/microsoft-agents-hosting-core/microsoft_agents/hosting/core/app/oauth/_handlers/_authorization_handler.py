@@ -70,7 +70,7 @@ class _AuthorizationHandler(ABC):
             )
         if auth_handler or auth_handler_settings:
             warnings.warn(
-                "auth_handler and auth_handler_settings are deprecated. Please use settings instead.",
+                "auth_handler and auth_handler_settings are deprecated. Please use config instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )

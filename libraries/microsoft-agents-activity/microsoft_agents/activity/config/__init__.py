@@ -8,7 +8,7 @@ key names. Use string keys for direct lookup and lists of segments for nested
 lookup. Internal path objects supply case, underscore, and wildcard policies.
 
 Source resolution, lookup, and settings binding are separate responsibilities.
-``Configuration.resolve`` normalizes and merges sources. The environment
+The internal resolver normalizes and merges sources. The environment
 loader accepts a single caller-supplied mapping, delegates normalization to the
 resolver, applies logging, and marks its result as application-root input.
 Typed getters perform conversion only when values are requested.

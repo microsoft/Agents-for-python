@@ -135,7 +135,7 @@ def test_caller_resolves_defaults_before_loading_configuration():
         "custom": {"enabled": "false"},
     }
 
-    resolved = Configuration.resolve(
+    resolved = Configuration._resolve(
         {"connections__service_connection__settings__client_id": "env-client"},
         defaults,
     )

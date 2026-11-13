@@ -209,6 +209,16 @@ Use string keys for direct lookup and lists of segments for nested lookup.
 Matching is exact. Internal SDK path helpers support case/underscore matching
 and wildcards.
 
+List positions require integer segments, including negative indexes. Numeric
+strings address string mapping keys rather than list positions:
+
+```python
+items = Configuration({"items": [{"name": "first"}, {"name": "last"}]})
+assert items.get(["items", 0, "name"]) == "first"
+assert items.get(["items", -1, "name"]) == "last"
+assert items.get(["items", "0", "name"], default="missing") == "missing"
+```
+
 `get()` returns its default for a missing value. Typed getters raise when a value
 is missing and no default is supplied; the nullable forms, such as `get_intn()`,
 default to `None`. Invalid nonempty typed values still raise rather than silently

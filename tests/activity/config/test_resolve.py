@@ -112,9 +112,9 @@ def test_configuration_resolution_copies_all_nested_containers(as_defaults, entr
     source = {"entries": entries}
     original = deepcopy(source)
     if as_defaults:
-        result = Configuration.resolve({"unrelated": True}, source)
+        result = Configuration._resolve({"unrelated": True}, source)
     else:
-        result = Configuration.resolve(source, {"unrelated": True})
+        result = Configuration._resolve(source, {"unrelated": True})
 
     assert source == original
     assert result["entries"] is not entries

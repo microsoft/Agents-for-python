@@ -161,9 +161,7 @@ class _Path:
         return len(self._segments)
 
     def __add__(self, other: _SegmentValue | _Path | _PathSegment) -> _Path:
-        if isinstance(other, int):
-            other = str(other)
-        if isinstance(other, str):
+        if isinstance(other, (int, str)):
             other = _Path.create_segment(other)
         if isinstance(other, _PathSegment):
             return _Path(*self._segments, other)

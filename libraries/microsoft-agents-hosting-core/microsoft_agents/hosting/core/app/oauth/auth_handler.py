@@ -111,7 +111,7 @@ class AuthHandler(AuthHandlerConfig):
         """Bind legacy arguments and emit the constructor deprecation warning."""
 
         warnings.warn(
-            "AuthHandler is deprecated. Please use AuthHandlerSettings instead.",
+            "AuthHandler is deprecated. Please use AuthHandlerConfig instead.",
             DeprecationWarning,
             stacklevel=2,
         )

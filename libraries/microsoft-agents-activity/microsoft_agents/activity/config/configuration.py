@@ -57,10 +57,14 @@ class Configuration(_QueryDict, _MappingConfigurable):
     Matching is exact unless an internal path object supplies a different
     case/underscore policy. Collection methods accept explicit wildcard segments.
 
+    Use integer segments for list positions, including negative indexes:
+    ``config.get(["items", 0, "name"])`` reads the first item's name.
+    The string ``"0"`` selects a mapping key, not a list position.
+
     Construction copies the outer mapping and recursively wraps plain nested
     mappings and sequences. Existing query wrappers can remain shared.
-    Source normalization and merging are handled by ``resolve``. Extracted
-    sections carry source paths for diagnostics.
+    Source normalization and merging are handled by the internal resolver.
+    Extracted sections carry source paths for diagnostics.
 
     Plain mappings are scoped by default. Root configurations, such as those
     returned by ``load_configuration_from_env``, let settings binders locate
@@ -105,7 +109,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         return self._key
 
     @classmethod
-    def resolve(
+    def _resolve(
         cls,
         primary: Mapping | None = None,
         defaults: Mapping | None = None,

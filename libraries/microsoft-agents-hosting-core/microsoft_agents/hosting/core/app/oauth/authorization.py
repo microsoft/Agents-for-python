@@ -108,8 +108,8 @@ class Authorization:
         :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections`
         :param auth_handlers: Optional explicit handler IDs and their settings.
         :type auth_handlers: list[AuthHandlerConfig] | dict[str, AuthHandlerConfig] | None
-        :param auto_sign_in: Enable automatic sign-in. False defers to the value
-            in config; it does not override a configured True.
+        :param auto_sign_in: Override configured automatic sign-in with True or
+            False. None uses the configured value.
         :param config: Root/scoped configuration or bound authorization settings.
             When supplied, deprecated kwargs are ignored rather than merged.
         :param use_cache: Retained for compatibility; currently has no effect.
@@ -134,12 +134,12 @@ class Authorization:
         if kwargs:
             warnings.warn(
                 "Passing configuration via kwargs is deprecated. "
-                "Use the 'settings' parameter instead.",
+                "Use the 'config' parameter instead.",
                 DeprecationWarning,
             )
             if config is not None:
                 logger.warning(
-                    "Both 'settings' and 'kwargs' are provided. 'kwargs' will be ignored in favor of 'settings'."
+                    "Both 'config' and 'kwargs' are provided. 'kwargs' will be ignored in favor of 'config'."
                 )
 
         auth_config: AuthorizationConfig

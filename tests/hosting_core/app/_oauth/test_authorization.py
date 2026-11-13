@@ -336,7 +336,7 @@ class TestAuthorizationSetup(TestEnv):
         assert list(auth._handlers) == ["graph"]
         assert auth._resolve_handler("graph")._handler.scopes == ["User.Read"]
         assert auth._auto_sign_in is False
-        assert "'kwargs' will be ignored in favor of 'settings'" in caplog.text
+        assert "'kwargs' will be ignored in favor of 'config'" in caplog.text
 
     @pytest.mark.parametrize(
         "settings",

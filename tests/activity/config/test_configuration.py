@@ -287,7 +287,7 @@ def test_resolve_merges_defaults_without_mutating_inputs(is_root):
     defaults = {"settings": {"enabled": True, "count": 3}}
     original = dict(primary)
 
-    config = Configuration.resolve(primary, defaults)
+    config = Configuration._resolve(primary, defaults)
     config["settings"]["count"] = 4
 
     assert config.get_bool(["settings", "enabled"]) is False
@@ -297,7 +297,7 @@ def test_resolve_merges_defaults_without_mutating_inputs(is_root):
 
 
 def test_resolve_can_leave_unmarked_configuration_scoped():
-    config = Configuration.resolve({"enabled": True}, _ensure_root_config=False)
+    config = Configuration._resolve({"enabled": True}, _ensure_root_config=False)
 
     assert _RootConfigMetadata.get(config) is False
 

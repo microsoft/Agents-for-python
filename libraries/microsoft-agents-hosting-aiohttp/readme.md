@@ -217,7 +217,7 @@ async def on_message(context: TurnContext, state: TurnState):
 start_server(
     agent_application=AGENT_APP,
     adapter=ADAPTER,
-    auth_configuration=agents_sdk_config,
+    config=agents_sdk_config,
 )
 ```
 
