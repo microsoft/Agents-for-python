@@ -1,3 +1,6 @@
+import asyncio
+
+import aiohttp
 import pytest
 
 from microsoft_agents.activity import (
@@ -104,6 +107,90 @@ class TestChannelServiceAdapter:
         assert context_arg.activity.conversation.id == "conversation123"
         assert context_arg.activity.channel_id == "channel_id"
         assert context_arg.activity.service_url == "service_url"
+        connector_client.close.assert_awaited_once_with()
+        user_token_client.close.assert_awaited_once_with()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "error",
+        [
+            pytest.param(
+                aiohttp.ClientResponseError(
+                    request_info=None, history=(), status=403, message="Forbidden"
+                ),
+                id="forbidden",
+            ),
+            pytest.param(
+                aiohttp.ClientResponseError(
+                    request_info=None,
+                    history=(),
+                    status=429,
+                    message="Too Many Requests",
+                ),
+                id="rate-limited",
+            ),
+            pytest.param(TimeoutError("request timed out"), id="timeout"),
+            pytest.param(asyncio.CancelledError(), id="cancelled"),
+        ],
+    )
+    async def test_create_conversation_closes_connector_when_request_fails(
+        self, mocker, user_token_client, connector_client, adapter, factory, error
+    ):
+        user_token_client.get_access_token = mocker.AsyncMock(
+            return_value="user_token_value"
+        )
+        connector_client.conversations = mocker.Mock(spec=ConversationsBase)
+        connector_client.conversations.create_conversation.side_effect = error
+        create_user_token_client = mocker.patch.object(
+            factory, "create_user_token_client"
+        )
+        adapter.run_pipeline = mocker.AsyncMock()
+
+        with pytest.raises(type(error)) as exc_info:
+            await adapter.create_conversation(
+                "agent_app_id",
+                "channel_id",
+                "service_url",
+                "audience",
+                ConversationParameters(),
+                mocker.AsyncMock(),
+            )
+
+        assert exc_info.value is error
+        connector_client.close.assert_awaited_once_with()
+        create_user_token_client.assert_not_awaited()
+        adapter.run_pipeline.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_create_conversation_closes_connector_when_user_token_creation_fails(
+        self, mocker, user_token_client, connector_client, adapter, factory
+    ):
+        user_token_client.get_access_token = mocker.AsyncMock(
+            return_value="user_token_value"
+        )
+        connector_client.conversations = mocker.Mock(spec=ConversationsBase)
+        connector_client.conversations.create_conversation.return_value = (
+            ConversationResourceResponse(
+                id="conversation123", activity_id="activity123"
+            )
+        )
+        error = RuntimeError("user token client creation failed")
+        mocker.patch.object(factory, "create_user_token_client", side_effect=error)
+        adapter.run_pipeline = mocker.AsyncMock()
+
+        with pytest.raises(RuntimeError) as exc_info:
+            await adapter.create_conversation(
+                "agent_app_id",
+                "channel_id",
+                "service_url",
+                "audience",
+                ConversationParameters(),
+                mocker.AsyncMock(),
+            )
+
+        assert exc_info.value is error
+        connector_client.close.assert_awaited_once_with()
+        adapter.run_pipeline.assert_not_awaited()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -262,6 +349,36 @@ class TestChannelServiceAdapter:
         assert context_arg.activity.service_url == "service_url"
         assert context_arg.services.get(UserTokenClientBase) is user_token_client
         assert context_arg.services.get(ConnectorClientBase) is connector_client
+        connector_client.close.assert_awaited_once_with()
+        user_token_client.close.assert_awaited_once_with()
+
+    @pytest.mark.asyncio
+    async def test_process_proactive_closes_user_token_when_connector_creation_fails(
+        self, mocker, user_token_client, adapter, factory
+    ):
+        user_token_client.get_access_token = mocker.AsyncMock(
+            return_value="user_token_value"
+        )
+        error = RuntimeError("connector client creation failed")
+        mocker.patch.object(factory, "create_connector_client", side_effect=error)
+        adapter.run_pipeline = mocker.AsyncMock()
+
+        with pytest.raises(RuntimeError) as exc_info:
+            await adapter.process_proactive(
+                ClaimsIdentity(),
+                Activity(
+                    type="message",
+                    conversation={"id": "conversation123"},
+                    channel_id="channel_id",
+                    service_url="service_url",
+                ),
+                "audience",
+                mocker.AsyncMock(),
+            )
+
+        assert exc_info.value is error
+        user_token_client.close.assert_awaited_once_with()
+        adapter.run_pipeline.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_process_proactive_attempts_all_cleanup_when_connector_close_fails(

@@ -3,6 +3,7 @@
 """Join API changes with explicitly recorded extension use and ownership."""
 
 import ast
+import json
 from pathlib import Path
 import re
 
@@ -13,8 +14,73 @@ from .common import DEPENDENCY, PACKAGE, PACKAGE_ROOT, validate_artifact
 CLASSIFICATIONS = ("blocking", "required", "review", "no-action")
 
 
+def read_compatibility_reviews(manifest):
+    reviews = manifest.get("compatibilityReviews", [])
+    if not isinstance(reviews, list):
+        raise ValueError("compatibilityReviews must be an array")
+    for review in reviews:
+        if (
+            not isinstance(review, dict)
+            or not all(
+                isinstance(review.get(field), str) and review[field].strip()
+                for field in (
+                    "fromVersion",
+                    "toVersion",
+                    "upstreamSymbol",
+                    "kind",
+                    "reason",
+                )
+            )
+            or not all(field in review for field in ("member", "before", "after"))
+            or not (
+                review["member"] is None
+                or isinstance(review["member"], str)
+                and review["member"].strip()
+            )
+        ):
+            raise ValueError(
+                "Every compatibility review requires versions, upstreamSymbol, kind, "
+                "member, before, after, and a non-empty reason; use null for absent fields"
+            )
+        for field in ("before", "after"):
+            try:
+                _change_value(review[field])
+            except (TypeError, ValueError) as error:
+                raise ValueError(
+                    f"Compatibility review {field} must be JSON data"
+                ) from error
+    return reviews
+
+
+def _change_value(value):
+    # JSON comparison ignores object key order but distinguishes false from 0.
+    return json.dumps(value, sort_keys=True, allow_nan=False, separators=(",", ":"))
+
+
+def _matching_review(reviews, comparison, change):
+    return next(
+        (
+            review
+            for review in reviews
+            if all(
+                review[field] == comparison[field]
+                for field in ("fromVersion", "toVersion")
+            )
+            and review["upstreamSymbol"] == change["symbol"]
+            and review["kind"] == change["kind"]
+            and review["member"] == change.get("member")
+            and all(
+                _change_value(review[field]) == _change_value(change.get(field))
+                for field in ("before", "after")
+            )
+        ),
+        None,
+    )
+
+
 def validate_manifest(manifest, package_root=PACKAGE_ROOT):
     validate_artifact(manifest, "usages")
+    read_compatibility_reviews(manifest)
     root = Path(package_root).resolve()
     source = (root / manifest["sourceRoot"]).resolve()
     if not source.is_relative_to(root) or not source.is_dir():
@@ -142,6 +208,7 @@ def relevant(change, usage, index):
 def classify(comparison, manifest, capabilities, public_api=None):
     validate_artifact(comparison, "changes")
     validate_artifact(manifest, "usages")
+    reviews = read_compatibility_reviews(manifest)
     if public_api is not None and (
         public_api.get("schemaVersion") != 1 or public_api.get("package") != PACKAGE
     ):
@@ -210,6 +277,14 @@ def classify(comparison, manifest, capabilities, public_api=None):
             "review": "Review this upstream change; adoption requires a maintainer decision.",
             "no-action": "No recorded extension usage intersects this change.",
         }[classification]
+        review = (
+            _matching_review(reviews, comparison, change)
+            if classification in ("blocking", "required")
+            else None
+        )
+        if review is not None:
+            classification, category = "no-action", "reviewed-compatible"
+            action = f"Reviewed compatibility change: {review['reason']}"
         findings.append(
             {
                 "id": change["id"],
@@ -234,6 +309,7 @@ def classify(comparison, manifest, capabilities, public_api=None):
                         change["evidence"]
                         + ["dependency-usage"]
                         + (["teams-capabilities"] if capability else [])
+                        + (["compatibility-review"] if review is not None else [])
                     )
                 ),
                 "recommendedAction": action,
