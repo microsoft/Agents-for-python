@@ -8,10 +8,10 @@ from typing import (
     Any,
     Iterable,
     Mapping,
+    Self,
     TypeVar,
     overload,
 )
-from typing_extensions import Self
 
 from ._configuration_protocol import _ConfigurationProtocol
 from ._constants import _PATH_SEPARATOR

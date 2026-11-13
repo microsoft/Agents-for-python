@@ -3,11 +3,15 @@
 **Release Date:** Unreleased
 **Previous Version:** 1.9.0 (Released 2026-10-19)
 
+## Breaking Changes
+
+- **Python Support**: Python 3.10 is no longer supported. Upgrade to Python 3.11 or later before updating the SDK. Supported versions are Python 3.11 through 3.15; existing higher per-package minimums remain unchanged.
+
 ## Major Features & Enhancements
 
+- **Python 3.15 Support**: Added explicit Python 3.15 package classifiers and CI coverage.
 - **Shared Configuration API**: Added a dictionary-backed `Configuration` API with nested path and alias lookup, typed getters, wildcard collection, configurable settings binding, and mapping/default resolution with indexed-list normalization. Retained the existing `load_configuration_from_env()` return contract (#636).
 - **JWT Authorization Configuration**: Added `ConnectionSettingsBase`, `JwtConnectionSettings`, and `TokenValidationConfiguration` to bind inbound JWT policies from application configuration, including explicit audiences, tenant and anonymous-access overrides, and per-connection issuer settings. Retained legacy `AgentAuthConfiguration` support and added application-scoped validator caching without changing `Connections` or `ConnectionManager` (#638).
-
 - **Explicit JWT Audience Lists**: Scalar and delimited audience strings now bind as explicit allow-lists instead of falling back to all configured connection client IDs. Missing or empty audiences continue to use connection defaults (#638).
 - **Connection Configuration**: Added `Configuration`-based initialization to `ConnectionManager` and `MsalConnectionManager`, with typed audience/service-URL routing maps supporting lists and named mappings. Consolidated shared connection APIs under `authorization.connections` while retaining legacy import paths and constructor inputs.
 - **Typed Authentication Provider Settings**: Added `MsalConnectionSettings` and migrated `SidecarConnectionSettings` to derive from `ConnectionSettingsBase`. MSAL and Entra sidecar providers now accept bound settings or `Configuration` and expose typed settings through `.config`, while retaining legacy `AgentAuthConfiguration` inputs and the existing environment-loader contract.

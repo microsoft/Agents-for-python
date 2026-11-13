@@ -3,7 +3,6 @@
 
 """Shared test helpers for microsoft-agents-hosting-teams tests."""
 
-import sys
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -12,12 +11,7 @@ from microsoft_agents.activity._model_utils import SkipNone, pick_model
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
 
-is_supported_version = sys.version_info >= (3, 11)
-
-if is_supported_version:
-    from microsoft_teams.api import ApiClient
-
-    from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
+from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
 
 class _FakeServiceSet:

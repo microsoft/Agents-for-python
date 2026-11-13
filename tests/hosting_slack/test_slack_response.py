@@ -3,11 +3,10 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
-from typing import Any
+from typing import Any, assert_type
 
 import pytest
 from pydantic import ValidationError
-from typing_extensions import assert_type
 
 from microsoft_agents.hosting.slack.api import EventContent, SlackResponse
 
