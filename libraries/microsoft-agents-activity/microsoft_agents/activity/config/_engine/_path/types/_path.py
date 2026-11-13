@@ -15,7 +15,6 @@ from ._path_segment import (
     _PathSegment,
     _SimplePathSegment,
     _Wildcard,
-    _ExactPathSegment,
     _SegmentValue,
 )
 
@@ -34,7 +33,11 @@ class _Path:
     def __init__(self, *segments: _SegmentValue | _PathSegment):
 
         _segments = [
-            segment if isinstance(segment, _PathSegment) else _ExactPathSegment(segment)
+            (
+                segment
+                if isinstance(segment, _PathSegment)
+                else _Path.create_segment(segment)
+            )
             for segment in segments
         ]
         _segments = [segment for segment in _segments if segment.string]
@@ -80,10 +83,10 @@ class _Path:
     ) -> _Path:
         return _Path(
             *(
-                _SimplePathSegment(
+                _Path.create_segment(
                     segment,
                     ignore_case=ignore_case,
-                    ignore_underscores=ignore_underscores,
+                    ignore_underscore=ignore_underscores,
                 )
                 for segment in segments
             )
@@ -124,6 +127,23 @@ class _Path:
             return self._segments[key]
         raise TypeError(f"Unsupported key type: {type(key)}")
 
+    @staticmethod
+    def create_segment(
+        segment: int | str,
+        *,
+        ignore_case: bool = False,
+        ignore_underscore: bool = False,
+    ) -> _PathSegment:
+        return (
+            _SimplePathSegment(
+                segment,
+                ignore_case=ignore_case,
+                ignore_underscores=ignore_underscore,
+            )
+            if segment != "*"
+            else _Wildcard()
+        )
+
     def _prepend_to_str(self, prefix: str | _Path) -> str:
         return f"{prefix}::{str(self)}"
 
@@ -144,7 +164,7 @@ class _Path:
         if isinstance(other, int):
             other = str(other)
         if isinstance(other, str):
-            other = _SimplePathSegment(other)
+            other = _Path.create_segment(other)
         if isinstance(other, _PathSegment):
             return _Path(*self._segments, other)
         if isinstance(other, _Path):

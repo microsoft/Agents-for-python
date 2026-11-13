@@ -15,7 +15,6 @@ from ._traverse import (
     _traverse_leaves,
     _TraverseState,
     _lookup,
-    _validate_singular_path,
 )
 from ._step import iter_steps, step_once
 
@@ -73,25 +72,6 @@ def _get(
     return result.value
 
 
-def _collect_helper(
-    current: Any,
-    path_left: _Path,
-    collection: dict[str, Any],
-    current_path: _Path,
-) -> None:
-
-    if not path_left:
-        collection[current_path[-1].value] = current
-        return
-
-    segment = path_left[0]
-
-    for key, val in iter_steps(segment, current):
-        _collect_helper(val, path_left[1:], collection, current_path + key)
-        if not isinstance(segment, _Wildcard):
-            break
-
-
 @dataclass(frozen=True)
 class _CollectEntry:
 
@@ -113,12 +93,12 @@ def _collect_with_paths(
     def handler(state: _TraverseState, obj: Any) -> None:
         if skip_none and obj is None:
             return
-        last = state.traversed_keys[-1]
-        if last in collection:
-            raise KeyError(f"Duplicate key found for path: {last}")
+        traversed_path = _Path.exact(*state.traversed_keys)
+        if str(traversed_path) in collection:
+            raise KeyError(f"Duplicate key found for path: {traversed_path}")
 
-        collection[last] = _CollectEntry(
-            path=_Path.exact(*state.traversed_keys),
+        collection[str(traversed_path)] = _CollectEntry(
+            path=traversed_path,
             value=obj,
         )
 
@@ -127,7 +107,10 @@ def _collect_with_paths(
 
 
 def _collect(
-    mapping: Mapping, path: _PathProxy, *, skip_none: bool = False
+    mapping: Mapping,
+    path: _PathProxy,
+    *,
+    skip_none: bool = False,
 ) -> list[Any]:
     return [
         entry.value
@@ -156,9 +139,10 @@ def _try_set(
         its stored key spelling and mapping position.
     :return: False for an existing match when overwrite is disabled, else True.
     """
-    _validate_singular_path(_path)
-
     path = _Path.create(_path)
+
+    if len(path) == 0 or not path.is_simple:
+        raise ValueError("Path must be non-empty and simple when setting.")
 
     current = obj
 
@@ -226,8 +210,6 @@ def _pop(
     Wildcards are rejected; a matched read-only parent raises ``TypeError``.
     """
 
-    _validate_singular_path(_path)
-
     value = default
 
     def handler(state: _TraverseState, obj: Any) -> None:
@@ -246,5 +228,5 @@ def _pop(
                     "Cannot pop value from non-mutable mapping or list object"
                 )
 
-    _traverse_leaves(_path, obj, handler)
+    _traverse_leaves(_path, obj, handler, ensure_singular_path=True)
     return value

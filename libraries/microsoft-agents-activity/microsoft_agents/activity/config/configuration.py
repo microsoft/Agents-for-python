@@ -110,6 +110,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         primary: Mapping | None = None,
         defaults: Mapping | None = None,
         *,
+        _ensure_root_config: bool = True,
         _base_path: str | None = None,
     ) -> Configuration:
         """Normalize source names and merge with primary values taking precedence.
@@ -125,7 +126,10 @@ class Configuration(_QueryDict, _MappingConfigurable):
         resolved = _resolve(
             primary or {}, defaults or {}, path_transformer=_norm_path_transform
         )
-        return Configuration(resolved, _base_path=_base_path)
+        config = Configuration(resolved, _base_path=_base_path)
+        if _ensure_root_config:
+            _RootConfigMetadata.set(config, True)
+        return config
 
     @classmethod
     def from_config(

@@ -82,7 +82,7 @@ class Authorization:
         auth_handlers: (
             list[AuthHandlerConfig] | dict[str, AuthHandlerConfig] | None
         ) = None,
-        auto_sign_in: bool = False,
+        auto_sign_in: bool | None = None,
         *,
         config: Configuration | AuthorizationConfig | None = None,
         use_cache: bool = False,
@@ -157,7 +157,11 @@ class Authorization:
             auth_handlers = {handler.name: handler for handler in auth_handlers}
 
         self._handler_settings = auth_handlers or auth_config.handlers
-        self._auto_sign_in = auto_sign_in or auth_config.auto_sign_in
+        self._auto_sign_in = (
+            auto_sign_in
+            if auto_sign_in is not None
+            else (auth_config.auto_sign_in or False)
+        )
 
         # operations default to the first handler if none specified
         if self._handler_settings:

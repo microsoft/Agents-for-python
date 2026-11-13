@@ -66,7 +66,7 @@ class TestConnectionSettingsBase:
             "AUTHORITY": "https://authority",
             "TENANT_ID": "tid",
             "SCOPES": ["s1"],
-            "ALT_BLUEPRINT_ID": "bp",
+            "ALT_BLUEPRINT_NAME": "bp",
         }
         settings = ConnectionSettingsBase.from_config(config)
         assert settings.client_id == "cid"

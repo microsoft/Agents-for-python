@@ -9,17 +9,6 @@ from .types import _Wildcard, _MISSING, _Path, _PathProxy, _SegmentValue
 from ._step import iter_steps
 
 
-def _validate_singular_path(path: _PathProxy) -> None:
-    if (not isinstance(path, int) and not path) or (
-        isinstance(path, _Path) and not path.is_simple
-    ):
-        raise ValueError("Path must be non-empty and simple.")
-    elif isinstance(path, _Wildcard):
-        raise ValueError("Path must not be a wildcard.")
-    elif isinstance(path, Sequence) and len(path) == 0:
-        raise ValueError("Path must be non-empty.")
-
-
 @dataclass
 class _TraverseState:
     """Shared traversal cursor and stack of actual source keys.
@@ -53,6 +42,8 @@ def _traverse_helper(
 
     if not isinstance(state.current, (Mapping, Sequence)) or state.no_path_left:
         return
+    if isinstance(state.current, (str, bytes, bytearray)):
+        return
 
     segment = state.path[state.path_index]
 
@@ -80,17 +71,27 @@ def _traverse_helper(
 
 
 def _traverse_leaves(
-    _path: _PathProxy, obj: Any, handler: Callable[[_TraverseState, Any], None]
+    _path: _PathProxy,
+    obj: Any,
+    handler: Callable[[_TraverseState, Any], None],
+    ensure_singular_path: bool = False,
 ) -> None:
     path = _Path.create(_path)
+    if ensure_singular_path and (len(path) == 0 or not path.is_simple):
+        raise ValueError("Path must be non-empty and simple.")
     state = _TraverseState(path=path, current=obj)
     _traverse_helper(state, handler, handle_inner=False)
 
 
 def _traverse(
-    _path: _PathProxy, obj: Any, handler: Callable[[_TraverseState, Any], None]
+    _path: _PathProxy,
+    obj: Any,
+    handler: Callable[[_TraverseState, Any], None],
+    ensure_singular_path: bool = False,
 ) -> None:
     path = _Path.create(_path)
+    if ensure_singular_path and (len(path) == 0 or not path.is_simple):
+        raise ValueError("Path must be non-empty and simple.")
     state = _TraverseState(path=path, current=obj)
     _traverse_helper(state, handler, handle_inner=True)
 
@@ -117,8 +118,6 @@ def _lookup(
     Source keys are copied only when ``include_path`` is requested.
     """
 
-    _validate_singular_path(path)
-
     result = _LookupResult()
 
     def handler(state: _TraverseState, candidate: Any) -> None:
@@ -133,5 +132,5 @@ def _lookup(
             result.matched_keys = state.traversed_keys.copy()
         state.finished = True
 
-    _traverse_leaves(path, obj, handler)
+    _traverse_leaves(path, obj, handler, ensure_singular_path=True)
     return result

@@ -4,7 +4,6 @@
 import pytest
 
 from microsoft_agents.activity.config._engine._path.types import (
-    _ExactPathSegment,
     _MISSING,
     _MissingType,
     _Path,
@@ -37,7 +36,7 @@ def test_segment_matching_policies(ignore_case, ignore_underscores, target, matc
     )
 
     assert segment.check(target) is matches
-    assert segment.check(_ExactPathSegment(target)) is matches
+    assert segment.check(_SimplePathSegment(target)) is matches
 
 
 def test_case_insensitive_matching_uses_unicode_casefold():
@@ -47,19 +46,32 @@ def test_case_insensitive_matching_uses_unicode_casefold():
     assert segment.folded == "strasse"
 
 
-@pytest.mark.parametrize("target", [2, "2"])
-def test_numeric_segments_match_canonical_integer_representations(target):
-    assert _ExactPathSegment("2").check(target)
-    assert not _ExactPathSegment("3").check(target)
+@pytest.mark.parametrize(
+    "value, target, matches",
+    [
+        (2, 2, True),
+        ("2", "2", True),
+        (2, "2", False),
+        ("2", 2, False),
+        (2, 3, False),
+        ("2", "3", False),
+    ],
+)
+def test_numeric_segments_preserve_integer_and_string_key_types(value, target, matches):
+    segment = _SimplePathSegment(value)
+
+    assert segment.check(target) is matches
+    assert segment.check(_SimplePathSegment(target)) is matches
 
 
 def test_segment_equality_includes_matching_policy():
-    exact = _ExactPathSegment("Name")
+    exact = _SimplePathSegment("Name")
     insensitive = _SimplePathSegment("Name", ignore_case=True)
 
-    assert exact == _ExactPathSegment("Name")
+    assert exact == _SimplePathSegment("Name")
     assert exact != insensitive
     assert insensitive.check(exact)
+    assert _SimplePathSegment(1) != _SimplePathSegment("1")
 
 
 def test_path_strings_are_exact_and_reject_embedded_separators():
@@ -82,8 +94,8 @@ def test_path_create_preserves_existing_path_and_segment_policy():
     assert _Path.create(segment)[0] is segment
     assert path[0] is segment
     assert _Path.create(["Section", "Value"]).check(_Path("Section", "Value"))
-    assert _Path.create(2).check(_Path("2"))
-    assert _Path.create(0).check(_Path("0"))
+    assert _Path.create(2).check(_Path(2))
+    assert _Path.create(0).check(_Path(0))
 
 
 def test_path_slice_and_concatenation_preserve_policies_without_mutating_source():
@@ -128,7 +140,8 @@ def test_path_factories_create_wildcard_segments(factory):
     assert isinstance(path[-1], _Wildcard)
     assert path[-1].check("Service")
     assert path[-1].check(0)
-    assert _Path("*").is_simple
+    assert not _Path("*").is_simple
+    assert isinstance(_Path("*")[0], _Wildcard)
 
 
 @pytest.mark.parametrize("value", [None, False, 0, "", {}, []])
@@ -140,7 +153,7 @@ def test_missing_detection_does_not_confuse_present_falsy_values(value):
 
 @pytest.mark.parametrize("digit", ["\u00b2", "\u2081", "\u2460"])
 def test_nondecimal_digit_segments_match_literal_keys_without_integer_conversion(digit):
-    segment = _ExactPathSegment(digit)
+    segment = _SimplePathSegment(digit)
 
     assert segment.check(digit)
     assert not segment.check(1)
@@ -149,12 +162,12 @@ def test_nondecimal_digit_segments_match_literal_keys_without_integer_conversion
 
 @pytest.mark.parametrize("digit", ["01", "\u0661", "\uff11"])
 def test_noncanonical_decimal_spellings_match_only_their_literal_key(digit):
-    segment = _ExactPathSegment(digit)
+    segment = _SimplePathSegment(digit)
 
     assert segment.check(digit)
     assert not segment.check(1)
     assert not segment.check("1")
-    assert not _ExactPathSegment("1").check(digit)
+    assert not _SimplePathSegment("1").check(digit)
 
 
 @pytest.mark.parametrize("segments", [("Section", "Value"), ("0",)])
@@ -168,7 +181,7 @@ def test_path_create_accepts_tuple_sequences_declared_by_path_proxy(segments):
 def test_path_reverse_slice_preserves_each_segment_policy():
     path = _Path(
         _SimplePathSegment("Client_Id", ignore_case=True, ignore_underscores=True),
-        _ExactPathSegment("Value"),
+        _SimplePathSegment("Value"),
         _Wildcard(),
     )
 
@@ -182,10 +195,9 @@ def test_path_reverse_slice_preserves_each_segment_policy():
     assert list(path[1:1]) == []
 
 
-@pytest.mark.parametrize("factory", [_ExactPathSegment, _SimplePathSegment])
-def test_segment_construction_rejects_empty_strings(factory):
+def test_segment_construction_rejects_empty_strings():
     with pytest.raises(ValueError, match="[Ee]mpty"):
-        factory("")
+        _SimplePathSegment("")
 
 
 @pytest.mark.parametrize("segments", [[""], ["", ""], ["A", "", "B"]])

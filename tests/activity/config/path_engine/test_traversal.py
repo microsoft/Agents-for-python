@@ -12,10 +12,8 @@ from microsoft_agents.activity.config._engine._path._traverse import (
     _traverse,
     _traverse_leaves,
     _TraverseState,
-    _validate_singular_path,
 )
 from microsoft_agents.activity.config._engine._path.types import (
-    _ExactPathSegment,
     _Path,
     _SimplePathSegment,
     _UserDict,
@@ -30,18 +28,18 @@ def test_mapping_steps_preserve_source_keys_and_candidate_order(factory):
     matches = list(iter_steps(_SimplePathSegment("client_id", ignore_case=True), obj))
 
     assert matches == [("Client_Id", 1), ("CLIENT_ID", 2)]
-    assert step_once(_ExactPathSegment("ClientId"), obj) == (True, "ClientId", 3)
-    assert step_once(_ExactPathSegment("missing"), obj) == (False, None, None)
+    assert step_once(_SimplePathSegment("ClientId"), obj) == (True, "ClientId", 3)
+    assert step_once(_SimplePathSegment("missing"), obj) == (False, None, None)
 
 
 @pytest.mark.parametrize("factory", [list, tuple, _QueryList])
 def test_sequence_steps_return_integer_indexes_and_handle_missing_positions(factory):
     obj = factory([None, 7])
 
-    assert list(iter_steps(_ExactPathSegment("0"), obj)) == [(0, None)]
-    assert step_once(_ExactPathSegment("1"), obj) == (True, 1, 7)
-    assert step_once(_ExactPathSegment("2"), obj) == (False, None, None)
-    assert step_once(_ExactPathSegment("value"), obj) == (False, None, None)
+    assert list(iter_steps(_SimplePathSegment(0), obj)) == [(0, None)]
+    assert step_once(_SimplePathSegment(1), obj) == (True, 1, 7)
+    assert step_once(_SimplePathSegment(2), obj) == (False, None, None)
+    assert step_once(_SimplePathSegment("value"), obj) == (False, None, None)
 
 
 @pytest.mark.parametrize("factory", [dict, _QueryDict])
@@ -108,7 +106,7 @@ def test_lookup_backtracks_after_a_matching_prefix_without_the_required_leaf():
 
 def test_lookup_returns_snapshot_of_all_source_keys_including_list_indexes():
     obj = _QueryDict({"Section": {"Items": [{"Value": 7}]}})
-    path = _Path.from_strings("section", "items", "0", "value")
+    path = _Path.from_strings("section", "items", 0, "value")
 
     first = _lookup(obj, path, include_path=True)
     second = _lookup(obj, path, include_path=True)
@@ -131,7 +129,7 @@ def test_traverse_states_do_not_share_matched_key_storage():
 @pytest.mark.parametrize("path", ["", [], _Path(), _Wildcard(), _Path(_Wildcard())])
 def test_singular_path_validation_rejects_empty_or_wildcard_paths(path):
     with pytest.raises(ValueError):
-        _validate_singular_path(path)
+        _lookup({}, path)
 
 
 @pytest.mark.parametrize("factory", [dict, MappingProxyType, _UserDict, _QueryDict])
@@ -141,16 +139,16 @@ def test_mapping_steps_preserve_literal_decimal_spellings_for_all_mapping_wrappe
 ):
     obj = factory({stored_key: 7})
 
-    assert list(iter_steps(_ExactPathSegment("1"), obj)) == []
-    assert list(iter_steps(_ExactPathSegment(stored_key), obj)) == [(stored_key, 7)]
+    assert list(iter_steps(_SimplePathSegment("1"), obj)) == []
+    assert list(iter_steps(_SimplePathSegment(stored_key), obj)) == [(stored_key, 7)]
 
 
 @pytest.mark.parametrize("factory", [list, tuple, _QueryList])
-@pytest.mark.parametrize("segment", ["-1", "1.0", " 1", "1 "])
-def test_sequence_steps_do_not_coerce_nondecimal_indexes(factory, segment):
+@pytest.mark.parametrize("segment", ["0", "1", "-1", "1.0", " 1", "1 "])
+def test_sequence_steps_do_not_coerce_string_indexes(factory, segment):
     obj = factory([7, 8])
 
-    assert list(iter_steps(_ExactPathSegment(segment), obj)) == []
+    assert list(iter_steps(_SimplePathSegment(segment), obj)) == []
 
 
 @pytest.mark.parametrize("factory", [dict, _QueryDict])
@@ -162,7 +160,7 @@ def test_traversal_backtracks_through_scalar_and_short_list_candidates(factory):
             "section": {"Items": [0, {"Value": 9}]},
         }
     )
-    path = _Path.from_strings("section", "items", "1", "value")
+    path = _Path.from_strings("section", "items", 1, "value")
 
     result = _lookup(obj, path, include_path=True)
 

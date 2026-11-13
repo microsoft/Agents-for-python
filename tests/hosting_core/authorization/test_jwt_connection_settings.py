@@ -112,7 +112,7 @@ def test_base_settings_bind_aliases_scopes_and_provider_extras():
                 "CLIENTID": "client",
                 "TENANT_ID": "tenant",
                 "AUTHORITYENDPOINT": "https://login.microsoftonline.us",
-                "ALT_BLUEPRINT_ID": "blueprint",
+                "ALT_BLUEPRINT_NAME": "blueprint",
                 "SCOPES": "scope1 scope2",
                 "provider_option": "value",
                 "extras": {"fallback_option": "fallback"},

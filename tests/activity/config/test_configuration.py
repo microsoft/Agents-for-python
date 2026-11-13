@@ -291,9 +291,15 @@ def test_resolve_merges_defaults_without_mutating_inputs(is_root):
     config["settings"]["count"] = 4
 
     assert config.get_bool(["settings", "enabled"]) is False
-    assert _RootConfigMetadata.get(config) is is_root
+    assert _RootConfigMetadata.get(config) is True
     assert primary == original
     assert defaults == {"settings": {"enabled": True, "count": 3}}
+
+
+def test_resolve_can_leave_unmarked_configuration_scoped():
+    config = Configuration.resolve({"enabled": True}, _ensure_root_config=False)
+
+    assert _RootConfigMetadata.get(config) is False
 
 
 @pytest.mark.parametrize("is_root", [False, True])

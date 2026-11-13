@@ -6,7 +6,6 @@ from ._path_segment import (
     _PathSegment,
     _SimplePathSegment,
     _Wildcard,
-    _ExactPathSegment,
     _SegmentValue,
 )
 from ._path import _Path, _PathProxy
@@ -20,7 +19,6 @@ __all__ = [
     "_PathSegment",
     "_SimplePathSegment",
     "_Wildcard",
-    "_ExactPathSegment",
     "_Path",
     "_PathProxy",
     "_UserDict",

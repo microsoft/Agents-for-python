@@ -27,7 +27,7 @@ def _normalize_value(value: Any) -> Any:
         return _QueryDict(value)
     if isinstance(value, Mapping):
         return _QueryDict(value)
-    if isinstance(value, Sequence) and not isinstance(value, str):
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         return _QueryList(value)
     return value
 
@@ -77,13 +77,11 @@ class _QueryList(_UserList):
                 return result
 
         if isinstance(index, _PathSegment):
-            if not index.isdecimal():
-                raise TypeError("List index must be an integer or a digit string.")
-            if isinstance(index, _Wildcard):
+            if not isinstance(index.value, int):
                 raise TypeError("List index must be an integer or a digit string.")
 
         if isinstance(index, (int, _PathSegment)):
-            index = int(index.string) if isinstance(index, _PathSegment) else index
+            index = index.value if isinstance(index, _PathSegment) else index
 
             if index < -len(self) or index >= len(self):
                 raise IndexError("List index out of range.")
@@ -117,13 +115,11 @@ class _QueryList(_UserList):
                 return
 
         if isinstance(index, _PathSegment):
-            if not index.isdecimal():
-                raise TypeError("List index must be an integer or a digit string.")
-            if isinstance(index, _Wildcard):
+            if not isinstance(index.value, int):
                 raise TypeError("List index must be an integer or a digit string.")
 
         if isinstance(index, (int, _PathSegment)):
-            index = int(index.string) if isinstance(index, _PathSegment) else index
+            index = index.value if isinstance(index, _PathSegment) else index
 
             if index >= len(self) or -len(self) > index:
                 raise IndexError("List index out of range.")
@@ -146,13 +142,11 @@ class _QueryList(_UserList):
             return
 
         if isinstance(index, _PathSegment):
-            if not index.isdecimal():
-                raise TypeError("List index must be an integer or a digit string.")
-            if isinstance(index, _Wildcard):
+            if not isinstance(index.value, int):
                 raise TypeError("List index must be an integer or a digit string.")
 
         if isinstance(index, (int, _PathSegment)):
-            index = int(index.string) if isinstance(index, _PathSegment) else index
+            index = index.value if isinstance(index, _PathSegment) else index
 
             if index < -len(self) or index >= len(self):
                 raise IndexError("List index out of range.")

@@ -59,6 +59,7 @@ class ConnectionSettingsBase(_Configurable):
         attrs.pop("_connections", None)
         attrs.pop("_configured_issuers", None)
         attrs.update(attrs.pop("provider_settings", {}))
+        attrs["alt_blueprint_name"] = agent_auth_config.ALT_BLUEPRINT_ID
         attrs["ISSUERS"] = agent_auth_config.ISSUERS
         return cls.from_config(attrs)
 
