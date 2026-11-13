@@ -33,7 +33,8 @@ on its own line, followed by a blank line and then its content:
 - Start Summary with this exact sentence: This is an advisory report; it does not make or authorize implementation decisions.
 - Use authoritativeArtifacts.findings as the source of truth for identifiers,
   classifications, evidence and affected files. Mention every blocking and
-  required finding by its exact ID. Never invent finding IDs.
+  required finding, and every reviewed-compatible finding, by its exact ID.
+  Never invent finding IDs.
 - Every bullet from Compatibility breaks through Suggested implementation
   issues must use exactly one of these forms:
   - `- **TSAPI-0001** — Advisory: ...`
@@ -61,6 +62,9 @@ on its own line, followed by a blank line and then its content:
   findings belong under Maintainer decisions.
 - Label recommendations `Advisory:`. Suggested implementation issues are
   proposals only; do not create work items or claim authorization to implement.
+- Put reviewed-compatible findings in No action, retaining their review reason
+  and compatibility-review evidence. They acknowledge reviewed changes; they do
+  not mean the upstream API is unchanged. Do not request the same adaptation again.
 - Distinguish deterministic evidence from interpretation. Do not claim tests
   passed or behavior was verified beyond the supplied check outcomes. State
   uncertainty where evidence does not establish a migration path.
@@ -71,7 +75,8 @@ violation:
 1. Check every bullet from Compatibility breaks through Suggested implementation
    issues. Each must contain at least one supplied finding ID or use one of the
    two allowed no-finding forms above.
-2. Check that every blocking and required finding ID appears in the report.
+2. Check that every blocking, required, and reviewed-compatible finding ID appears
+   in its corresponding section.
 3. Remove recommendations that are unsupported or based only on omitted finding
    IDs.
 4. Check the exact heading order, the blank line after each heading, and the

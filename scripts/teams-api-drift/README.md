@@ -72,6 +72,52 @@ The classifier and context command accept `--public-api-report` using the source
 port's schema (`package`, `status`, `publicSymbolChanges`, `upstreamTypeLeaks`).
 Producing that separate extension public API baseline is outside this pipeline.
 
+## Reviewed compatibility changes
+
+To acknowledge an accepted blocking or required change, add an entry to the usage
+manifest's optional `compatibilityReviews` array, keeping its existing fields and
+usages. For example (illustrative values; copy the actual change from your report):
+
+```json
+{
+  "compatibilityReviews": [
+    {
+      "fromVersion": "2.1.0",
+      "toVersion": "2.2.0",
+      "upstreamSymbol": "microsoft_teams.api.models.Example",
+      "member": "value",
+      "kind": "property-type-changed",
+      "before": "str",
+      "after": "str | None",
+      "reason": "Reviewed nullable values; the mapping handles None and its regression coverage verifies that behavior."
+    }
+  ]
+}
+```
+
+Copy `upstreamSymbol` from the raw change's `symbol`, and copy `member`, `kind`,
+`before`, and `after` exactly from `raw-api-diff.json`. Unlike the JS signatures,
+Python before/after values may be JSON objects, arrays, booleans or numbers; keep
+their original types and structure. Object key order is ignored, while array
+order and value types must match. Use explicit `null` for absent values. All
+fields are required, including a non-empty reason explaining the reviewed behavior,
+supporting validation, and any intentional public contract change or migration.
+Malformed reviews fail manifest validation and classification.
+
+Only an exact version pair and change match converts a blocking or required
+finding to `no-action`, with category `reviewed-compatible` and
+`compatibility-review` evidence. Finding IDs are not part of the match, so unrelated
+changes may renumber findings safely. Historical reviews cannot approve a different
+version pair or signature. Feature reviews and separate public API findings are
+unaffected, and unmatched blocking/required changes still fail `--fail-on-drift`.
+
+Both workflows already use this manifest through `detect`; no extra workflow input
+is needed. The raw diff is preserved, and accepted findings and reasons appear in
+the deterministic report's **Reviewed compatibility changes** section and the
+advisory's **No action** section. Reviews do not bypass build, contract, runtime,
+or report validation failures. No changes are approved merely by enabling this
+mechanism; review entries must be supplied by maintainers.
+
 ## Maintain the usage map
 
 Update the checked-in `teams-api-usage-manifest.json` when adding an upstream
