@@ -24,6 +24,14 @@ MANIFEST = PACKAGE_ROOT / "teams-api-usage-manifest.json"
 CAPABILITIES = PACKAGE_ROOT / "config/teams-capabilities.yaml"
 
 
+def dependency_constraints(version):
+    """Apply optional workarounds for a specific upstream package version."""
+    path = (
+        Path(__file__).resolve().parents[1] / "constraints" / f"{Version(version)}.txt"
+    )
+    return ["--constraint", path] if path.is_file() else []
+
+
 def read_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 

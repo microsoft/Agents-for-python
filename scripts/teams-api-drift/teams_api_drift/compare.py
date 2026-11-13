@@ -12,6 +12,7 @@ from packaging.version import Version
 
 from .common import (
     DEPENDENCY,
+    dependency_constraints,
     destination,
     latest_stable,
     python_in,
@@ -41,6 +42,7 @@ def install_version(directory, version):
             "pip",
             "install",
             "--disable-pip-version-check",
+            *dependency_constraints(version),
             f"{DEPENDENCY}=={version}",
             "packaging==25.0",
         ]
