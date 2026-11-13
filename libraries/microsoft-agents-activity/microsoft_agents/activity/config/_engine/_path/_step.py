@@ -24,7 +24,11 @@ def iter_steps(segment: _PathSegment, obj: Any) -> Iterator[tuple[Any, Any]]:
             for entry in bucket:
                 if segment.check(entry.key):
                     yield entry.key, entry.value
-        elif isinstance(obj, Mapping) and isinstance(segment, _SimplePathSegment) and segment.is_exact():
+        elif (
+            isinstance(obj, Mapping)
+            and isinstance(segment, _SimplePathSegment)
+            and segment.is_exact()
+        ):
             if segment.value in obj:
                 yield segment.value, obj[segment.value]
             return
