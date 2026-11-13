@@ -12,7 +12,11 @@ from microsoft_agents.activity.config._engine._path._query import (
     _QueryDict,
     _QueryList,
 )
-from microsoft_agents.activity.config._engine._path.types import _Path, _UserList
+from microsoft_agents.activity.config._engine._path.types import (
+    _Path,
+    _SimplePathSegment,
+    _UserList,
+)
 
 
 def test_normalization_recursively_wraps_read_only_mappings_and_sequences():
@@ -23,9 +27,21 @@ def test_normalization_recursively_wraps_read_only_mappings_and_sequences():
     assert isinstance(result, _QueryDict)
     assert isinstance(result["Items"], _QueryList)
     assert isinstance(result["Items"][0], _QueryDict)
-    assert result[_Path("Items", "0", "Value")] == 7
+    assert result[_Path("Items", 0, "Value")] == 7
     assert result["Text"] == "hello"
     assert isinstance(source["Items"], tuple)
+
+
+@pytest.mark.parametrize("value", [b"ab", bytearray(b"ab")])
+def test_binary_values_remain_scalars_during_construction_and_mutation(value):
+    wrapped = _QueryDict({"Initial": value, "Items": []})
+
+    wrapped["Assigned"] = value
+    wrapped["Items"].append(value)
+
+    assert wrapped["Initial"] is value
+    assert wrapped["Assigned"] is value
+    assert wrapped["Items"][0] is value
 
 
 @pytest.mark.parametrize("factory", [_QueryDict, _QueryList])
@@ -48,7 +64,7 @@ def test_query_dict_exact_and_explicit_matching_reads():
 
 def test_query_dict_path_read_backtracks_and_walks_lists():
     wrapped = _QueryDict({"Section": {}, "section": {"Items": [{"Value": None}]}})
-    path = _Path.from_strings("section", "items", "0", "value")
+    path = _Path.from_strings("section", "items", 0, "value")
 
     assert wrapped[path] is None
     with pytest.raises(KeyError):
@@ -57,7 +73,7 @@ def test_query_dict_path_read_backtracks_and_walks_lists():
 
 def test_query_dict_path_membership_through_lists_matches_subscription():
     wrapped = _QueryDict({"Items": [{"Value": None}]})
-    path = _Path("Items", "0", "Value")
+    path = _Path("Items", 0, "Value")
 
     assert wrapped[path] is None
     assert path in wrapped
@@ -78,7 +94,7 @@ def test_query_dict_mutators_normalize_values_and_update_the_index(operation):
 
     assert isinstance(wrapped["Section"], _QueryDict)
     assert isinstance(wrapped["Section"]["Nested"], _QueryList)
-    assert wrapped[_Path.from_strings("section", "nested", "0", "value")] == 7
+    assert wrapped[_Path.from_strings("section", "nested", 0, "value")] == 7
 
 
 def test_query_dict_matched_update_preserves_spelling_and_insertion_order():
@@ -151,7 +167,18 @@ def test_query_list_mutators_recursively_normalize_values(operation):
 
     assert isinstance(wrapped[0], _QueryDict)
     assert isinstance(wrapped[0]["Nested"], _QueryList)
-    assert wrapped[_Path("0", "Nested", "0", "Value")] == 7
+    assert wrapped[_Path(0, "Nested", 0, "Value")] == 7
+
+
+@pytest.mark.parametrize("index", [_Path(0), _SimplePathSegment(0)])
+def test_query_list_reads_and_mutates_explicit_integer_segments(index):
+    wrapped = _QueryList(["original"])
+
+    assert wrapped[index] == "original"
+    wrapped[index] = "updated"
+    assert wrapped[0] == "updated"
+    del wrapped[index]
+    assert wrapped == []
 
 
 @pytest.mark.parametrize("operation", ["extend", "iadd"])
@@ -324,13 +351,17 @@ def test_query_dict_distinct_numeric_spellings_remain_literal_mapping_keys(
         {"1": "first", 1: "second"},
     ],
 )
-def test_query_dict_constructor_numeric_aliases_leave_no_unindexed_keys_after_pop(
+def test_query_dict_constructor_preserves_integer_and_string_keys_after_pop(
     source,
 ):
     wrapped = _QueryDict(source)
 
+    assert len(wrapped) == 2
+    assert wrapped[1] == source[1]
+    assert wrapped["1"] == source["1"]
     wrapped.pop(1)
 
+    assert wrapped["1"] == source["1"]
     assert all(key in wrapped for key in wrapped)
     for key in list(wrapped):
         wrapped.pop(key)
@@ -393,7 +424,7 @@ def test_query_dict_union_normalizes_new_values_without_changing_either_input():
         assert isinstance(result, _QueryDict)
         assert isinstance(result["Right"], _QueryList)
         assert isinstance(result["Right"][0], _QueryDict)
-        assert result[_Path.from_strings("right", "0", "value")] == 2
+        assert result[_Path.from_strings("right", 0, "value")] == 2
         assert result["Left"] is left["Left"]
         result["Other"] = 3
 

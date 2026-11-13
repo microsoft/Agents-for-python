@@ -59,12 +59,12 @@ def test_set_updates_matched_spelling_in_place_and_preserves_siblings(factory):
 def test_set_traverses_existing_lists_and_assigns_terminal_list_elements(factory):
     obj = factory({"Items": [{"Value": 1}, 2]})
 
-    _set(obj, _Path("Items", "0", "Value"), 3)
-    _set(obj, _Path("Items", "1"), {"Nested": 4})
+    _set(obj, _Path("Items", 0, "Value"), 3)
+    _set(obj, _Path("Items", 1), {"Nested": 4})
 
     assert obj["Items"][0]["Value"] == 3
     assert obj["Items"][1]["Nested"] == 4
-    assert not _try_set(obj, _Path("Items", "1"), "replacement")
+    assert not _try_set(obj, _Path("Items", 1), "replacement")
     if isinstance(obj, _QueryDict):
         assert isinstance(obj["Items"][1], _QueryDict)
 
@@ -73,8 +73,8 @@ def test_set_traverses_existing_lists_and_assigns_terminal_list_elements(factory
 def test_set_accepts_list_roots(factory):
     obj = factory([{"Value": 1}, 2])
 
-    _set(obj, _Path("0", "Value"), 3)
-    _set(obj, _Path("1"), 4)
+    _set(obj, _Path(0, "Value"), 3)
+    _set(obj, _Path(1), 4)
 
     assert obj[0]["Value"] == 3
     assert obj[1] == 4
@@ -97,7 +97,7 @@ def test_set_rejects_absent_terminal_index_without_changing_list(factory):
     obj = factory({"Items": [7]})
 
     with pytest.raises(IndexError):
-        _set(obj, _Path("Items", "5"), 9)
+        _set(obj, _Path("Items", 5), 9)
 
     assert list(obj["Items"]) == [7]
 
@@ -107,7 +107,7 @@ def test_set_rejects_absent_intermediate_index_without_appending(factory):
     obj = factory({"Items": []})
 
     with pytest.raises(RuntimeError, match="intermediary"):
-        _set(obj, _Path("Items", "5", "Value"), 9)
+        _set(obj, _Path("Items", 5, "Value"), 9)
 
     assert list(obj["Items"]) == []
 
@@ -140,9 +140,9 @@ def test_pop_returns_present_values_and_only_deletes_the_matched_key(factory, va
 def test_pop_deletes_list_leaf_using_an_integer_index(factory):
     obj = factory({"Items": [None, 7]})
 
-    assert _pop(obj, _Path("Items", "0"), default=_MISSING) is None
+    assert _pop(obj, _Path("Items", 0), default=_MISSING) is None
     assert list(obj["Items"]) == [7]
-    assert _pop(obj, _Path("Items", "5"), default=_MISSING) is _MISSING
+    assert _pop(obj, _Path("Items", 5), default=_MISSING) is _MISSING
 
 
 def test_pop_rejects_a_read_only_parent_without_modifying_it():
@@ -154,9 +154,17 @@ def test_pop_rejects_a_read_only_parent_without_modifying_it():
     assert parent["Value"] == 7
 
 
-@pytest.mark.parametrize("operation", [_set, _pop])
+@pytest.mark.parametrize("operation", [_set, _try_set, _pop])
 @pytest.mark.parametrize(
-    "path", [_Path(), _Path(_Wildcard()), _Path("Section", _Wildcard())]
+    "path",
+    [
+        _Path(),
+        _Path(_Wildcard()),
+        _Path("Section", _Wildcard()),
+        [_Wildcard()],
+        (_Wildcard(),),
+        ["Missing", _Wildcard()],
+    ],
 )
 def test_mutation_helpers_reject_empty_or_wildcard_paths_before_mutation(
     operation, path
@@ -164,7 +172,7 @@ def test_mutation_helpers_reject_empty_or_wildcard_paths_before_mutation(
     obj = {"Section": {"Value": 7}}
 
     with pytest.raises(ValueError):
-        if operation is _set:
+        if operation in (_set, _try_set):
             operation(obj, path, 9)
         else:
             operation(obj, path)
@@ -176,7 +184,7 @@ def test_mutation_helpers_reject_empty_or_wildcard_paths_before_mutation(
 @pytest.mark.parametrize("key", [0, 1])
 def test_pop_preserves_integer_mapping_key_type_when_deleting(factory, key):
     obj = factory({"Section": {key: None, "Keep": 7}})
-    path = _Path("Section", str(key))
+    path = _Path("Section", key)
 
     assert _get(obj, path, default=_MISSING) is None
     assert _pop(obj, path, default=_MISSING) is None
@@ -203,10 +211,10 @@ def test_canonical_numeric_mutation_preserves_a_distinct_leading_zero_key(
     assert obj["Keep"] == 8
 
 
-def test_pop_does_not_delete_string_alias_of_an_integer_mapping_key():
+def test_pop_preserves_string_key_when_deleting_integer_key():
     obj = {1: "first", "1": "second", "Keep": 7}
 
-    assert _pop(obj, "1") == "first"
+    assert _pop(obj, _Path(1)) == "first"
     assert list(obj.items()) == [("1", "second"), ("Keep", 7)]
 
 

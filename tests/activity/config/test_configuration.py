@@ -362,14 +362,17 @@ def test_legacy_matching_components_form_one_nested_path():
 
 
 @pytest.mark.parametrize(
-    "values, expected",
-    [(["first", "second"], []), ({"0": "first", "1": "second"}, ["first", "second"])],
+    "values, index, expected",
+    [
+        (["first", "second"], 0, []),
+        ({"0": "first", "1": "second"}, "0", ["first", "second"]),
+    ],
 )
-def test_collect_wildcards_enumerate_mappings_not_lists(values, expected):
+def test_collect_wildcards_enumerate_mappings_not_lists(values, index, expected):
     config = Configuration({"audiences": values})
 
     assert config.collect_str(_legpath("audiences", "*")) == expected
-    assert config.collect_str(["audiences", "0"]) == ["first"]
+    assert config.collect_str(["audiences", index]) == ["first"]
 
 
 def test_collect_does_not_implicitly_flatten_selected_containers():
@@ -378,7 +381,7 @@ def test_collect_does_not_implicitly_flatten_selected_containers():
 
     assert config.collect("audiences") == [values]
     assert config.collect_str("audiences") == [str(values)]
-    assert config.collect_str(["audiences", "0"]) == ["first"]
+    assert config.collect_str(["audiences", 0]) == ["first"]
 
 
 def test_collect_preserves_equal_values_under_distinct_source_keys():

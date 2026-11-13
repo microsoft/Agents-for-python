@@ -314,7 +314,7 @@ def test_get_can_skip_null_candidates():
     "mapping, path, expected",
     [
         ({"First": 1, "Second": 2}, ["Second"], [2]),
-        ({"Entries": ["first", "second"]}, ["Entries", "1"], ["second"]),
+        ({"Entries": ["first", "second"]}, ["Entries", 1], ["second"]),
         ({"Entries": {"A": 1, "B": 2}}, _legpath("Entries", "*"), [1, 2]),
         ({"Entries": [1, 2]}, _legpath("Entries", "*"), []),
         ({"Entries": [1, 2]}, _legpath("Missing", "*"), []),
