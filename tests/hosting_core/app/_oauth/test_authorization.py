@@ -186,6 +186,48 @@ class TestAuthorizationSetup(TestEnv):
 
         assert isinstance(auth._resolve_handler("graph"), handler_class)
 
+    def test_handler_list_replaces_configured_handlers(
+        self, connection_manager, storage
+    ):
+        graph = AuthHandlerConfig(name="graph", scopes=["User.Read"])
+        mail = AuthHandlerConfig(name="mail", scopes=["Mail.Read"])
+        config = AuthorizationConfig(
+            handlers={"configured": AuthHandlerConfig(name="configured")}
+        )
+
+        auth = Authorization(
+            storage, connection_manager, auth_handlers=[graph, mail], config=config
+        )
+
+        assert list(auth._handlers) == ["graph", "mail"]
+        assert auth._resolve_handler("graph")._handler is graph
+        assert auth._resolve_handler("mail")._handler is mail
+        assert auth._default_handler_id == "graph"
+
+    def test_handler_list_duplicate_names_use_last_definition(
+        self, connection_manager, storage
+    ):
+        first = AuthHandlerConfig(name="graph", scopes=["User.Read"])
+        last = AuthHandlerConfig(name="graph", scopes=["Mail.Read"])
+
+        auth = Authorization(storage, connection_manager, auth_handlers=[first, last])
+
+        assert list(auth._handlers) == ["graph"]
+        assert auth._resolve_handler("graph")._handler is last
+
+    def test_empty_handler_list_uses_configured_handlers(
+        self, connection_manager, storage
+    ):
+        handler = AuthHandlerConfig(name="graph", scopes=["User.Read"])
+        config = AuthorizationConfig(handlers={"graph": handler})
+
+        auth = Authorization(
+            storage, connection_manager, auth_handlers=[], config=config
+        )
+
+        assert list(auth._handlers) == ["graph"]
+        assert auth._resolve_handler("graph")._handler is handler
+
     @pytest.mark.parametrize(
         "auth_type, handler_class",
         [
@@ -309,6 +351,29 @@ class TestAuthorizationSetup(TestEnv):
             scopes=["User.Read", "Mail.Read"],
             _alt_blueprint_name="blueprint",
         )
+
+    @pytest.mark.parametrize(
+        "configured, explicit, expected",
+        [
+            (False, None, False),
+            (False, False, False),
+            (False, True, True),
+            (True, None, True),
+            (True, False, False),
+            (True, True, True),
+        ],
+    )
+    def test_auto_sign_in_only_inherits_config_when_unspecified(
+        self, connection_manager, storage, configured, explicit, expected
+    ):
+        auth = Authorization(
+            storage,
+            connection_manager,
+            auto_sign_in=explicit,
+            config=Configuration({"auto_sign_in": configured}),
+        )
+
+        assert auth._auto_sign_in is expected
 
     @pytest.mark.parametrize("bound", [False, True])
     def test_explicit_settings_ignore_legacy_kwargs(
