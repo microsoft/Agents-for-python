@@ -63,7 +63,9 @@ class _ConnectionMap:
                             legpath("service_url"), default=""
                         ),
                         audience=val_config.get_str(netpath("audience"), default=""),
-                        connection=val_config.get_str(netpath("connection"), default=""),
+                        connection=val_config.get_str(
+                            netpath("connection"), default=""
+                        ),
                     )
                 )
 

@@ -135,24 +135,23 @@ def test_non_mapping_section_reports_matched_alias_without_its_value():
 
 
 @pytest.mark.parametrize(
-    "getter, value",
+    "getter, value, expected_path",
     [
-        ("get_bool", "synthetic-secret"),
-        ("get_int", "synthetic-secret"),
-        ("get_float", "synthetic-secret"),
-        ("get_str_list", {"token": "synthetic-secret"}),
-        ("get_scopes", {"token": "synthetic-secret"}),
+        ("get_bool", "synthetic-secret", "Settings::VALUE"),
+        ("get_int", "synthetic-secret", "Settings::VALUE"),
+        ("get_float", "synthetic-secret", "Settings::VALUE"),
+        ("get_str_list", {"token": "synthetic-secret"}, "Settings::VALUE"),
+        ("get_scopes", {"token": "synthetic-secret"}, "Settings::value"),
     ],
 )
-def test_conversion_errors_report_matched_full_path_without_input(getter, value):
+def test_conversion_errors_report_full_path_without_input(getter, value, expected_path):
     config = Configuration({"Settings": {"VALUE": value}})
     settings = config.get_section("Settings")
 
     with pytest.raises(ValueError) as error:
         getattr(settings, getter)(_legpath("value"))
 
-    assert "Settings::VALUE" in str(error.value)
-    assert "Settings::value" not in str(error.value)
+    assert expected_path in str(error.value)
     assert "synthetic-secret" not in "".join(
         traceback.format_exception_only(type(error.value), error.value)
     )

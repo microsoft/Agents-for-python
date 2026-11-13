@@ -33,13 +33,9 @@ class _Path:
 
     def __init__(self, *segments: _SegmentValue | _PathSegment):
 
-        def _raise_if_empty() -> bool:
-            raise ValueError("Path segments must not be empty")
-
         _segments = [
             segment if isinstance(segment, _PathSegment) else _ExactPathSegment(segment)
             for segment in segments
-            if (segment != "" or _raise_if_empty())
         ]
         _segments = [segment for segment in _segments if segment.string]
         self._segments = _segments
@@ -78,7 +74,9 @@ class _Path:
 
     @staticmethod
     def from_strings(
-        *segments: _SegmentValue, ignore_case: bool = True, ignore_underscores: bool = False
+        *segments: _SegmentValue,
+        ignore_case: bool = True,
+        ignore_underscores: bool = False,
     ) -> _Path:
         return _Path(
             *(
@@ -126,8 +124,8 @@ class _Path:
             return self._segments[key]
         raise TypeError(f"Unsupported key type: {type(key)}")
 
-    # def __slice__(self, start: int | None, stop: int | None) -> _Path:
-    #     return _Path(*self._segments[start:stop])
+    def _prepend_to_str(self, prefix: str | _Path) -> str:
+        return f"{prefix}::{str(self)}"
 
     def __str__(self) -> str:
         if self._cached_string is None:
@@ -155,5 +153,6 @@ class _Path:
 
     def __iter__(self) -> Iterator[_PathSegment]:
         return iter(self._segments)
+
 
 _PathProxy = _SegmentValue | Sequence[_SegmentValue] | _PathSegment | _Path

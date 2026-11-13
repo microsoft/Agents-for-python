@@ -37,7 +37,9 @@ class _FoldedMap:
         for key, val in data.items():
             self.update_entry(key, val)
 
-    def update_entry(self, segment: _SegmentValue | _PathSegment, value: Any) -> _SegmentValue:
+    def update_entry(
+        self, segment: _SegmentValue | _PathSegment, value: Any
+    ) -> _SegmentValue:
         entries, entry = self._get_entry_and_bucket(segment)
         if entry is not None:
             entry.value = value
@@ -50,7 +52,9 @@ class _FoldedMap:
             entries.append(_FoldedMapEntry(key=key_value, value=value))
             return key_value
 
-    def delete_entry(self, segment: _SegmentValue | _PathSegment) -> _SegmentValue | None:
+    def delete_entry(
+        self, segment: _SegmentValue | _PathSegment
+    ) -> _SegmentValue | None:
         entries, entry = self._get_entry_and_bucket(segment)
         if entry is not None and entries is not None:
             key = entry.key
@@ -71,7 +75,9 @@ class _FoldedMap:
                     return entries, entry
         return entries, None
 
-    def get_bucket(self, segment: _SegmentValue | _PathSegment) -> list[_FoldedMapEntry] | None:
+    def get_bucket(
+        self, segment: _SegmentValue | _PathSegment
+    ) -> list[_FoldedMapEntry] | None:
         return self._data.get(_get_folded_key(segment), None)
 
     def get_entry(self, segment: _PathSegment) -> _FoldedMapEntry | None:

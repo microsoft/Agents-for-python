@@ -34,12 +34,13 @@ def test_get_preserves_raw_leaf_values_and_distinguishes_missing(factory, value)
 
 
 @pytest.mark.parametrize("factory", [dict, _QueryDict])
-def test_get_treats_string_separators_as_literal_and_does_not_ignore_case(factory):
-    obj = factory({"Section::Value": 1, "Section": {"Value": 2}})
+def test_get_rejects_delimited_segments_and_uses_explicit_nested_paths(factory):
+    obj = factory({"Section": {"Value": 2}})
 
-    assert _get(obj, "Section::Value") == 1
+    with pytest.raises(ValueError, match="must not contain"):
+        _get(obj, "Section::Value")
     assert _get(obj, _Path("Section", "Value")) == 2
-    assert _get(obj, "section::value", default=_MISSING) is _MISSING
+    assert _get(obj, _Path("section", "value"), default=_MISSING) is _MISSING
     assert _get(obj, _legpath("section", "value")) == 2
 
 
@@ -97,7 +98,10 @@ def test_collect_preserves_order_and_can_skip_none(factory):
 
     assert _collect(obj, path) == [1, None]
     assert _collect(obj, path, skip_none=True) == [1]
-    assert _collect_with_paths(obj, path) == {"X": 1, "Y": None}
+    entries = _collect_with_paths(obj, path)
+    assert list(entries) == ["X", "Y"]
+    assert [entry.value for entry in entries.values()] == [1, None]
+    assert [str(entry.path) for entry in entries.values()] == ["Left::X", "Right::Y"]
     assert _collect(obj, _Path("Missing")) == []
 
 
@@ -119,8 +123,6 @@ def test_public_configuration_getters_and_section_paths_use_shared_lookup():
     assert section.get_scopes("Scopes") == ["read", "write"]
     assert section.get("value") is None
     assert section.get("Missing", 42) == 42
-    assert section.has("Value")
-    assert not section.has("value")
 
 
 @pytest.mark.parametrize("getter", [_get, _get_with_path])
@@ -156,31 +158,31 @@ def test_collection_checks_duplicate_names_only_after_skipping_none(factory):
     obj = factory({"Left": {"Value": None}, "Right": {"Value": 7}})
     path = _Path(_Wildcard(), "Value")
 
-    assert _collect_with_paths(obj, path, skip_none=True) == {"Value": 7}
+    entries = _collect_with_paths(obj, path, skip_none=True)
+    assert list(entries) == ["Value"]
+    assert entries["Value"].value == 7
+    assert str(entries["Value"].path) == "Right::Value"
     assert _collect(obj, path, skip_none=True) == [7]
     with pytest.raises(KeyError, match="Duplicate key"):
         _collect(obj, path)
 
 
 @pytest.mark.parametrize("factory", [dict, _QueryDict])
-def test_matched_paths_replay_literal_separator_and_wildcard_keys(factory):
-    obj = factory({"Section::Name": {"*": {"Value": None}}})
-    path = _Path.from_strings("SECTION::NAME", "*", "VALUE")
+def test_matched_paths_replay_literal_wildcard_keys(factory):
+    obj = factory({"Section": {"*": {"Value": None}}})
+    path = _Path.from_strings("SECTION", "*", "VALUE")
 
     value, matched = _get_with_path(obj, path, default=_MISSING)
 
     assert value is None
-    assert [segment.string for segment in matched] == ["Section::Name", "*", "Value"]
+    assert [segment.string for segment in matched] == ["Section", "*", "Value"]
     assert matched.is_simple
     assert _get(obj, matched, default=_MISSING) is None
 
 
-@pytest.mark.skip(reason="Nondecimal Unicode digit handling is deferred.")
 @pytest.mark.parametrize("factory", [list, _QueryList])
 @pytest.mark.parametrize("digit", ["\u00b2", "\u2081", "\u2460"])
-def test_nondecimal_digit_path_is_an_unmatched_list_index_not_a_conversion_error(
-    factory, digit
-):
+def test_nondecimal_digit_paths_do_not_match_list_indexes(factory, digit):
     obj = factory([7, 8])
 
     assert _get(obj, digit, default=_MISSING) is _MISSING

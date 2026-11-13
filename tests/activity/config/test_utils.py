@@ -338,8 +338,6 @@ def test_legacy_path_components_form_one_nested_query():
     assert _get(mapping, _legpath("agent_application", "user_authorization")) == "value"
 
 
-def test_legacy_path_does_not_split_a_literal_delimited_key():
-    mapping = {"agent_application::user_authorization": "literal"}
-
-    assert _get(mapping, _legpath("agent_application::user_authorization")) == "literal"
-    assert _get(mapping, _legpath("agent_application", "user_authorization")) is None
+def test_legacy_path_rejects_literal_delimited_segments():
+    with pytest.raises(ValueError, match="must not contain"):
+        _legpath("agent_application::user_authorization")

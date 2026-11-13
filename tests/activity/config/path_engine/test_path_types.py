@@ -62,12 +62,15 @@ def test_segment_equality_includes_matching_policy():
     assert insensitive.check(exact)
 
 
-def test_path_strings_are_exact_and_separators_are_literal():
-    path = _Path.create("Section::Value")
+def test_path_strings_are_exact_and_reject_embedded_separators():
+    with pytest.raises(ValueError, match="must not contain"):
+        _Path.create("Section::Value")
+
+    path = _Path.create("Section")
 
     assert len(path) == 1
-    assert path[0].check("Section::Value")
-    assert not path[0].check("section::value")
+    assert path[0].check("Section")
+    assert not path[0].check("section")
     assert not _Path("Section", "Value").check(_Path("section", "value"))
 
 
@@ -135,7 +138,6 @@ def test_missing_detection_does_not_confuse_present_falsy_values(value):
     assert not _is_missing(value)
 
 
-@pytest.mark.skip(reason="Nondecimal Unicode digit handling is deferred.")
 @pytest.mark.parametrize("digit", ["\u00b2", "\u2081", "\u2460"])
 def test_nondecimal_digit_segments_match_literal_keys_without_integer_conversion(digit):
     segment = _ExactPathSegment(digit)
@@ -182,7 +184,7 @@ def test_path_reverse_slice_preserves_each_segment_policy():
 
 @pytest.mark.parametrize("factory", [_ExactPathSegment, _SimplePathSegment])
 def test_segment_construction_rejects_empty_strings(factory):
-    with pytest.raises(TypeError, match="[Ee]mpty"):
+    with pytest.raises(ValueError, match="[Ee]mpty"):
         factory("")
 
 

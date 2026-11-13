@@ -77,7 +77,7 @@ class _QueryList(_UserList):
                 return result
 
         if isinstance(index, _PathSegment):
-            if not index.isdigit():
+            if not index.isdecimal():
                 raise TypeError("List index must be an integer or a digit string.")
             if isinstance(index, _Wildcard):
                 raise TypeError("List index must be an integer or a digit string.")
@@ -117,7 +117,7 @@ class _QueryList(_UserList):
                 return
 
         if isinstance(index, _PathSegment):
-            if not index.isdigit():
+            if not index.isdecimal():
                 raise TypeError("List index must be an integer or a digit string.")
             if isinstance(index, _Wildcard):
                 raise TypeError("List index must be an integer or a digit string.")
@@ -146,7 +146,7 @@ class _QueryList(_UserList):
             return
 
         if isinstance(index, _PathSegment):
-            if not index.isdigit():
+            if not index.isdecimal():
                 raise TypeError("List index must be an integer or a digit string.")
             if isinstance(index, _Wildcard):
                 raise TypeError("List index must be an integer or a digit string.")

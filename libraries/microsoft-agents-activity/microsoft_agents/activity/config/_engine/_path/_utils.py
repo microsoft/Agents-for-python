@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from dataclasses import dataclass
 from typing import (
     Any,
     Mapping,
@@ -9,7 +10,7 @@ from typing import (
     Sequence,
 )
 
-from .types import _Path, _PathProxy, _Wildcard
+from .types import _Path, _PathProxy, _Wildcard, _SegmentValue
 from ._traverse import (
     _traverse_leaves,
     _TraverseState,
@@ -91,16 +92,23 @@ def _collect_helper(
             break
 
 
+@dataclass(frozen=True)
+class _CollectEntry:
+
+    path: _Path
+    value: Any
+
+
 def _collect_with_paths(
     mapping: Mapping, path: _PathProxy, *, skip_none: bool = False
-) -> dict[str, Any]:
+) -> dict[_SegmentValue, _CollectEntry]:
     """Collect leaves into a dictionary keyed by each final stored key.
 
     Explicit wildcard segments enumerate mapping keys; numeric segments index
     sequences. Duplicate final keys raise ``KeyError``.
     ``skip_none`` omits ``None`` leaves.
     """
-    collection: dict[str, Any] = {}
+    collection: dict[str, _CollectEntry] = {}
 
     def handler(state: _TraverseState, obj: Any) -> None:
         if skip_none and obj is None:
@@ -109,7 +117,10 @@ def _collect_with_paths(
         if last in collection:
             raise KeyError(f"Duplicate key found for path: {last}")
 
-        collection[last] = obj
+        collection[last] = _CollectEntry(
+            path=_Path.exact(*state.traversed_keys),
+            value=obj,
+        )
 
     _traverse_leaves(path, mapping, handler)
     return collection
@@ -118,7 +129,10 @@ def _collect_with_paths(
 def _collect(
     mapping: Mapping, path: _PathProxy, *, skip_none: bool = False
 ) -> list[Any]:
-    return list(_collect_with_paths(mapping, path, skip_none=skip_none).values())
+    return [
+        entry.value
+        for entry in _collect_with_paths(mapping, path, skip_none=skip_none).values()
+    ]
 
 
 def _try_set(

@@ -28,7 +28,7 @@ def iter_steps(segment: _PathSegment, obj: Any) -> Iterator[tuple[Any, Any]]:
             for key in obj:
                 if segment.check(key):
                     yield key, obj[key]
-    elif isinstance(obj, Sequence) and segment.string.isdigit():
+    elif isinstance(obj, Sequence) and segment.string.isdecimal():
         index = int(segment.string)
         if 0 <= index < len(obj) or -len(obj) <= index < 0:
             yield index, obj[index]

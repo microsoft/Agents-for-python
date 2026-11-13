@@ -8,11 +8,16 @@ from typing import Any
 
 _SegmentValue = str | int
 
+
 class _PathSegment(ABC):
 
     def __init__(self, value: _SegmentValue):
-        if not isinstance(value, (str, int)) or value == "":
-            raise TypeError("Path segment must be a non-empty string or integer")
+        if not isinstance(value, (str, int)):
+            raise TypeError("Path segment must be a string or integer")
+        if isinstance(value, str) and (value == "" or "::" in value):
+            raise ValueError(
+                "Path segments must not be empty and must not contain '::'"
+            )
         self._value = value
         self._string = str(value)
         self._fold: str | None = None
@@ -30,7 +35,7 @@ class _PathSegment(ABC):
         return isinstance(value, int) or (
             isinstance(value, str)
             and value.isascii()
-            and value.isdigit()
+            and value.isdecimal()
             and (len(value) == 1 or value[0] != "0")
         )
 
@@ -42,7 +47,7 @@ class _PathSegment(ABC):
         return self._string
 
     @abstractmethod
-    def isdigit(self) -> bool: ...
+    def isdecimal(self) -> bool: ...
 
     @abstractmethod
     def check(self, target: Any) -> bool: ...
@@ -77,16 +82,19 @@ class _SimplePathSegment(_PathSegment):
     """
 
     def __init__(
-        self, value: _SegmentValue, ignore_case: bool = False, ignore_underscores: bool = False
-    ):  
+        self,
+        value: _SegmentValue,
+        ignore_case: bool = False,
+        ignore_underscores: bool = False,
+    ):
         super().__init__(value)
         self._ignore_case = ignore_case
         self._ignore_underscores = ignore_underscores
         self._fold: str | None = None
         self._transformed_string: str = self._transform(self.string)
 
-    def isdigit(self) -> bool:
-        return self.string.isdigit()
+    def isdecimal(self) -> bool:
+        return self.string.isdecimal()
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, _SimplePathSegment):
@@ -98,7 +106,7 @@ class _SimplePathSegment(_PathSegment):
         return False
 
     def _transform(self, string: str) -> str:
-        
+
         if self._ignore_case:
             string = string.casefold()
         if self._ignore_underscores:
@@ -138,7 +146,7 @@ class _Wildcard(_PathSegment):
     def string(self) -> str:
         return self._string
 
-    def isdigit(self) -> bool:
+    def isdecimal(self) -> bool:
         return False
 
     def check(self, target: Any) -> bool:

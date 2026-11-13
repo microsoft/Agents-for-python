@@ -25,14 +25,14 @@ _FALSY = ("0", "false")
 
 @overload
 def _handle_bool(
-    value: Any, default: None = None, name: str = "value"
+    value: Any, default: None = None, name: str | _Path = "value"
 ) -> bool | None: ...
 @overload
 def _handle_bool(
-    value: Any, default: bool | _MissingType = _MISSING, name: str = "value"
+    value: Any, default: bool | _MissingType = _MISSING, name: str | _Path = "value"
 ) -> bool: ...
 def _handle_bool(
-    value: Any, default: bool | None | _MissingType = None, name: str = "value"
+    value: Any, default: bool | None | _MissingType = None, name: str | _Path = "value"
 ) -> bool | None:
     """Coerce a config value (possibly an env string) to a bool.
 
@@ -56,9 +56,9 @@ def _handle_bool(
         if text in _FALSY:
             return False
         if text:
-            raise ValueError(f"Invalid boolean for {name}")
+            raise ValueError(f"Invalid boolean for {str(name)}")
     if _is_missing(default):
-        raise ValueError(f"Missing boolean for {name}")
+        raise ValueError(f"Missing boolean for {str(name)}")
     return default
 
 
@@ -85,14 +85,14 @@ def coerce_bool(value: Any, default: bool | None = None, name: str = "value") ->
 
 @overload
 def _handle_int(
-    value: Any, default: int | _MissingType = _MISSING, name: str = "value"
+    value: Any, default: int | _MissingType = _MISSING, name: str | _Path = "value"
 ) -> int: ...
 @overload
 def _handle_int(
-    value: Any, default: None = None, name: str = "value"
+    value: Any, default: None = None, name: str | _Path = "value"
 ) -> int | None: ...
 def _handle_int(
-    value: Any, default: int | None | _MissingType = None, name: str = "value"
+    value: Any, default: int | None | _MissingType = None, name: str | _Path = "value"
 ) -> int | None:
     """Coerce a config value (possibly an env string) to an int.
 
@@ -103,18 +103,18 @@ def _handle_int(
     """
     if value is None or _is_missing(value):
         if _is_missing(default):
-            raise ValueError(f"Missing integer for {name}")
+            raise ValueError(f"Missing integer for {str(name)}")
         return default
     if isinstance(value, bool):
         if _is_missing(default):
-            raise ValueError(f"Missing integer for {name}")
+            raise ValueError(f"Missing integer for {str(name)}")
         return default  # TODO -> should this raise?
     if isinstance(value, int):
         return value
     text = str(value).strip()
     if not text:
         if _is_missing(default):
-            raise ValueError(f"Missing integer for {name}")
+            raise ValueError(f"Missing integer for {str(name)}")
         return default
     try:
         return int(text, 10)
@@ -122,7 +122,7 @@ def _handle_int(
         try:
             return int(float(text))
         except ValueError:
-            raise ValueError(f"Invalid integer for {name}") from None
+            raise ValueError(f"Invalid integer for {str(name)}") from None
 
 
 def coerce_int(value: Any, default: int | None = None, name: str = "value") -> int:
@@ -139,14 +139,14 @@ def coerce_int(value: Any, default: int | None = None, name: str = "value") -> i
 
 @overload
 def _handle_float(
-    value: Any, default: float | _MissingType, name: str = "value"
+    value: Any, default: float | _MissingType, name: str | _Path = "value"
 ) -> float: ...
 @overload
 def _handle_float(
-    value: Any, default: None = None, name: str = "value"
+    value: Any, default: None = None, name: str | _Path = "value"
 ) -> float | None: ...
 def _handle_float(
-    value: Any, default: float | None | _MissingType = None, name: str = "value"
+    value: Any, default: float | None | _MissingType = None, name: str | _Path = "value"
 ) -> float | None:
     """Coerce a config value (possibly an env string) to a float.
 
@@ -156,23 +156,23 @@ def _handle_float(
     """
     if value is None or _is_missing(value):
         if _is_missing(default):
-            raise ValueError(f"Missing number for {name}")
+            raise ValueError(f"Missing number for {str(name)}")
         return default
     if isinstance(value, bool):
         if _is_missing(default):
-            raise ValueError(f"Missing number for {name}")
+            raise ValueError(f"Missing number for {str(name)}")
         return default  # TODO -> should this also raise?
     if isinstance(value, (int, float)):
         return float(value)
     text = str(value).strip()
     if not text:
         if _is_missing(default):
-            raise ValueError(f"Missing number for {name}")
+            raise ValueError(f"Missing number for {str(name)}")
         return default
     try:
         return float(text)
     except ValueError:
-        raise ValueError(f"Invalid number for {name}") from None
+        raise ValueError(f"Invalid number for {str(name)}") from None
 
 
 def coerce_float(
@@ -195,18 +195,18 @@ def _check_key_error(value: Any, default: Any, key: str) -> None:
 
 @overload
 def _handle_str(
-    value: Any, default: None = None, name: str = "value"
+    value: Any, default: None = None, name: str | _Path = "value"
 ) -> str | None: ...
 @overload
 def _handle_str(
-    value: Any, default: str | _MissingType = _MISSING, name: str = "value"
+    value: Any, default: str | _MissingType = _MISSING, name: str | _Path = "value"
 ) -> str: ...
 def _handle_str(
-    value: Any, default: str | None | _MissingType = None, name: str = "value"
+    value: Any, default: str | None | _MissingType = None, name: str | _Path = "value"
 ) -> str | None:
     if value is None or _is_missing(value):
         if _is_missing(default):
-            raise ValueError(f"Missing string for {name}")
+            raise ValueError(f"Missing string for {str(name)}")
         return default
     if isinstance(value, str):
         return value
@@ -214,10 +214,10 @@ def _handle_str(
 
 
 def _handle_str_list(
-    value: Any, default: list[str] | None = None, name: str = "value"
+    value: Any, default: list[str] | None = None, name: str | _Path = "value"
 ) -> list[str]:
     if not isinstance(value, list):
-        raise ValueError(f"{name} must be a list.")
+        raise ValueError(f"{str(name)} must be a list.")
     values = [_handle_str(val) for val in value]
     return [val for val in values if val is not None]
 
@@ -234,7 +234,7 @@ def _get_bool(
     path = _Path.create(_path)
     val = _get(mapping, path, default=_MISSING)
     _check_key_error(val, default, path.last)
-    return _handle_bool(val, default, path.last)
+    return _handle_bool(val, default, path)
 
 
 @overload
@@ -249,7 +249,7 @@ def _get_int(
     path = _Path.create(_path)
     val = _get(mapping, path, default=_MISSING)
     _check_key_error(val, default, path.last)
-    return _handle_int(val, default, path.last)
+    return _handle_int(val, default, path)
 
 
 @overload
@@ -264,7 +264,7 @@ def _get_float(
     path = _Path.create(_path)
     val = _get(mapping, path, default=_MISSING)
     _check_key_error(val, default, path.last)
-    return _handle_float(val, default, path.last)
+    return _handle_float(val, default, path)
 
 
 @overload
@@ -279,4 +279,4 @@ def _get_str(
     path = _Path.create(_path)
     val = _get(mapping, path, default=_MISSING)
     _check_key_error(val, default, path.last)
-    return _handle_str(val, default, path.last)
+    return _handle_str(val, default, path)
