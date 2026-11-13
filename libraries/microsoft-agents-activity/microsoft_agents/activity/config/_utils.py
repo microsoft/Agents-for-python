@@ -5,10 +5,7 @@ from ._engine import _Path, _SimplePathSegment, _Wildcard, _PathSegment
 
 
 def _get_segments(*segments: str | int, **kwargs) -> list[_PathSegment]:
-    return [
-        _SimplePathSegment(segment, **kwargs) if segment != "*" else _Wildcard()
-        for segment in segments
-    ]
+    return [_SimplePathSegment(segment, **kwargs) for segment in segments]
 
 
 def _legpath(*segments: str | int) -> _Path:
@@ -20,3 +17,7 @@ def _netpath(*segments: str | int) -> _Path:
     """Create a path with case-insensitive and underscore-preserved segments,
     mimicking .NET path behavior."""
     return _Path(*_get_segments(*segments, ignore_case=True, ignore_underscores=False))
+
+
+def wildcard() -> _PathSegment:
+    return _Wildcard()

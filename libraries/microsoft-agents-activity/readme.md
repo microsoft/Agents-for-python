@@ -206,8 +206,7 @@ assert service.base_path == "service"
 ```
 
 Use string keys for direct lookup and lists of segments for nested lookup.
-Matching is exact. Internal SDK path helpers support case/underscore matching
-and wildcards.
+Matching is exact. Internal SDK path helpers support case/underscore matching.
 
 List positions require integer segments, including negative indexes. Numeric
 strings address string mapping keys rather than list positions:
@@ -218,6 +217,31 @@ assert items.get(["items", 0, "name"]) == "first"
 assert items.get(["items", -1, "name"]) == "last"
 assert items.get(["items", "0", "name"], default="missing") == "missing"
 ```
+
+Use `wildcard()` with `collect()`, `collect_str()`, or `get_sections()` to match all
+keys at one mapping level. String segments, including `"*"`, remain literal keys.
+
+```python
+from microsoft_agents.activity.config import Configuration, wildcard
+
+config = Configuration(
+    {
+        "connections": {
+            "first": {"client_id": "first-id"},
+            "second": {"client_id": "second-id"},
+        },
+        "*": "literal value",
+    }
+)
+
+assert config.collect(["connections", wildcard(), "client_id"]) == [
+    "first-id",
+    "second-id",
+]
+assert config.get("*") == "literal value"
+```
+
+Single-value getters do not accept wildcard paths.
 
 `get()` returns its default for a missing value. Typed getters raise when a value
 is missing and no default is supplied; the nullable forms, such as `get_intn()`,

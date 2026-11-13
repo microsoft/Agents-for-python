@@ -43,7 +43,7 @@ from ._engine import (
     _Path,
     _PathProxy,
 )
-from ._utils import _legpath, _netpath
+from ._utils import _legpath, _netpath, wildcard
 
 __all__ = [
     "load_configuration_from_env",
@@ -68,4 +68,5 @@ __all__ = [
     "_PathProxy",
     "_legpath",
     "_netpath",
+    "wildcard",
 ]

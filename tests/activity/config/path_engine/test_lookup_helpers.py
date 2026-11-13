@@ -121,7 +121,7 @@ def test_collect_preserves_order_and_can_skip_none(factory):
     assert _collect(obj, path) == [1, None]
     assert _collect(obj, path, skip_none=True) == [1]
     entries = _collect_with_paths(obj, path)
-    assert list(entries) == ["Left::X", "Right::Y"]
+    assert [str(key) for key in entries] == ["Left::X", "Right::Y"]
     assert [entry.value for entry in entries.values()] == [1, None]
     assert [str(entry.path) for entry in entries.values()] == ["Left::X", "Right::Y"]
     assert _collect(obj, _Path("Missing")) == []
@@ -132,8 +132,25 @@ def test_collect_preserves_repeated_leaf_names_under_distinct_paths():
 
     entries = _collect_with_paths(obj, _Path(_Wildcard(), "Value"))
 
-    assert list(entries) == ["Left::Value", "Right::Value"]
+    assert [str(key) for key in entries] == ["Left::Value", "Right::Value"]
     assert [entry.value for entry in entries.values()] == [1, 2]
+
+
+@pytest.mark.parametrize("factory", [dict, _QueryDict])
+def test_collect_preserves_integer_and_string_key_identity(factory):
+    obj = factory({1: "integer", "1": "string"})
+    path = _Path(_Wildcard())
+
+    entries = _collect_with_paths(obj, path)
+
+    assert [tuple(segment.value for segment in key) for key in entries] == [
+        (1,),
+        ("1",),
+    ]
+    assert [entry.value for entry in entries.values()] == ["integer", "string"]
+    assert _collect(obj, path) == ["integer", "string"]
+    for key, entry in entries.items():
+        assert _get(obj, key) == entry.value
 
 
 def test_public_configuration_getters_and_section_paths_use_shared_lookup():
@@ -183,9 +200,9 @@ def test_collection_skips_none_with_repeated_leaf_names(factory):
     path = _Path(_Wildcard(), "Value")
 
     entries = _collect_with_paths(obj, path, skip_none=True)
-    assert list(entries) == ["Right::Value"]
-    assert entries["Right::Value"].value == 7
-    assert str(entries["Right::Value"].path) == "Right::Value"
+    assert [str(key) for key in entries] == ["Right::Value"]
+    assert [entry.value for entry in entries.values()] == [7]
+    assert [str(entry.path) for entry in entries.values()] == ["Right::Value"]
     assert _collect(obj, path, skip_none=True) == [7]
     assert _collect(obj, path) == [None, 7]
 

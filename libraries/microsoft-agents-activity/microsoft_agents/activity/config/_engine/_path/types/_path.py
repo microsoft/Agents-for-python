@@ -134,14 +134,10 @@ class _Path:
         ignore_case: bool = False,
         ignore_underscore: bool = False,
     ) -> _PathSegment:
-        return (
-            _SimplePathSegment(
-                segment,
-                ignore_case=ignore_case,
-                ignore_underscores=ignore_underscore,
-            )
-            if segment != "*"
-            else _Wildcard()
+        return _SimplePathSegment(
+            segment,
+            ignore_case=ignore_case,
+            ignore_underscores=ignore_underscore,
         )
 
     def _prepend_to_str(self, prefix: str | _Path) -> str:

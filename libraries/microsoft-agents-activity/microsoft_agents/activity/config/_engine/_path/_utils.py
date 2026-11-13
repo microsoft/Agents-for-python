@@ -81,23 +81,23 @@ class _CollectEntry:
 
 def _collect_with_paths(
     mapping: Mapping, path: _PathProxy, *, skip_none: bool = False
-) -> dict[_SegmentValue, _CollectEntry]:
+) -> dict[_Path, _CollectEntry]:
     """Collect leaves into a dictionary keyed by rendered full matched paths.
 
     Explicit wildcard segments enumerate mapping keys; integer segments index
     sequences. Repeated leaf names under distinct paths remain separate.
     Duplicate rendered paths raise ``KeyError``. ``skip_none`` omits ``None`` leaves.
     """
-    collection: dict[str, _CollectEntry] = {}
+    collection: dict[_Path, _CollectEntry] = {}
 
     def handler(state: _TraverseState, obj: Any) -> None:
         if skip_none and obj is None:
             return
         traversed_path = _Path.exact(*state.traversed_keys)
-        if str(traversed_path) in collection:
+        if traversed_path in collection:
             raise KeyError(f"Duplicate key found for path: {traversed_path}")
 
-        collection[str(traversed_path)] = _CollectEntry(
+        collection[traversed_path] = _CollectEntry(
             path=traversed_path,
             value=obj,
         )
