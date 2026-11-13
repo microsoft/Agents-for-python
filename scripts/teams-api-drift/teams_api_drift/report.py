@@ -115,8 +115,13 @@ def render_report(findings, summary, artifact_directory):
                 lambda f: f["classification"] == "review" and not f.get("category"),
             ),
             (
+                "Reviewed compatibility changes",
+                lambda f: f.get("category") == "reviewed-compatible",
+            ),
+            (
                 "No-action upstream changes",
-                lambda f: f["classification"] == "no-action",
+                lambda f: f["classification"] == "no-action"
+                and f.get("category") != "reviewed-compatible",
             ),
         ):
             lines += ["", f"## {title}", ""]
@@ -156,12 +161,16 @@ def render_report(findings, summary, artifact_directory):
 
 def _advisory_scope(findings):
     actionable = [
-        item for item in findings["findings"] if item["classification"] != "no-action"
+        item
+        for item in findings["findings"]
+        if item["classification"] != "no-action"
+        or item.get("category") == "reviewed-compatible"
     ]
     mandatory = [
         item
         for item in actionable
         if item["classification"] in ("blocking", "required")
+        or item.get("category") == "reviewed-compatible"
     ]
     reviews = [item for item in actionable if item["classification"] == "review"]
     return (
@@ -240,7 +249,9 @@ def prepare_context(
             "findings": [advisory_finding(item) for item in included_findings],
             "omittedReviewFindingIds": [item["id"] for item in omitted_reviews],
             "omittedNoActionFindingCount": sum(
-                item["classification"] == "no-action" for item in findings["findings"]
+                item["classification"] == "no-action"
+                and item.get("category") != "reviewed-compatible"
+                for item in findings["findings"]
             ),
         },
         "usageManifest": manifest,
@@ -326,7 +337,10 @@ def validate_agent_report(report, findings):
         item["id"] for item in mandatory if item["id"] not in correctly_placed
     )
     if missing:
-        errors.append("Missing blocking or required finding IDs: " + ", ".join(missing))
+        errors.append(
+            "Missing blocking, required, or reviewed-compatible finding IDs: "
+            + ", ".join(missing)
+        )
     return {
         "schemaVersion": 1,
         "valid": not errors,
