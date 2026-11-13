@@ -2,7 +2,6 @@ import pytest
 
 from copy import deepcopy
 
-from os import environ
 from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import AuthTypes, ClaimsIdentity
@@ -24,7 +23,6 @@ class TestMsalConnectionManager:
 
     def test_init_from_config(self):
         mock_environ = {
-            **environ,
             "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID": "test-tenant-id-SERVICE_CONNECTION",
             "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "test-client-id-SERVICE_CONNECTION",
             "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET": "test-client-secret-SERVICE_CONNECTION",
