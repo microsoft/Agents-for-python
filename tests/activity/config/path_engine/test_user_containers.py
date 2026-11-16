@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import json
 from copy import copy
 
 import pytest
@@ -8,15 +9,31 @@ import pytest
 from microsoft_agents.activity.config._engine._path.types import _UserDict, _UserList
 
 
-@pytest.mark.parametrize("make_copy", [True, False])
-def test_user_dict_controls_backing_mapping_ownership(make_copy):
-    source = {"Value": 1}
-    wrapped = _UserDict(source, make_copy)
+def test_user_dict_copies_input_storage_and_shares_nested_values():
+    nested = {"Value": 1}
+    source = {"Nested": nested}
+    wrapped = _UserDict(source)
 
     wrapped["Other"] = 2
+    source["SourceOnly"] = 3
 
-    assert ("Other" in source) is not make_copy
+    assert "Other" not in source
+    assert "SourceOnly" not in wrapped
     assert wrapped["Other"] == 2
+    assert wrapped["Nested"] is nested
+
+
+def test_user_containers_expose_native_storage_to_nested_json_encoding():
+    nested = _UserDict({"Value": 1})
+    items = _UserList([nested])
+    wrapped = _UserDict({"Items": items})
+
+    nested["Value"] = 2
+    items.append(None)
+
+    assert isinstance(wrapped, dict)
+    assert isinstance(items, list)
+    assert json.loads(json.dumps(wrapped)) == {"Items": [{"Value": 2}, None]}
 
 
 def test_user_dict_missing_hook_is_not_used_by_get_or_membership():

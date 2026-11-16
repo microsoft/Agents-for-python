@@ -244,9 +244,10 @@ assert config.get("*") == "literal value"
 Single-value getters do not accept wildcard paths.
 
 `get()` returns its default for a missing value. Typed getters raise when a value
-is missing and no default is supplied; the nullable forms, such as `get_intn()`,
-default to `None`. Invalid nonempty typed values still raise rather than silently
-using a fallback. `get_scopes()` splits text on commas and whitespace.
+is missing and no default is supplied; pass `default=None`, such as
+`get_int("retries", default=None)`, for optional settings. Invalid nonempty typed
+values still raise rather than silently using a fallback. `get_scopes()` splits
+text on commas and whitespace.
 
 Construction preserves key names and scalar values while wrapping nested plain
 containers. Existing query wrappers can remain shared between copies.

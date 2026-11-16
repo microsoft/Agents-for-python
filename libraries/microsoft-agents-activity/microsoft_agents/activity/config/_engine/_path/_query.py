@@ -167,6 +167,11 @@ class _QueryDict(_UserDict):
         self._shortcuts = _FoldedMap({})
         super().__init__(data, **kwargs)
 
+    def __new__(cls, *args, **kwargs):
+        inst = super().__new__(cls)
+        inst._shortcuts = _FoldedMap({})
+        return inst
+
     def __copy__(self):
         inst = super().__copy__()
         inst._shortcuts = _FoldedMap(inst)

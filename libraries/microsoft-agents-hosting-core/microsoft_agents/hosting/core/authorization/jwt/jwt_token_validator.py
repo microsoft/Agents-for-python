@@ -22,7 +22,7 @@ from .._entra_issuers import (
     jwks_login_host,
     well_known_first_party_issuers,
 )
-from .token_validation_configuration import TokenValidationConfiguration
+from .token_validation_config import TokenValidationConfig
 from .jwt_connection_settings import JwtConnectionSettings
 
 logger = logging.getLogger(__name__)
@@ -81,9 +81,7 @@ class JwtTokenValidator:
 
     def __init__(
         self,
-        configuration: (
-            AgentAuthConfiguration | Configuration | TokenValidationConfiguration
-        ),
+        configuration: AgentAuthConfiguration | Configuration | TokenValidationConfig,
     ):
         """Set up checks for incoming access tokens.
 
@@ -92,16 +90,16 @@ class JwtTokenValidator:
         ``connections``. Passing just the token-validation section reads only
         its policy options; it does not find connection settings elsewhere.
 
-        For setup in code, pass a TokenValidationConfiguration with
+        For setup in code, pass a TokenValidationConfig with
         ``connections`` or ``default_jwt_settings`` when needed to check
         signatures. See that class for examples and default behavior.
 
         :param configuration: Application Configuration, token-validation
-            options, a TokenValidationConfiguration object, or legacy
+            options, a TokenValidationConfig object, or legacy
             AgentAuthConfiguration.
         """
         if isinstance(configuration, AgentAuthConfiguration):
-            self._config = TokenValidationConfiguration(
+            self._config = TokenValidationConfig(
                 tenant_id=configuration.tenant_id,
                 anonymous_allowed=configuration.ANONYMOUS_ALLOWED,
                 audiences=configuration._get_audiences(),
@@ -114,10 +112,10 @@ class JwtTokenValidator:
                 ),
             )
         else:
-            self._config = TokenValidationConfiguration.from_config(configuration)
+            self._config = TokenValidationConfig.from_config(configuration)
 
     @property
-    def config(self) -> TokenValidationConfiguration:
+    def config(self) -> TokenValidationConfig:
         """Return the bound token-validation policy and connection settings."""
         return self._config
 
@@ -209,7 +207,7 @@ class JwtTokenValidator:
 
 def _build_jwks_uri(
     iss: Any,
-    root_config: TokenValidationConfiguration,
+    root_config: TokenValidationConfig,
     routing_config: JwtConnectionSettings,
 ) -> str:
     """Builds the JWKS URI for the (unverified, routing-only) issuer and the

@@ -9,7 +9,7 @@ from ._engine._resolve import _resolve
 from ._metadata import _RootConfigMetadata
 
 
-def load_configuration_from_env(config_dict: Mapping[str, Any]) -> Configuration:
+def load_configuration_from_env(config_dict: Mapping[str, Any], /) -> Configuration:
     """Load application settings from environment variables or a dictionary.
 
     Pass ``os.environ`` to read the current process environment, or supply your

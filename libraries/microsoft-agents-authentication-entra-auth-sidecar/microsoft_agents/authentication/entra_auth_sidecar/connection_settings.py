@@ -82,7 +82,7 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
         # An explicitly blank or whitespace-only value (e.g. binding yields "" or
         # "   ") must never produce an invalid sidecar endpoint path, so strip and
         # normalize to the defaults here.
-        _service_name = config.get_strn(legpath("service_name"))
+        _service_name = config._get_strn(legpath("service_name"))
         service_name = _or_default(_service_name, DEFAULT_SERVICE_NAME)
 
         blueprint_service_name = config.get_str(
@@ -92,7 +92,7 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
             blueprint_service_name, DEFAULT_BLUEPRINT_SERVICE_NAME
         )
 
-        sidecar_base_url = config.get_strn(legpath("sidecar_base_url"))
+        sidecar_base_url = config._get_strn(legpath("sidecar_base_url"))
 
         # Config values can arrive as strings from ``load_configuration_from_env``,
         # so coerce explicitly: ``bool("false")`` would otherwise be ``True`` and

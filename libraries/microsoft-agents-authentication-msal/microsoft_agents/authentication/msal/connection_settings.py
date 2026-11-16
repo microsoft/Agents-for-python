@@ -84,17 +84,17 @@ class MsalConnectionSettings(ConnectionSettingsBase):
                 "auth_type": config.get_str(
                     legpath("auth_type"), default=AuthTypes.client_secret
                 ),
-                "client_secret": config.get_strn(legpath("client_secret")),
-                "cert_pfx_file": config.get_strn(legpath("cert_pfx_file")),
+                "client_secret": config._get_strn(legpath("client_secret")),
+                "cert_pfx_file": config._get_strn(legpath("cert_pfx_file")),
                 "send_x5c": config.get_bool(legpath("send_x5c"), default=False),
-                "connection_name": config.get_strn(legpath("connection_name")),
-                "federated_client_id": config.get_strn(legpath("federated_client_id")),
-                "federated_token_file": config.get_strn(
+                "connection_name": config._get_strn(legpath("connection_name")),
+                "federated_client_id": config._get_strn(legpath("federated_client_id")),
+                "federated_token_file": config._get_strn(
                     legpath("federated_token_file")
                 ),
-                "idpm_resource": config.get_strn(legpath("idpm_resource")),
-                "azure_region": config.get_strn(legpath("azure_region"))
-                or config.get_strn(legpath("regional_authority")),
+                "idpm_resource": config._get_strn(legpath("idpm_resource")),
+                "azure_region": config._get_strn(legpath("azure_region"))
+                or config._get_strn(legpath("regional_authority")),
             }
         )
         return base

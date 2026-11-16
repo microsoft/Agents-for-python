@@ -83,6 +83,7 @@ class Authorization:
             list[AuthHandlerConfig] | dict[str, AuthHandlerConfig] | None
         ) = None,
         auto_sign_in: bool | None = None,
+        _deprecated_use_cache: bool = False,
         *,
         config: Configuration | AuthorizationConfig | None = None,
         use_cache: bool = False,
@@ -125,6 +126,14 @@ class Authorization:
         """
         if not storage:
             raise ValueError("Storage is required for Authorization")
+
+        if _deprecated_use_cache:
+            warnings.warn(
+                "This positional parameter `_deprecated_use_cache` is deprecated and will be removed in the future",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            use_cache = _deprecated_use_cache
 
         self._storage = storage
         self._connection_manager = connection_manager

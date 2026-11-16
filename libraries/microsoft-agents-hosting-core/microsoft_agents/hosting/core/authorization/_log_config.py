@@ -100,37 +100,37 @@ def _summarize_auth_configs(config_map: dict[str, Configuration]) -> str:
     :return: A string summarizing the authentication configuration.
     :rtype: str
     """
-    get_strn = lambda key: config.get_strn(legpath(key))
+    _get_strn = lambda key: config._get_strn(legpath(key))
     summary = []
     for connection_name, config in config_map.items():
         summary.append(
             pick_model_dict(
                 CONNECTION=connection_name,
-                CONNECTION_NAME=SkipNone(get_strn("CONNECTION_NAME")),
+                CONNECTION_NAME=SkipNone(_get_strn("CONNECTION_NAME")),
                 CLIENTID=SkipNone(
-                    _redact_str_or_none(get_strn("CLIENT_ID"), peek=True)
+                    _redact_str_or_none(_get_strn("CLIENT_ID"), peek=True)
                 ),
                 TENANTID=SkipNone(
-                    _redact_str_or_none(get_strn("TENANT_ID"), peek=True)
+                    _redact_str_or_none(_get_strn("TENANT_ID"), peek=True)
                 ),
-                CLIENTSECRET=SkipNone(_redact_str_or_none(get_strn("CLIENT_SECRET"))),
+                CLIENTSECRET=SkipNone(_redact_str_or_none(_get_strn("CLIENT_SECRET"))),
                 AUTHORITY=SkipNone(
                     _redact_url_or_none(
-                        config.get_strn(legpath("authority"))
-                        or config.get_strn(legpath("authorityendpoint"))
+                        config._get_strn(legpath("authority"))
+                        or config._get_strn(legpath("authorityendpoint"))
                     )
                 ),
                 SCOPES=SkipNone(_redact_scopes(config.get_scopes(legpath("SCOPES")))),
                 FEDERATED_CLIENT_ID=SkipNone(
-                    _redact_str_or_none(get_strn("FEDERATED_CLIENT_ID"), peek=True)
+                    _redact_str_or_none(_get_strn("FEDERATED_CLIENT_ID"), peek=True)
                 ),
-                CERT_PFX_FILE=SkipNone(_redact_str_or_none(get_strn("CERT_PFX_FILE"))),
+                CERT_PFX_FILE=SkipNone(_redact_str_or_none(_get_strn("CERT_PFX_FILE"))),
                 ALT_BLUEPRINT_ID=SkipNone(
-                    _redact_str_or_none(get_strn("ALT_BLUEPRINT_ID"), peek=True)
+                    _redact_str_or_none(_get_strn("ALT_BLUEPRINT_ID"), peek=True)
                 ),
-                IDPM_RESOURCE=SkipNone(_redact_url_or_none(get_strn("IDPM_RESOURCE"))),
-                AZURE_REGION=SkipNone(_redact_url_or_none(get_strn("AZURE_REGION"))),
-                ANONYMOUS_ALLOWED=str(config.get_booln(legpath("ANONYMOUS_ALLOWED"))),
+                IDPM_RESOURCE=SkipNone(_redact_url_or_none(_get_strn("IDPM_RESOURCE"))),
+                AZURE_REGION=SkipNone(_redact_url_or_none(_get_strn("AZURE_REGION"))),
+                ANONYMOUS_ALLOWED=str(config._get_booln(legpath("ANONYMOUS_ALLOWED"))),
             )
         )
     return json.dumps(summary, indent=2)

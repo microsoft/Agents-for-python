@@ -85,15 +85,15 @@ class ConnectionSettingsBase(_Configurable):
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         return {
-            "client_id": config.get_strn(legpath("client_id")),
-            "authority": config.get_strn(netpath("authority"))
-            or config.get_strn(netpath("authorityendpoint")),
-            "tenant_id": config.get_strn(legpath("tenant_id")),
+            "client_id": config._get_strn(legpath("client_id")),
+            "authority": config._get_strn(netpath("authority"))
+            or config._get_strn(netpath("authorityendpoint")),
+            "tenant_id": config._get_strn(legpath("tenant_id")),
             "scopes": config.get_scopes(netpath("scopes")),
-            "alternate_blueprint_connection_name": config.get_strn(
+            "alternate_blueprint_connection_name": config._get_strn(
                 legpath("alt_blueprint_name")
             )
-            or config.get_strn(legpath("alternate_blueprint_connection_name")),
+            or config._get_strn(legpath("alternate_blueprint_connection_name")),
         }
 
     @classmethod

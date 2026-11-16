@@ -175,7 +175,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
 
     @classmethod
     def from_config(
-        cls, base: Mapping | None, *, _base_path: str | None = None
+        cls, base: Mapping | None, /, _base_path: str | None = None
     ) -> Configuration:
         """Create Configuration from a dictionary or another Configuration.
 
@@ -375,7 +375,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
         return _handle_bool(val, default, self._resolve_path(found_path or path))
 
-    def get_booln(self, path: _PathProxy, default: bool | None = None) -> bool | None:
+    def _get_booln(self, path: _PathProxy, default: bool | None = None) -> bool | None:
         """Read a boolean, returning ``None`` for missing or blank settings by default.
 
         Like ``get_bool``, invalid nonempty values still raise ``ValueError``.
@@ -417,16 +417,16 @@ class Configuration(_QueryDict, _MappingConfigurable):
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
         return _handle_int(val, default, self._resolve_path(found_path or path))
 
-    def get_intn(self, path: _PathProxy, default: int | None = None) -> int | None:
+    def _get_intn(self, path: _PathProxy, default: int | None = None) -> int | None:
         """Read an integer, returning ``None`` for missing or blank settings by default.
 
         Example::
 
             >>> from microsoft_agents.activity.config import Configuration
             >>> config = Configuration()
-            >>> config.get_intn("optional_limit") is None
+            >>> config._get_intn("optional_limit") is None
             True
-            >>> config.get_intn("optional_limit", default=10)
+            >>> config._get_intn("optional_limit", default=10)
             10
         """
         return self.get_int(path, default=default)
@@ -463,7 +463,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
         return _handle_float(val, default, self._resolve_path(found_path or path))
 
-    def get_floatn(
+    def _get_floatn(
         self, path: _PathProxy, default: float | None = None
     ) -> float | None:
         """Read a float, returning ``None`` for missing or blank settings by default."""
@@ -500,7 +500,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         val, found_path = self._get_with_path(path, default=default, skip_none=True)
         return _handle_str(val, default, self._resolve_path(found_path or path))
 
-    def get_strn(self, path: _PathProxy, default: str | None = None):
+    def _get_strn(self, path: _PathProxy, default: str | None = None):
         """Read a string, returning ``None`` for missing settings by default."""
         return self.get_str(path, default=default)
 
@@ -579,7 +579,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
             return enumerate(base)
         return []
 
-    def collect(self, path: _PathProxy) -> list[Any]:
+    def collect(self, path: _PathProxy, /) -> list[Any]:
         """Read all values matching a path, including ``None`` values.
 
         Use ``wildcard()`` to match every key at one dictionary level. Results
@@ -603,7 +603,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         """
         return _collect(self, _Path.create(path))
 
-    def collect_str(self, _path: _PathProxy) -> list[str]:
+    def collect_str(self, _path: _PathProxy, /) -> list[str]:
         """Like ``collect``, but convert results to strings and omit ``None``.
 
         Example::
@@ -618,7 +618,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         vals = [_handle_str(v, None, path) for v in vals if v is not None]
         return [v for v in vals if v is not None]
 
-    def get_scopes(self, _path: _PathProxy) -> list[str]:
+    def get_scopes(self, _path: _PathProxy, /) -> list[str]:
         """Read OAuth scopes as a list.
 
         Text can separate scopes with commas, whitespace, or both. A configured
@@ -646,7 +646,7 @@ class Configuration(_QueryDict, _MappingConfigurable):
         raise ValueError(f"Invalid scopes value for {self._resolve_path(path)}")
 
     @staticmethod
-    def format_scopes(scopes: str | list[str] | None) -> list[str]:
+    def format_scopes(scopes: str | list[str] | None, /) -> list[str]:
         """Convert scope text or a scope list to a list, without reading a setting.
 
         Split text on commas and whitespace, copy existing lists, and return
@@ -687,7 +687,7 @@ class _Configurable(ABC):
     def _from_config(cls, config: Configuration) -> Self: ...
 
     @classmethod
-    def from_config(cls, config: Mapping | Self | None) -> Self:
+    def from_config(cls, config: Mapping | Self | None, /) -> Self:
         """Create settings from a dictionary or Configuration.
 
         Passing an existing instance of this settings class returns it

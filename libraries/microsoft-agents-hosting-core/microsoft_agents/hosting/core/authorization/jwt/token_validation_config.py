@@ -18,7 +18,7 @@ from .jwt_connection_settings import JwtConnectionSettings
 
 
 @dataclass(frozen=True)
-class TokenValidationConfiguration(_Configurable):
+class TokenValidationConfig(_Configurable):
     """Settings that determine which incoming access tokens the agent accepts.
 
     ``audiences`` lists the client IDs that a token may be intended for.
@@ -32,13 +32,13 @@ class TokenValidationConfiguration(_Configurable):
 
         >>> from microsoft_agents.activity.config import load_configuration_from_env
         >>> from microsoft_agents.hosting.core.authorization.jwt import (
-        ...     TokenValidationConfiguration,
+        ...     TokenValidationConfig,
         ... )
         >>> config = load_configuration_from_env({
         ...     "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENT_ID": "your-client-id",
         ...     "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANT_ID": "your-tenant-id",
         ... })
-        >>> policy = TokenValidationConfiguration.from_config(config)
+        >>> policy = TokenValidationConfig.from_config(config)
         >>> policy.audiences
         ['your-client-id']
         >>> policy.tenant_id
@@ -50,7 +50,7 @@ class TokenValidationConfiguration(_Configurable):
 
     To supply just the token-validation options, pass those fields directly::
 
-        >>> policy = TokenValidationConfiguration.from_config({
+        >>> policy = TokenValidationConfig.from_config({
         ...     "audiences": ["your-client-id"],
         ...     "anonymous_allowed": False,
         ... })
@@ -71,7 +71,7 @@ class TokenValidationConfiguration(_Configurable):
     connections: dict[str, JwtConnectionSettings] = field(default_factory=dict)
 
     @classmethod
-    def _from_config(cls, configuration: Configuration) -> TokenValidationConfiguration:
+    def _from_config(cls, configuration: Configuration) -> TokenValidationConfig:
 
         token_validation: Configuration = configuration
         connection_raw_items = {}
@@ -83,8 +83,8 @@ class TokenValidationConfiguration(_Configurable):
             connection_raw_items = configuration.get_items(netpath("connections"))
 
         audiences = token_validation.get_str_list(netpath("audiences"))
-        tenant_id = token_validation.get_strn(legpath("tenant_id"))
-        anonymous_allowed = token_validation.get_booln(legpath("anonymous_allowed"))
+        tenant_id = token_validation._get_strn(legpath("tenant_id"))
+        anonymous_allowed = token_validation._get_booln(legpath("anonymous_allowed"))
 
         connections: dict[str, JwtConnectionSettings] = {}
         for name, conf in connection_raw_items:

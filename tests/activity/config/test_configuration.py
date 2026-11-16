@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import json
 import traceback
 from collections.abc import MutableMapping
 
@@ -9,6 +10,16 @@ import pytest
 from microsoft_agents.activity.config import Configuration, _legpath, wildcard
 from tests._common import create_configuration
 from microsoft_agents.activity.config._metadata import _RootConfigMetadata
+
+
+def test_configuration_nested_containers_are_natively_json_serializable():
+    values = {"Settings": {"Items": [{"Value": 7}], "Enabled": True}}
+    config = Configuration(values)
+
+    assert isinstance(config, dict)
+    assert isinstance(config["Settings"], dict)
+    assert isinstance(config["Settings"]["Items"], list)
+    assert json.loads(json.dumps(config)) == values
 
 
 @pytest.mark.parametrize(
@@ -219,7 +230,30 @@ def test_string_list_rejects_unresolved_indexed_mapping_even_with_default():
         config.get_str_list("VALUES", default=["fallback"])
 
 
-@pytest.mark.parametrize("getter", ["get_bool", "get_booln"])
+@pytest.mark.parametrize(
+    "getter, value, expected, default",
+    [
+        ("_get_booln", "false", False, True),
+        ("_get_intn", "42", 42, 5),
+        ("_get_floatn", "1.5", 1.5, 2.5),
+        ("_get_strn", 42, "42", "fallback"),
+    ],
+)
+def test_nullable_shorthand_getters_are_internal_and_preserve_behavior(
+    getter, value, expected, default
+):
+    config = Configuration({"Value": value, "Unset": None})
+    get_nullable = getattr(config, getter)
+
+    assert not hasattr(config, getter.removeprefix("_"))
+    assert get_nullable("Value") == expected
+    assert get_nullable("Missing") is None
+    assert get_nullable("Unset") is None
+    assert get_nullable("Missing", default=default) == default
+    assert get_nullable("Unset", default=default) == default
+
+
+@pytest.mark.parametrize("getter", ["get_bool", "_get_booln"])
 @pytest.mark.parametrize("default", [True, False, None])
 @pytest.mark.parametrize("value", ["yes", "on", "no", "off", "maybe"])
 def test_boolean_getters_reject_unrecognized_values_with_defaults(

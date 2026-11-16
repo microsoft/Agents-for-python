@@ -51,7 +51,7 @@ def _create_kwargs(
         ).lower(),
         scopes=Configuration.format_scopes(scopes or c.get(legpath("scopes"))),
         _alt_blueprint_name=_alt_blueprint_name
-        or c.get_strn(legpath("alt_blueprint_name")),
+        or c._get_strn(legpath("alt_blueprint_name")),
     )
 
 

@@ -148,16 +148,22 @@ def test_legacy_provider_config_fallback_preserves_base_fields():
 
 
 @pytest.mark.parametrize("nested", [False, True])
-@pytest.mark.parametrize("use_kwargs", [False, True])
+@pytest.mark.parametrize("include_deprecated_kwargs", [False, True])
 def test_modern_factory_receives_settings_with_the_original_diagnostic_path(
-    nested, use_kwargs
+    nested, include_deprecated_kwargs
 ):
     values = {"client_id": "client", "scopes": ["scope"]}
     section = {"settings": values} if nested else values
     root = {"connections": {"SERVICE_CONNECTION": section}}
-    if use_kwargs:
+    if include_deprecated_kwargs:
         with pytest.warns(DeprecationWarning, match="Passing in keyword arguments"):
-            manager = ConnectionManager(ConfiguredProvider, **root)
+            manager = ConnectionManager(
+                ConfiguredProvider,
+                config=Configuration(root),
+                CONNECTIONS={
+                    "SERVICE_CONNECTION": {"SETTINGS": {"CLIENTID": "ignored"}}
+                },
+            )
     else:
         manager = ConnectionManager(ConfiguredProvider, config=Configuration(root))
     provider = manager.get_default_connection()
@@ -170,6 +176,25 @@ def test_modern_factory_receives_settings_with_the_original_diagnostic_path(
         else "connections::SERVICE_CONNECTION"
     )
     assert root["connections"]["SERVICE_CONNECTION"] == section
+
+
+def test_keyword_configuration_uses_the_legacy_provider_contract():
+    with pytest.warns(DeprecationWarning, match="Passing in keyword arguments"):
+        manager = ConnectionManager(
+            FakeProvider,
+            CONNECTIONS={
+                "SERVICE_CONNECTION": {
+                    "SETTINGS": {"CLIENTID": "client", "SENDX5C": "true"}
+                }
+            },
+        )
+
+    legacy = manager.get_default_connection_configuration()
+
+    assert isinstance(legacy, AgentAuthConfiguration)
+    assert manager.get_default_connection().configuration is legacy
+    assert legacy.CLIENT_ID == "client"
+    assert legacy.SEND_X5C is True
 
 
 @pytest.mark.parametrize("explicit_instances", [False, True])

@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import json
 from collections import UserDict
 from copy import copy
 from types import MappingProxyType
@@ -30,6 +31,19 @@ def test_normalization_recursively_wraps_read_only_mappings_and_sequences():
     assert result[_Path("Items", 0, "Value")] == 7
     assert result["Text"] == "hello"
     assert isinstance(source["Items"], tuple)
+
+
+def test_query_containers_expose_normalized_mutations_to_native_json_encoding():
+    wrapped = _QueryDict({"Items": [{"Value": 1}]})
+    items = wrapped["Items"]
+
+    wrapped[_Path("Items", 0, "Value")] = 2
+    items.append({"Value": 3})
+
+    assert isinstance(wrapped, dict)
+    assert isinstance(items, list)
+    assert isinstance(items[1], dict)
+    assert json.loads(json.dumps(wrapped)) == {"Items": [{"Value": 2}, {"Value": 3}]}
 
 
 @pytest.mark.parametrize("value", [b"ab", bytearray(b"ab")])
@@ -121,6 +135,8 @@ def test_query_dict_copy_has_an_independent_index(factory):
     assert cloned[_Path.from_strings("other")] == 3
     with pytest.raises(KeyError):
         cloned["Value"]
+    assert dict(original) == {"Value": 1}
+    assert dict(cloned) == {"Other": 3}
 
 
 @pytest.mark.parametrize("operation", ["del", "pop", "clear"])

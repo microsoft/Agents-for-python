@@ -12,7 +12,13 @@ def _parse_env_var_name(name: str) -> str:
     :param name: The environment variable name.
     :return: The ``::``-separated key path, preserving case.
     """
-    return name.replace("__", "::")
+    new_name = name.replace("__", "::")
+    if len(new_name) >= 2:
+        if new_name[:2] == "::":
+            new_name = new_name[2:]
+        if new_name[-2:] == "::":
+            new_name = new_name[:-2]
+    return new_name
 
 
 def str_in(base: str, *sub: str) -> bool:
