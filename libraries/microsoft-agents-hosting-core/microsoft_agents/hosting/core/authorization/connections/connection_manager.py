@@ -99,7 +99,7 @@ class ConnectionManager(Connections):
                 stacklevel=2,
             )
 
-        if connections_configurations is not None or connections_map is not None:
+        if connections_configurations is not None or connections_map is not None or (config is None and kwargs):
             warnings.warn(
                 "The fields 'connections_configurations' and 'connections_map' are deprecated and will be removed in a future version. The corresponding positional arguments will remain until the args' removals, and no other positional arguments after will be added until these fields are removed. Please use `config` instead.",
                 DeprecationWarning,
@@ -121,7 +121,7 @@ class ConnectionManager(Connections):
             raw_connections_map = (
                 connections_map
                 if connections_map is not None
-                else kwargs.get("CONNECTIONSMAP", [])
+                else _get(kwargs, legpath("connectionsmap"), default=[])
             )
 
             if connections_configurations:
@@ -137,10 +137,10 @@ class ConnectionManager(Connections):
                         agent_auth_config
                     )
             else:
-                raw_configurations: dict[str, dict] = kwargs.get("CONNECTIONS", {})
+                raw_configurations: dict[str, dict] = _get(kwargs, legpath("connections"), default={})
                 for connection_name, connection_settings in raw_configurations.items():
                     parsed_config = Configuration(
-                        _get(connection_settings, legpath("SETTINGS"), default={}),
+                        _get(connection_settings, legpath("settings"), default={}),
                         _base_path=("CONNECTIONS", connection_name, "SETTINGS"),
                     )
                     auth_config = AgentAuthConfiguration.from_dict(parsed_config)

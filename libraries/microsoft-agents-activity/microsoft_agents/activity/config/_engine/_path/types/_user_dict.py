@@ -4,98 +4,57 @@
 import collections.abc
 
 
-class _UserDict(collections.abc.MutableMapping):
-    """Internal dict-like base with backing storage owned through ``_data``.
+class _UserDict(dict):
+    """Native dictionary base with subclass-aware mutation helpers.
 
-    Construction normally copies entries. The internal ``_make_copy=False``
-    mode borrows backing storage; normal copies remain shallow.
+    Construction and copies own their outer storage while sharing nested values.
     """
 
-    # Start by filling-out the abstract methods
-    def __init__(self, data=None, _make_copy: bool = True, /, **kwargs):
-        self._data = {}
+    def __init__(self, data=None, /, **kwargs):
+        super().__init__()
         if data is not None:
-            if _make_copy:
-                self.update(data)
-            else:
-                self._data = data
+            self.update(data)
         if kwargs:
             self.update(kwargs)
 
-    def __len__(self):
-        return len(self._data)
-
-    def __getitem__(self, key):
-        if key in self._data:
-            return self._data[key]
-        if hasattr(self.__class__, "__missing__"):
-            return self.__class__.__missing__(self, key)
-        raise KeyError(key)
-
-    def __setitem__(self, key, item):
-        self._data[key] = item
-
-    def __delitem__(self, key):
-        del self._data[key]
-
-    def __iter__(self):
-        return iter(self._data)
-
-    # Modify __contains__ and get() to work like dict
-    # does when __missing__ is present.
-    def __contains__(self, key):
-        return key in self._data
+    # Native dict mutators bypass subclass lookup and mutation hooks.
+    update = collections.abc.MutableMapping.update
+    setdefault = collections.abc.MutableMapping.setdefault
+    pop = collections.abc.MutableMapping.pop
+    popitem = collections.abc.MutableMapping.popitem
+    clear = collections.abc.MutableMapping.clear
 
     def get(self, key, default=None):
         if key in self:
             return self[key]
         return default
 
-    # Now, add the methods in dicts but not in MutableMapping
-    def __repr__(self):
-        return repr(self._data)
-
     def __or__(self, other):
-        if isinstance(other, _UserDict):
-            return self.__class__(self._data | other._data)
-        if isinstance(other, dict):
-            return self.__class__(self._data | other)
-        return NotImplemented
+        merged = super().__or__(other)
+        if merged is NotImplemented:
+            return NotImplemented
+        return self.__class__(merged)
 
     def __ror__(self, other):
-        if isinstance(other, _UserDict):
-            return self.__class__(other._data | self._data)
-        if isinstance(other, dict):
-            return self.__class__(other | self._data)
-        return NotImplemented
+        merged = super().__ror__(other)
+        if merged is NotImplemented:
+            return NotImplemented
+        return self.__class__(merged)
 
     def __ior__(self, other):
-        if isinstance(other, _UserDict):
-            self._data |= other._data
-        else:
-            self._data |= other
+        self.update(other)
         return self
 
     def __copy__(self):
         inst = self.__class__.__new__(self.__class__)
+        dict.__init__(inst, self)
         inst.__dict__.update(self.__dict__)
-        # Create a copy and avoid triggering descriptors
-        inst.__dict__["_data"] = self.__dict__["_data"].copy()
         return inst
 
     def copy(self):
-        if self.__class__ is _UserDict:
-            return _UserDict(self._data.copy())
         import copy
 
-        data = self._data
-        try:
-            self._data = {}
-            c = copy.copy(self)
-        finally:
-            self._data = data
-        c.update(self)
-        return c
+        return copy.copy(self)
 
     @classmethod
     def fromkeys(cls, iterable, value=None):

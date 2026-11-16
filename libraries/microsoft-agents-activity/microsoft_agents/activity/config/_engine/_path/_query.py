@@ -47,10 +47,7 @@ class _QueryList(_UserList):
         data,
         /,
     ):
-        self._data = [_normalize_value(value) for index, value in enumerate(data)]
-
-    def copy(self) -> _QueryList:
-        return self.__class__(self)
+        super().__init__([_normalize_value(value) for value in data])
 
     def append(self, item: Any) -> None:
         super().append(_normalize_value(item))
@@ -60,12 +57,8 @@ class _QueryList(_UserList):
 
     def extend(self, other: Iterable[Any]) -> None:
         if other is self:
-            other = self._data.copy()
+            other = list(self)
         super().extend(_normalize_value(item) for item in other)
-
-    def __iadd__(self, other: Iterable[Any]) -> Self:
-        self.extend(other)
-        return self
 
     def _lookup(self, index: Any, include_path: bool = False) -> _LookupResult:
         if isinstance(index, _Path):
@@ -175,11 +168,8 @@ class _QueryDict(_UserDict):
         super().__init__(data, **kwargs)
 
     def __copy__(self):
-        inst = self.__class__.__new__(self.__class__)
-        inst.__dict__.update(self.__dict__)
-        # Create a copy and avoid triggering descriptors
-        inst.__dict__["_data"] = self.__dict__["_data"].copy()
-        inst.__dict__["_shortcuts"] = _FoldedMap(inst.__dict__["_data"])
+        inst = super().__copy__()
+        inst._shortcuts = _FoldedMap(inst)
         return inst
 
     def __contains__(self, key: Any) -> bool:
