@@ -7,8 +7,10 @@
 
 Added `microsoft_agents.activity.config.Configuration` for typed reads, nested sections, wildcard collection, and settings binding from ordinary dictionaries (#636, #649).
 
+Previously, each component parsed its own settings from raw dictionaries or `AgentAuthConfiguration`, with inconsistent key matching and type conversion. `Configuration` gives every component one consistent way to read settings, closer to .NET's `IConfiguration`.
+
 ```python
-from microsoft_agents.activity.config import Configuration, wildcard
+from microsoft_agents.activity.config import Configuration, ignore_case, wildcard
 
 config = Configuration({
     "services": {"graph": {"timeout": "30"}, "search": {"timeout": "10"}},
@@ -18,22 +20,26 @@ config = Configuration({
 graph = config.get_section(["services", "graph"])  # Scoped settings and error paths.
 graph.get_int("timeout")  # 30; stored value stays "30".
 config.get_bool("enabled")  # False, unlike bool("false").
+config.get_bool(ignore_case("ENABLED"))  # False; matches "enabled" regardless of case.
 config.get_int("retries", default=3)  # 3 for a missing setting.
 config.get_scopes("scopes")  # ["User.Read", "Mail.Read"].
 config.collect(["services", wildcard(), "timeout"])  # ["30", "10"], in order.
+config.collect(ignore_case("SERVICES", wildcard(), "Timeout"))  # ["30", "10"]; mixed rules.
 ```
 
-Direct key lookup is case-sensitive; use lists of segments for nested paths and `wildcard()` (not the literal `"*"`) to collect dictionary entries. Invalid nonempty typed values raise even when a default is supplied.
+Direct key lookup is case-sensitive; use lists of segments for nested paths, `ignore_case()` for case-insensitive matching, and `wildcard()` (not the literal `"*"`) to collect dictionary entries. Invalid nonempty typed values raise even when a default is supplied.
+
+`ignore_case()` and `wildcard()` build an internal `_Path` whose segments carry their own matching rules, whereas string and list keys always match exactly; create paths through these helpers rather than constructing `_Path` directly.
 
 Use `load_configuration_from_env(os.environ)` to expand environment-style names and prepare application-root configuration. Reuse that object with `MsalConnectionManager(config=config)` and `Authorization(storage, connections, config=config)`, or bind individual settings through their `from_config()` methods.
 
 ## Major Features & Enhancements
 
-- **JWT Authorization Configuration**: Added `ConnectionSettingsBase`, `JwtConnectionSettings`, and `TokenValidationConfiguration` to bind inbound JWT policies from application configuration, including explicit audiences, tenant and anonymous-access overrides, and per-connection issuer settings. Retained legacy `AgentAuthConfiguration` support and added application-scoped validator caching without changing `Connections` or `ConnectionManager` (#638).
+- **JWT Authorization Configuration**: Added `ConnectionSettingsBase`, `JwtConnectionSettings`, and `TokenValidationConfig` to bind inbound JWT policies from application configuration, including explicit audiences, tenant and anonymous-access overrides, and per-connection issuer settings. Retained legacy `AgentAuthConfiguration` support and added application-scoped validator caching without changing `Connections` or `ConnectionManager` (#638).
 - **Explicit JWT Audience Lists**: Scalar and delimited audience strings now bind as explicit allow-lists instead of falling back to all configured connection client IDs. Missing or empty audiences continue to use connection defaults (#638).
 - **Connection Configuration**: Added `Configuration`-based initialization to `ConnectionManager` and `MsalConnectionManager`, with typed audience/service-URL routing maps supporting lists and named mappings. Consolidated shared connection APIs under `authorization.connections` while retaining legacy import paths and constructor inputs.
 - **Typed Authentication Provider Settings**: Added `MsalConnectionSettings` and migrated `SidecarConnectionSettings` to derive from `ConnectionSettingsBase`. MSAL and Entra sidecar providers now accept bound settings or `Configuration` and expose typed settings through `.config`, while retaining legacy `AgentAuthConfiguration` inputs and existing environment-variable names.
-- **Typed User Authorization Configuration**: Added `AuthorizationConfig` and `AuthHandlerConfig` for application sign-in options and individual OAuth handlers. `Authorization` accepts configuration through `config=`, supports explicit handler lists or dictionaries, and allows `auto_sign_in=False` to override a configured `True`.
+- **Typed User Authorization Configuration**: Added `AuthorizationConfig` and `AuthHandlerConfig` for application sign-in options and individual OAuth handlers. `Authorization` accepts configuration through `config=` and supports explicit handler lists or dictionaries.
 
 ## Deprecation
 

@@ -34,6 +34,15 @@ def _netpath(*segments: str | int | _PathSegment) -> _Path:
     return _Path(*_get_segments(*segments, ignore_case=True, ignore_underscores=False))
 
 
+def ignore_case(*segments: str | int | _PathSegment) -> _Path:
+    """Create a path that ignores case but keeps underscores significant.
+
+    Existing segment objects keep their own matching rules. Pass ``wildcard()``
+    explicitly to enumerate dictionary keys.
+    """
+    return _netpath(*segments)
+
+
 def wildcard() -> _PathSegment:
     """Match every key at one dictionary level in a collection path.
 

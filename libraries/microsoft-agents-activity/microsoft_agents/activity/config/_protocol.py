@@ -5,8 +5,8 @@ from typing import (
     Mapping,
     Protocol,
     runtime_checkable,
+    Self,
 )
-from typing_extensions import Self
 
 
 @runtime_checkable
