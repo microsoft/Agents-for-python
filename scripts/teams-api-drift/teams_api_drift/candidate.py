@@ -20,6 +20,7 @@ from .common import (
     ROOT,
     declared_requirement,
     declared_version,
+    dependency_constraints,
     python_in,
     run,
     temporary_environment,
@@ -30,6 +31,7 @@ from .common import (
 def prepare_candidate_environment(version, environment, output):
     """Build the SDK and install it beside an already extracted candidate."""
     version = str(Version(version))
+    constraints = dependency_constraints(version)
     environment = Path(environment).resolve()
     candidate = python_in(environment)
     if not candidate.is_file():
@@ -76,6 +78,7 @@ def prepare_candidate_environment(version, environment, output):
                 "-m",
                 "pip",
                 "install",
+                *constraints,
                 "-r",
                 ROOT / "scripts/teams-api-drift/requirements.txt",
             ]
@@ -93,12 +96,13 @@ def prepare_candidate_environment(version, environment, output):
                 "-m",
                 "pip",
                 "install",
+                *constraints,
                 *[wheel for wheel in wheels if wheel != extension],
                 *dependencies,
             ]
         )
         # Test the candidate without letting the extension's current pin replace it.
-        run([candidate, "-m", "pip", "install", "--no-deps", extension])
+        run([candidate, "-m", "pip", "install", *constraints, "--no-deps", extension])
 
     actual = _installed_version(candidate)
     if Version(actual) != Version(version):

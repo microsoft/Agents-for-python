@@ -50,18 +50,19 @@ load_dotenv()
 agents_sdk_config = load_configuration_from_env(environ)
 
 # URL exposed by the agent (dev tunnel / public host) used by the settings command.
-SETTINGS_URL = environ.get("SETTINGS_URL", "http://localhost:3978/settings")
+SETTINGS_URL = agents_sdk_config.get_str(
+    "SETTINGS_URL", default="http://localhost:3978/settings"
+)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 ADAPTER.use(TranscriptLoggerMiddleware(ConsoleTranscriptLogger()))
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE,
     authorization=AUTHORIZATION,
-    **agents_sdk_config,
 )
 
 teams = TeamsAgentExtension[TurnState](AGENT_APP)

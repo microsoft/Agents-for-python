@@ -3,15 +3,20 @@
 
 import importlib
 from unittest.mock import AsyncMock, MagicMock, patch
+from weakref import ref
 
 import pytest
 
+from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core.authorization import (
     AgentAuthConfiguration,
     ClaimsIdentity,
 )
 from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
 from microsoft_agents.hosting.core.http import HttpResponse
+from tests._common.jwt_test_utils import generate_rsa_keypair, make_signed_jwt
+from tests._common import create_configuration
 
 _authorize_request_module = importlib.import_module(
     "microsoft_agents.hosting.core.authorization.jwt._authorize_request"
@@ -83,6 +88,97 @@ async def test_authorize_request_validates_bearer_token():
     assert result is claims
     validator_cls.assert_called_once_with(auth_config)
     validator.validate_token.assert_awaited_once_with("token-value")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("anonymous_allowed", [True, False])
+async def test_root_configuration_anonymous_policy_overrides_service_connection(
+    anonymous_allowed,
+):
+    config = create_configuration(
+        dict(
+            connections={
+                "SERVICE_CONNECTION": {
+                    "settings": {"anonymous_allowed": not anonymous_allowed}
+                }
+            },
+            token_validation={"anonymous_allowed": anonymous_allowed},
+        ),
+        is_root=True,
+    )
+    result = await _authorize_request(None, config)
+    if anonymous_allowed:
+        assert isinstance(result, ClaimsIdentity)
+        assert result.allow_anonymous is True
+    else:
+        assert isinstance(result, HttpResponse)
+        assert result.status_code == 401
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("source", ["environment", "copy", "fork"])
+async def test_root_configuration_authorizes_signed_token(monkeypatch, source):
+    root = load_configuration_from_env(
+        {"CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "client"}
+    )
+    config = {
+        "environment": root,
+        "copy": Configuration(root),
+        "fork": Configuration.from_config(root),
+    }[source]
+    private_key, public_key = generate_rsa_keypair()
+
+    async def get_signing_key(uri, header):
+        return public_key
+
+    monkeypatch.setattr(
+        _authorize_request_module.JwtTokenValidator._jwk_client_manager,
+        "get_signing_key",
+        get_signing_key,
+    )
+    token = make_signed_jwt(private_key, {"aud": "client"})
+    result = await _authorize_request(f"Bearer {token}", config)
+    assert isinstance(result, ClaimsIdentity)
+    assert result.claims["aud"] == "client"
+    assert result.allow_anonymous is False
+
+    rejected = await _authorize_request(
+        "Bearer " + make_signed_jwt(private_key, {"aud": "unconfigured-client"}),
+        config,
+    )
+    assert isinstance(rejected, HttpResponse)
+    assert rejected.status_code == 401
+
+
+def test_validator_cache_reuses_same_owner_and_isolates_different_owners():
+    class Owner:
+        pass
+
+    first_owner, second_owner = Owner(), Owner()
+    config = create_configuration(
+        dict(token_validation={"anonymous_allowed": True}), is_root=True
+    )
+    resolve = _authorize_request_module._resolve_token_validator
+    first = resolve(config, first_owner)
+    assert resolve(config, first_owner) is first
+    assert resolve(config, second_owner) is not first
+    assert resolve(config) is not resolve(config)
+
+
+def test_validator_cache_does_not_retain_owner():
+    class Owner:
+        pass
+
+    owner = Owner()
+    owner_ref = ref(owner)
+    validator = _authorize_request_module._resolve_token_validator(
+        Configuration(), owner
+    )
+    cache = _authorize_request_module._TOKEN_VALIDATION_CACHE
+    assert cache[owner] is validator
+    del owner
+    assert owner_ref() is None
+    assert validator not in cache.values()
 
 
 @pytest.mark.asyncio

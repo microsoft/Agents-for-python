@@ -13,7 +13,7 @@ The sample uses the generic `ConnectionManager` from `microsoft-agents-hosting-c
 from microsoft_agents.hosting.core import ConnectionManager
 from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
 
-CONNECTION_MANAGER = ConnectionManager(provider_factory=SidecarAuth, **agents_sdk_config)
+CONNECTION_MANAGER = ConnectionManager(provider_factory=SidecarAuth, config=agents_sdk_config)
 ```
 
 No `SidecarConnectionManager` is needed — the generic connection manager dispatches to any
@@ -28,7 +28,7 @@ No `SidecarConnectionManager` is needed — the generic connection manager dispa
 
   | Downstream API name | Used by | Configuration |
   |---|---|---|
-  | `botframework` | `ServiceConnection` (channel callbacks) | Scope `5a807f24-c9de-44ee-a3a7-329e88a00ffc/.default` |
+  | `botframework` | `SERVICE_CONNECTION` (channel callbacks) | Scope `5a807f24-c9de-44ee-a3a7-329e88a00ffc/.default` |
   | `agenticblueprint` | `get_agentic_application_token` | App-only (`RequestAppToken`), scope `api://AzureAdTokenExchange/.default` |
 
 ## Setup
@@ -85,4 +85,3 @@ because `TENANTID` is missing/placeholder, or the inbound token's issuer require
 > Note: credential-free applies to **outbound** token acquisition (the sidecar owns those
 > secrets). Validating **inbound** channel tokens is a separate concern controlled by
 > `TOKENVALIDATION__ENABLED`.
-

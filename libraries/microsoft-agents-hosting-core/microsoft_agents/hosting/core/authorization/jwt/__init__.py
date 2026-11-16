@@ -3,8 +3,12 @@
 
 from ._authorize_request import _authorize_request
 from .jwt_token_validator import JwtTokenValidator
+from .jwt_connection_settings import JwtConnectionSettings
+from .token_validation_config import TokenValidationConfig
 
 __all__ = [
     "JwtTokenValidator",
     "_authorize_request",
+    "JwtConnectionSettings",
+    "TokenValidationConfig",
 ]

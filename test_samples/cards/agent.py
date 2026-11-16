@@ -48,16 +48,15 @@ load_dotenv(_ROOT / ".env")
 config = load_configuration_from_env(environ)
 
 storage = MemoryStorage()
-connection_manager = MsalConnectionManager(**config)
+connection_manager = MsalConnectionManager(config=config)
 adapter = CloudAdapter(connection_manager=connection_manager)
-authorization = Authorization(storage, connection_manager, **config)
+authorization = Authorization(storage, connection_manager, config=config)
 
 app = AgentApplication[TurnState](
     storage=storage,
     authorization=authorization,
     start_typing_timer=False,
     remove_recipient_mention=False,
-    **config,
 )
 
 
@@ -176,7 +175,5 @@ if __name__ == "__main__":
     start_server(
         agent_application=app,
         adapter=adapter,
-        auth_configuration=(
-            connection_manager.get_default_connection_configuration()
-        ),
+        config=config,
     )

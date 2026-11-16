@@ -31,13 +31,11 @@ load_dotenv(path.join(path.dirname(__file__), ".env"))
 agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
-AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
-)
+AGENT_APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
 
 
 @AGENT_APP.activity(ActivityTypes.invoke)
@@ -112,5 +110,5 @@ async def on_error(context: TurnContext, error: Exception):
 start_server(
     agent_application=AGENT_APP,
     adapter=ADAPTER,
-    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
+    config=agents_sdk_config,
 )

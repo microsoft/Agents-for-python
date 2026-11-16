@@ -19,10 +19,10 @@ from .user_profile_dialog import UserProfileDialog
 from .agent import DialogAgent
 
 load_dotenv(path.join(path.dirname(__file__), "..", ".env"))
-agents_sdk_config = load_configuration_from_env(dict(environ))
+agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 
 CONVERSATION_STATE = ConversationState(STORAGE)

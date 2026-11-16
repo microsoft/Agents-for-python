@@ -4,9 +4,12 @@
 from .access_token_provider_base import AccessTokenProviderBase
 from .authentication_constants import AuthenticationConstants
 from .anonymous_token_provider import AnonymousTokenProvider
-from .connections import Connections
-from .connection_manager import ConnectionManager
-from .agent_auth_configuration import AgentAuthConfiguration
+from .connections import (
+    AgentAuthConfiguration,
+    Connections,
+    ConnectionManager,
+    ConnectionSettingsBase,
+)
 from .claims_identity import ClaimsIdentity
 from .jwt import JwtTokenValidator
 from .auth_types import AuthTypes
@@ -21,4 +24,5 @@ __all__ = [
     "ClaimsIdentity",
     "JwtTokenValidator",
     "AuthTypes",
+    "ConnectionSettingsBase",
 ]

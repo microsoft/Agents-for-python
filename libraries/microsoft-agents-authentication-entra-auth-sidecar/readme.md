@@ -126,21 +126,62 @@ Use the generic `ConnectionManager` from `microsoft-agents-hosting-core` with
 
 ```python
 from microsoft_agents.hosting.core import ConnectionManager
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
 
 connection_manager = ConnectionManager(
     provider_factory=SidecarAuth,
-    CONNECTIONS={
-        "SERVICE_CONNECTION": {
-            "SETTINGS": {
-                "AUTHTYPE": "EntraAuthSideCar",
-                "CLIENTID": "<blueprint-app-id>",
+    config=Configuration({
+        "connections": {
+            "SERVICE_CONNECTION": {
+                "settings": {
+                    "client_id": "<blueprint-app-id>",
+                }
             }
-        }
-    },
-    CONNECTIONSMAP=[{"SERVICEURL": "*", "CONNECTION": "SERVICE_CONNECTION"}],
+        },
+        "connections_map": [
+            {"service_url": "*", "connection": "SERVICE_CONNECTION"}
+        ],
+    }),
 )
 ```
+
+## Typed Connection Settings
+
+`SidecarConnectionSettings` now derives from the shared `ConnectionSettingsBase`.
+`SidecarAuth` accepts a `Configuration`, bound `SidecarConnectionSettings`, or a legacy
+`AgentAuthConfiguration`. Read bound settings with `provider.config`.
+
+```python
+from microsoft_agents.activity.config import Configuration
+from microsoft_agents.hosting.core.authorization.connections import ConnectionManager
+from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
+
+connection_manager = ConnectionManager(
+    SidecarAuth,
+    config=Configuration(
+        {
+            "connections": {
+                "SERVICE_CONNECTION": {
+                    "settings": {
+                        "client_id": "your-blueprint-id",
+                        "service_name": "default",
+                        "sidecar_base_url": "http://localhost:5178",
+                    }
+                }
+            }
+        }
+    ),
+)
+```
+
+Legacy inputs and the previous settings import remain supported. The legacy
+`provider.configuration` view is available only when constructed with an
+`AgentAuthConfiguration`; new callers should use `provider.config`.
+
+Use `SidecarConnectionSettings.from_config(mapping)` to bind scoped settings or
+reuse an existing settings instance. The `from_configuration()` compatibility
+method also accepts `AgentAuthConfiguration`.
 
 ## Sidecar endpoint mapping
 

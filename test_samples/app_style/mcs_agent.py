@@ -3,7 +3,6 @@
 
 import traceback
 from os import environ, path
-from typing import Optional
 from dotenv import load_dotenv
 
 from microsoft_agents.hosting.core import (
@@ -20,6 +19,7 @@ from microsoft_agents.activity import (
     ActivityTypes,
     Activity,
 )
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.copilotstudio.client import (
     ConnectionSettings,
     CopilotClient,
@@ -38,56 +38,38 @@ agents_sdk_config = load_configuration_from_env(environ)
 
 # Create storage and connection manager
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
 
 class McsConnectionSettings(ConnectionSettings):
-    """Connection settings for MCS that loads from environment variables"""
+    """Connection settings for the COPILOTSTUDIOAGENT configuration section."""
 
-    def __init__(
-        self,
-        app_client_id: Optional[str] = None,
-        tenant_id: Optional[str] = None,
-        environment_id: Optional[str] = None,
-        agent_identifier: Optional[str] = None,
-        cloud: Optional[PowerPlatformCloud] = None,
-        copilot_agent_type: Optional[AgentType] = None,
-        custom_power_platform_cloud: Optional[str] = None,
-        **kwargs: Optional[str],
-    ) -> None:
-        self.app_client_id = app_client_id or kwargs.get("AGENTAPPID")
-        self.tenant_id = tenant_id or kwargs.get("TENANTID")
+    def __init__(self, config: Configuration) -> None:
+        self.app_client_id = config.get_str("AGENTAPPID", default=None)
+        self.tenant_id = config.get_str("TENANTID", default=None)
 
         if not self.app_client_id:
             raise ValueError("Agent App ID must be provided")
         if not self.tenant_id:
             raise ValueError("Tenant ID must be provided")
 
-        environment_id = environment_id or kwargs.get("ENVIRONMENTID")
-        agent_identifier = agent_identifier or kwargs.get("SCHEMANAME")
-        cloud = cloud or PowerPlatformCloud[kwargs.get("CLOUD", "UNKNOWN")]
-        copilot_agent_type = (
-            copilot_agent_type or AgentType[kwargs.get("COPILOTAGENTTYPE", "PUBLISHED")]
-        )
-        custom_power_platform_cloud = custom_power_platform_cloud or kwargs.get(
-            "CUSTOMPOWERPLATFORMCLOUD", None
-        )
-
         super().__init__(
-            environment_id,
-            agent_identifier,
-            cloud,
-            copilot_agent_type,
-            custom_power_platform_cloud,
+            environment_id=config.get_str("ENVIRONMENTID", default=None),
+            agent_identifier=config.get_str("SCHEMANAME", default=None),
+            cloud=PowerPlatformCloud[config.get_str("CLOUD", default="UNKNOWN")],
+            copilot_agent_type=AgentType[
+                config.get_str("COPILOTAGENTTYPE", default="PUBLISHED")
+            ],
+            custom_power_platform_cloud=config.get_str(
+                "CUSTOMPOWERPLATFORMCLOUD", default=None
+            ),
         )
 
 
 # Create the agent instance
-AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
-)
+AGENT_APP = AgentApplication[TurnState](storage=STORAGE, authorization=AUTHORIZATION)
 
 
 @AGENT_APP.conversation_update("membersAdded")
@@ -181,7 +163,9 @@ async def _status(context: TurnContext, state: TurnState) -> None:
 
 def _create_client(token: str) -> CopilotClient:
     """Create CopilotClient with connection settings from environment"""
-    settings = McsConnectionSettings(**agents_sdk_config.get("COPILOTSTUDIOAGENT", {}))
+    settings = McsConnectionSettings(
+        agents_sdk_config.get_section("COPILOTSTUDIOAGENT")
+    )
     return CopilotClient(settings, token)
 
 
@@ -191,5 +175,5 @@ if __name__ == "__main__":
     start_server(
         agent_application=AGENT_APP,
         adapter=ADAPTER,
-        auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
+        config=agents_sdk_config,
     )

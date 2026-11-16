@@ -7,6 +7,9 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import warnings
+
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import (
     AccessTokenProviderBase,
     AgentAuthConfiguration,
@@ -14,7 +17,8 @@ from microsoft_agents.hosting.core import (
 
 from azure.core.credentials_async import AsyncTokenCredential
 
-from ._models import SidecarConnectionSettings, SidecarRequestOptions
+from ._models import SidecarRequestOptions
+from .connection_settings import SidecarConnectionSettings
 from ._token_expiry import SidecarTokenExpiry
 from .errors.error_resources import SidecarAuthErrorResources as _Errors
 from .sidecar_http_client import SidecarHttpClient
@@ -52,12 +56,30 @@ class SidecarAuth(AccessTokenProviderBase):
 
     def __init__(
         self,
-        configuration: AgentAuthConfiguration,
+        configuration: (
+            AgentAuthConfiguration | SidecarConnectionSettings | Configuration
+        ),
         *,
         sidecar_client: SidecarHttpClient | None = None,
     ):
-        self._configuration = configuration
-        self._settings = SidecarConnectionSettings.from_configuration(configuration)
+        """Create a token provider using one connection's sidecar settings.
+
+        Pass SidecarConnectionSettings or a Configuration for one connection,
+        not the full application configuration. Legacy AgentAuthConfiguration
+        is also accepted.
+
+        Supply ``sidecar_client`` to use an existing HTTP client. Otherwise a
+        client is created using the configured URL, timeout, and retry count,
+        after validating the URL.
+        """
+        if isinstance(configuration, AgentAuthConfiguration):
+            self._configuration = configuration
+            self._settings = SidecarConnectionSettings._from_agent_auth_config(
+                configuration
+            )
+        else:
+            self._configuration = None
+            self._settings = SidecarConnectionSettings.from_config(configuration)
 
         if sidecar_client is not None:
             self._sidecar_client = sidecar_client
@@ -83,14 +105,32 @@ class SidecarAuth(AccessTokenProviderBase):
 
     @property
     def configuration(self) -> AgentAuthConfiguration:
-        """The auth configuration this provider was created from.
+        """Return the deprecated legacy configuration supplied at construction.
 
-        Exposed so provider-agnostic SDK code (e.g. the agentic token path in
-        ``RestChannelServiceClientFactory``) can read connection-level settings
-        such as the alternate-blueprint connection name without depending on a
-        specific provider implementation.
+        If the provider was created with Configuration or
+        SidecarConnectionSettings, this raises ``ValueError`` instead.
+        Use ``config`` to read the settings regardless of how the provider was
+        created.
         """
+
+        warnings.warn(
+            "AgentAuthCConfiguration is deprecated and will be removed in a future version."
+            "This field thus is also deprecated.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        if not self._configuration:
+            raise ValueError(
+                "No AgentAuthConfiguration available. Use 'config' instead."
+            )
+
         return self._configuration
+
+    @property
+    def config(self) -> SidecarConnectionSettings:
+        """Return the SidecarConnectionSettings this provider uses, not a copy."""
+        return self._settings
 
     @property
     def _service_name(self) -> str:
@@ -121,7 +161,7 @@ class SidecarAuth(AccessTokenProviderBase):
         """
         from .sidecar_token_credential import SidecarTokenCredential
 
-        return SidecarTokenCredential(self._configuration, provider=self)
+        return SidecarTokenCredential(self._settings, provider=self)
 
     async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str

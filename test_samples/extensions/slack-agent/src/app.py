@@ -19,11 +19,10 @@ load_dotenv()
 agents_sdk_config = load_configuration_from_env(os.environ)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 APP = AgentApplication[TurnState](
     storage=STORAGE,
     authorization=AUTHORIZATION,
-    **agents_sdk_config,
 )

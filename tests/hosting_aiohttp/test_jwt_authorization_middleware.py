@@ -56,13 +56,16 @@ async def test_aiohttp_middleware_stores_claims_and_calls_handler():
         "_authorize_request",
         new=AsyncMock(return_value=claims),
     ) as authorize:
+        request = _RequestStub(auth_config, "Bearer token")
         response = await _jwt_middleware_module._jwt_authorization_middleware(
-            _RequestStub(auth_config, "Bearer token"), handler
+            request, handler
         )
 
     assert response.status == 200
     assert _response_json(response) == {"aud": "app-id"}
-    authorize.assert_awaited_once_with("Bearer token", auth_config)
+    authorize.assert_awaited_once_with(
+        "Bearer token", auth_config, cache_key=request.app
+    )
 
 
 @pytest.mark.asyncio
@@ -80,8 +83,9 @@ async def test_aiohttp_middleware_converts_http_response():
             )
         ),
     ) as authorize:
+        request = _RequestStub(auth_config, "Bearer token")
         response = await _jwt_middleware_module._jwt_authorization_middleware(
-            _RequestStub(auth_config, "Bearer token"), handler
+            request, handler
         )
 
     assert response.status == 401
@@ -89,7 +93,9 @@ async def test_aiohttp_middleware_converts_http_response():
         "error": "Invalid token or authentication failed."
     }
     handler.assert_not_awaited()
-    authorize.assert_awaited_once_with("Bearer token", auth_config)
+    authorize.assert_awaited_once_with(
+        "Bearer token", auth_config, cache_key=request.app
+    )
 
 
 @pytest.mark.asyncio
@@ -106,11 +112,14 @@ async def test_aiohttp_decorator_uses_authorization_helper():
         "_authorize_request",
         new=AsyncMock(return_value=claims),
     ) as authorize:
-        response = await handler(_RequestStub(auth_config, "Bearer token"))
+        request = _RequestStub(auth_config, "Bearer token")
+        response = await handler(request)
 
     assert response.status == 200
     assert _response_json(response) == {"aud": "decorator-app"}
-    authorize.assert_awaited_once_with("Bearer token", auth_config)
+    authorize.assert_awaited_once_with(
+        "Bearer token", auth_config, cache_key=request.app
+    )
 
 
 @pytest.mark.asyncio
@@ -131,8 +140,9 @@ async def test_aiohttp_decorator_converts_http_response():
             )
         ),
     ) as authorize:
-        response = await handler(_RequestStub(auth_config))
+        request = _RequestStub(auth_config)
+        response = await handler(request)
 
     assert response.status == 401
     assert _response_json(response) == {"error": "Authorization header not found"}
-    authorize.assert_awaited_once_with(None, auth_config)
+    authorize.assert_awaited_once_with(None, auth_config, cache_key=request.app)

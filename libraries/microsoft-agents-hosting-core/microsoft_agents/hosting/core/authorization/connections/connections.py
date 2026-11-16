@@ -7,8 +7,8 @@ from typing import Protocol
 from microsoft_agents.activity import Activity
 
 from .agent_auth_configuration import AgentAuthConfiguration
-from .access_token_provider_base import AccessTokenProviderBase
-from .claims_identity import ClaimsIdentity
+from ..access_token_provider_base import AccessTokenProviderBase
+from ..claims_identity import ClaimsIdentity
 
 
 class Connections(Protocol):
@@ -61,7 +61,7 @@ class Connections(Protocol):
     @abstractmethod
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:
         """
-        Get the default connection configuration for the agent.
+        Get the deprecated default AgentAuthConfiguration compatibility view.
 
         :return: The default connection configuration for the agent.
         """

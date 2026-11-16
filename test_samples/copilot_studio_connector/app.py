@@ -41,15 +41,14 @@ agents_sdk_config = load_configuration_from_env(environ)
 
 # Create storage and connection manager
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
 # Create the agent instance
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE,
     authorization=AUTHORIZATION,
-    **agents_sdk_config.get("AGENTAPPLICATION", {}),
 )
 
 
@@ -157,14 +156,12 @@ if __name__ == "__main__":
     APP = Application(middlewares=[jwt_authorization_middleware])
     APP.router.add_post("/api/messages", entry_point)
     APP.router.add_get("/api/messages", lambda _: Response(status=200))
-    APP["agent_configuration"] = (
-        CONNECTION_MANAGER.get_default_connection_configuration()
-    )
+    APP["agent_configuration"] = agents_sdk_config
     APP["agent_app"] = AGENT_APP
     APP["adapter"] = ADAPTER
 
-    host = environ.get("HOST", "localhost")
-    port = int(environ.get("PORT", "3978"))
+    host = agents_sdk_config.get_str("HOST", default="localhost")
+    port = agents_sdk_config.get_int("PORT", default=3978)
 
     logger.info(f"Starting Copilot Studio Connector sample on {host}:{port}")
     run_app(APP, host=host, port=port)

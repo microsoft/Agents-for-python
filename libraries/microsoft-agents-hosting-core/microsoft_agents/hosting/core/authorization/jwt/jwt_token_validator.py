@@ -9,7 +9,9 @@ from dataclasses import dataclass
 
 from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
 
-from ..agent_auth_configuration import AgentAuthConfiguration
+from microsoft_agents.activity.config import Configuration
+
+from ..connections.agent_auth_configuration import AgentAuthConfiguration
 from ..authentication_constants import AuthenticationConstants
 from ..claims_identity import ClaimsIdentity
 from .._entra_issuers import (
@@ -20,6 +22,8 @@ from .._entra_issuers import (
     jwks_login_host,
     well_known_first_party_issuers,
 )
+from .token_validation_config import TokenValidationConfig
+from .jwt_connection_settings import JwtConnectionSettings
 
 logger = logging.getLogger(__name__)
 
@@ -75,12 +79,45 @@ class JwtTokenValidator:
 
     _jwk_client_manager = _JwkClientManager()
 
-    def __init__(self, configuration: AgentAuthConfiguration):
-        """Initializes the JwtTokenValidator with the given configuration.
+    def __init__(
+        self,
+        configuration: AgentAuthConfiguration | Configuration | TokenValidationConfig,
+    ):
+        """Set up checks for incoming access tokens.
 
-        :param configuration: An instance of AgentAuthConfiguration containing the necessary settings for token validation.
+        Pass the full application Configuration from
+        ``load_configuration_from_env`` to read both ``token_validation`` and
+        ``connections``. Passing just the token-validation section reads only
+        its policy options; it does not find connection settings elsewhere.
+
+        For setup in code, pass a TokenValidationConfig with
+        ``connections`` or ``default_jwt_settings`` when needed to check
+        signatures. See that class for examples and default behavior.
+
+        :param configuration: Application Configuration, token-validation
+            options, a TokenValidationConfig object, or legacy
+            AgentAuthConfiguration.
         """
-        self.configuration = configuration
+        if isinstance(configuration, AgentAuthConfiguration):
+            self._config = TokenValidationConfig(
+                tenant_id=configuration.tenant_id,
+                anonymous_allowed=configuration.ANONYMOUS_ALLOWED,
+                audiences=configuration._get_audiences(),
+                connections={
+                    conn_name: JwtConnectionSettings.from_config(conn._to_dict())
+                    for conn_name, conn in configuration._connections.items()
+                },
+                default_jwt_settings=JwtConnectionSettings.from_config(
+                    configuration._to_dict()
+                ),
+            )
+        else:
+            self._config = TokenValidationConfig.from_config(configuration)
+
+    @property
+    def config(self) -> TokenValidationConfig:
+        """Return the bound token-validation policy and connection settings."""
+        return self._config
 
     async def validate_token(self, token: str) -> ClaimsIdentity:
         """Validates a JWT token.
@@ -106,15 +143,18 @@ class JwtTokenValidator:
         # root-configuration endpoint for backward-compatible network egress.
         # This is routing only -- final acceptance is checked against the
         # signature-verified claims below.
-        routing_config = (
-            self.configuration._jwt_patch_find_connection(
-                unverified_payload.get(AuthenticationConstants.AUDIENCE_CLAIM)
-            )
-            or self.configuration
+        routing_config = self._config.get_connection_settings(
+            unverified_payload.get(AuthenticationConstants.AUDIENCE_CLAIM)
         )
+        if not routing_config:
+            logger.warning(
+                "No default or specific routing configuration found for the given audience."
+            )
+            raise ValueError("Invalid audience.")
+
         jwks_uri = _build_jwks_uri(
             unverified_payload.get(AuthenticationConstants.ISSUER_CLAIM),
-            self.configuration,
+            self.config,
             routing_config,
         )
         key = await self._jwk_client_manager.get_signing_key(jwks_uri, header)
@@ -128,23 +168,26 @@ class JwtTokenValidator:
         )
 
         aud = decoded_token.get(AuthenticationConstants.AUDIENCE_CLAIM, "")
-        if not self.configuration._jwt_patch_is_valid_aud(aud):
+        if not self._config.validate_audience(aud):
             logger.warning("JWT audience not accepted.")
             raise ValueError("Invalid audience.")
 
-        matched_config = (
-            self.configuration._jwt_patch_find_connection(aud) or routing_config
-        )
+        matched_config = self._config.get_connection_settings(aud)
+        if not matched_config:
+            logger.warning(
+                "No default or specific routing configuration found for the given audience."
+            )
+            raise ValueError("Invalid audience.")
 
         # Issuer allow-list validation is explicit opt-in
-        # (AgentAuthConfiguration.VALIDATE_ISSUER) to preserve backward
+        # (JwtConnectionSettings.validate_issuer) to preserve backward
         # compatibility for existing deployments. Tid-to-issuer binding,
         # however, is always enforced per issue #626: it only engages when
         # the (verified) issuer is itself a recognized Entra issuer carrying
         # a GUID tenant, so Bot Framework/non-Entra and tenant-alias issuers
         # are unaffected, and a missing ``tid`` claim skips the check rather
         # than failing closed.
-        if matched_config.VALIDATE_ISSUER:
+        if matched_config.validate_issuer:
             _validate_issuer(
                 decoded_token.get(AuthenticationConstants.ISSUER_CLAIM), matched_config
             )
@@ -164,8 +207,8 @@ class JwtTokenValidator:
 
 def _build_jwks_uri(
     iss: Any,
-    root_config: AgentAuthConfiguration,
-    routing_config: AgentAuthConfiguration,
+    root_config: TokenValidationConfig,
+    routing_config: JwtConnectionSettings,
 ) -> str:
     """Builds the JWKS URI for the (unverified, routing-only) issuer and the
     root and audience-selected connection configurations.
@@ -186,29 +229,29 @@ def _build_jwks_uri(
     if bf_uri:
         return bf_uri
 
-    if is_gov_authority(routing_config.AUTHORITY):
-        host = jwks_login_host(routing_config.AUTHORITY)
+    if is_gov_authority(routing_config.authority):
+        host = jwks_login_host(routing_config.authority)
         tenant = (
-            effective_tenant(routing_config.TENANT_ID, routing_config.AUTHORITY)
+            effective_tenant(routing_config.tenant_id, routing_config.authority)
             or "common"
         )
         return f"{host}/{tenant}/discovery/v2.0/keys"
 
     return (
         "https://login.microsoftonline.com/"
-        f"{root_config.TENANT_ID or 'common'}/discovery/v2.0/keys"
+        f"{root_config.tenant_id or 'common'}/discovery/v2.0/keys"
     )
 
 
-def _get_valid_issuers(config: AgentAuthConfiguration) -> set[str]:
+def _get_valid_issuers(config: JwtConnectionSettings) -> set[str]:
     """Case-insensitive union of the connection's configured/default issuers
-    (``AgentAuthConfiguration.ISSUERS``) and the always-trusted Microsoft
+    (``JwtConnectionSettings.issuers``) and the always-trusted Microsoft
     first-party issuers for the connection's cloud."""
-    combined = list(config.ISSUERS) + well_known_first_party_issuers(config.AUTHORITY)
+    combined = list(config.issuers) + well_known_first_party_issuers(config.authority)
     return {issuer.lower() for issuer in combined}
 
 
-def _is_multi_tenant(config: AgentAuthConfiguration) -> bool:
+def _is_multi_tenant(config: JwtConnectionSettings) -> bool:
     """A connection configured for the Entra ``common``/``organizations``
     meta-tenant ("blueprint" agent) has no single known calling tenant at
     configuration time, so :func:`_is_acceptable_tenant_issuer` is used instead
@@ -221,11 +264,11 @@ def _is_multi_tenant(config: AgentAuthConfiguration) -> bool:
     AUTHORITY embeds ``common``/``organizations`` (rather than TENANT_ID) is
     still recognized as multi-tenant.
     """
-    tenant = (effective_tenant(config.TENANT_ID, config.AUTHORITY) or "").lower()
+    tenant = (effective_tenant(config.tenant_id, config.authority) or "").lower()
     return tenant in ("common", "organizations")
 
 
-def _is_acceptable_tenant_issuer(iss: str, config: AgentAuthConfiguration) -> bool:
+def _is_acceptable_tenant_issuer(iss: str, config: JwtConnectionSettings) -> bool:
     """Whether ``iss`` is a canonical Entra issuer acceptable for a multi-tenant
     connection: it must carry a tenant GUID and, for cloud-specific v2 issuers,
     match the connection's cloud (public vs US Government). The cloud-agnostic
@@ -233,10 +276,10 @@ def _is_acceptable_tenant_issuer(iss: str, config: AgentAuthConfiguration) -> bo
     info = entra_issuer_info(iss)
     if info is None:
         return False
-    return info.gov is None or info.gov == is_gov_authority(config.AUTHORITY)
+    return info.gov is None or info.gov == is_gov_authority(config.authority)
 
 
-def _validate_issuer(iss: Any, config: AgentAuthConfiguration) -> None:
+def _validate_issuer(iss: Any, config: JwtConnectionSettings) -> None:
     """Validates that the token's ``iss`` claim is accepted for the matched
     connection: either present in the connection's issuer allow-list, or, for
     a multi-tenant (``common``/``organizations``) connection, a canonical

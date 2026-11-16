@@ -3,7 +3,8 @@
 
 
 from .authorization import Authorization
-from .auth_handler import AuthHandler
+from .authorization_config import AuthorizationConfig
+from .auth_handler import AuthHandler, AuthHandlerConfig
 from ._sign_in_state import _SignInState
 from ._sign_in_response import _SignInResponse
 from ._handlers import (
@@ -16,6 +17,8 @@ from ._handlers import (
 __all__ = [
     "Authorization",
     "AuthHandler",
+    "AuthHandlerConfig",
+    "AuthorizationConfig",
     "_AuthorizationHandler",
     "_SignInState",
     "_SignInResponse",

@@ -3,35 +3,43 @@
 
 from typing import Any, Mapping
 
+from .configuration import Configuration
 from ._logging import _configure_logging
+from ._engine._resolve import _resolve
+from ._metadata import _RootConfigMetadata
 
 
-def load_configuration_from_env(env_vars: Mapping[str, Any]) -> dict:
+def load_configuration_from_env(config_dict: Mapping[str, Any], /) -> Configuration:
+    """Load application settings from environment variables or a dictionary.
+
+    Pass ``os.environ`` to read the current process environment, or supply your
+    own dictionary. Names containing ``__`` or ``::`` become nested sections;
+    key capitalization is preserved. Values such as ``"30"`` and ``"false"``
+    remain strings until you read them with a typed getter.
+
+    For example, without changing the process environment::
+
+        >>> from microsoft_agents.activity.config import load_configuration_from_env
+        >>> config = load_configuration_from_env({
+        ...     "SERVICE__TIMEOUT": "30",
+        ...     "SERVICE__ENABLED": "false",
+        ... })
+        >>> config.get_int(["SERVICE", "TIMEOUT"])
+        30
+        >>> config.get_bool(["SERVICE", "ENABLED"])
+        False
+
+    The result represents the full application configuration. APIs such as
+    ``Authorization`` can use it to find their own sections automatically.
+    If a ``logging`` section is present, its log levels are applied as well.
+
+    This function accepts one dictionary. If settings come from several
+    sources, combine them first and decide which source should take precedence.
+
+    :param config_dict: Environment variables or other application settings.
+    :return: Configuration ready to pass to SDK application components.
     """
-    Parses environment variables and returns a dictionary with the relevant configuration.
-    """
-    local_vars = dict(env_vars)
-    result = {}
-    for key, value in local_vars.items():
-        levels = key.split("__")
-        current_level = result
-        last_level = None
-        for next_level in levels:
-            if next_level not in current_level:
-                current_level[next_level] = {}
-            last_level = current_level
-            current_level = current_level[next_level]
-        last_level[levels[-1]] = value
-
-    if result.get("CONNECTIONSMAP") and isinstance(result["CONNECTIONSMAP"], dict):
-        result["CONNECTIONSMAP"] = [
-            conn for conn in result.get("CONNECTIONSMAP", {}).values()
-        ]
-
-    _configure_logging(result.get("LOGGING", {}))
-
-    return {
-        "AGENTAPPLICATION": result.get("AGENTAPPLICATION", {}),
-        "CONNECTIONS": result.get("CONNECTIONS", {}),
-        "CONNECTIONSMAP": result.get("CONNECTIONSMAP", []),
-    }
+    config = Configuration(_resolve(config_dict))
+    _RootConfigMetadata.set(config, True)
+    _configure_logging(config)
+    return config

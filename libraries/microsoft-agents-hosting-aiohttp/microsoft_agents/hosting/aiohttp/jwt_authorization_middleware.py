@@ -35,10 +35,6 @@ async def _jwt_authorization_middleware(request: Request, handler):
     """
     JWT Authorization Middleware for aiohttp endpoints.
     """
-    auth_config = cast(
-        AgentAuthConfiguration | None, request.app.get("agent_configuration", None)
-    )
-
     auth_header = request.headers.get("Authorization")
     if auth_header is not None:
         # aiohttp-specific tolerance: trailing whitespace (spaces/tabs) after
@@ -52,7 +48,11 @@ async def _jwt_authorization_middleware(request: Request, handler):
             return json_response(_GENERIC_AUTH_ERROR, status=401)
         auth_header = f"Bearer {token}"
 
-    res = await _authorize_request(auth_header, auth_config)
+    res = await _authorize_request(
+        auth_header,
+        request.app.get("agent_configuration"),
+        cache_key=request.app,
+    )
 
     if isinstance(res, HttpResponse):
         return json_response(res.body, status=res.status_code)

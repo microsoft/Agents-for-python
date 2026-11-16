@@ -1,5 +1,3 @@
-from os import environ
-
 import pytest
 
 from microsoft_agents.activity import load_configuration_from_env
@@ -41,7 +39,6 @@ class TestAuthorizationConfiguration:
     def test_load_configuration_from_env(self):
         # test load_configuration_from_env, passed to AgentAuthConfiguration
         mock_environ = {
-            **environ,
             "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID": "test-tenant-id-SERVICE_CONNECTION",
             "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": "test-client-id-SERVICE_CONNECTION",
             "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET": "test-client-secret-SERVICE_CONNECTION",
