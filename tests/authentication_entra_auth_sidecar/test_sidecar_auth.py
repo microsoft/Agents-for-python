@@ -59,12 +59,14 @@ async def test_typed_settings_preserve_agentic_scopes_and_reuse_token_credential
     bound,
 ):
     config = Configuration(
-        settings={
-            "CLIENTID": "blueprint",
-            "SERVICE_NAME": "service",
-            "BLUEPRINT_SERVICE_NAME": "blueprint-service",
-            "SCOPES": "scope1, scope2",
-        }
+        dict(
+            settings={
+                "CLIENTID": "blueprint",
+                "SERVICE_NAME": "service",
+                "BLUEPRINT_SERVICE_NAME": "blueprint-service",
+                "SCOPES": "scope1, scope2",
+            }
+        )
     )
     settings = SidecarConnectionSettings.from_configuration(config)
     auth = SidecarAuth(

@@ -7,12 +7,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Mapping
-from typing_extensions import Self
 
 from microsoft_agents.activity.errors import configuration_errors
 
 from ..configuration import Configuration, _RootConfigurable
-from .._utils import _xpath
+from .._utils import _legpath as legpath
 from ._constants import _NAME_TO_LEVEL
 
 
@@ -37,10 +36,13 @@ class _LogLevelEntry:
 
 @dataclass(frozen=True)
 class _LoggingConfiguration(_RootConfigurable):
-    """Bind namespace log levels from root configuration or a logging section.
+    """Read logger levels from a ``logging`` section or full application settings.
 
-    Root input reads ``logging::log_level``; scoped input reads ``log_level``
-    directly. Missing entries produce no level overrides.
+    A logging section contains a ``log_level`` dictionary, such as
+    ``{"log_level": {"default": "INFO", "microsoft_agents": "WARNING"}}``.
+    Full application configuration from ``load_configuration_from_env`` is
+    searched for its ``logging`` section first. Setting names ignore case and
+    underscores. If no levels are configured, existing levels are unchanged.
     """
 
     log_levels: list[_LogLevelEntry]
@@ -48,13 +50,13 @@ class _LoggingConfiguration(_RootConfigurable):
     @classmethod
     def _from_root_configuration(cls, config: Configuration) -> _LoggingConfiguration:
         return cls._from_scoped_configuration(
-            config.get_section(_xpath("logging"), default=Configuration())
+            config.get_section(legpath("logging"), default=Configuration())
         )
 
     @classmethod
     def _from_scoped_configuration(cls, config: Configuration) -> _LoggingConfiguration:
 
-        raw_log_levels = config.get(_xpath("log_level"), default={})
+        raw_log_levels = config.get(legpath("log_level"), default={})
         if not isinstance(raw_log_levels, Mapping):
             raise ValueError(
                 configuration_errors.InvalidLoggingConfiguration.format(

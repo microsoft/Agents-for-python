@@ -187,24 +187,6 @@ Additionally we provide a Copilot Studio Client, to interact with Agents created
 | `microsoft-agents-copilotstudio-client` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-copilotstudio-client)](https://pypi.org/project/microsoft-agents-copilotstudio-client/) | Direct to Engine client to interact with Agents created in CopilotStudio |
 
 
-## Connection Configuration
-
-`microsoft_agents.hosting.core.authorization.connections` contains `Connections`,
-`ConnectionManager`, `ConnectionSettingsBase`, and the legacy `AgentAuthConfiguration`.
-Existing top-level and legacy module imports remain supported.
-
-Pass application settings as `ConnectionManager(provider_factory, config=configuration)`
-to deliver each connection's settings to the provider as a `Configuration`. Read bound
-provider settings through `provider.config`; provider-specific settings derive from
-`ConnectionSettingsBase`. Connection maps accept ordered lists or named mappings with
-`service_url`, `audience`, and `connection` fields, including environment-style aliases.
-
-Existing `connections_configurations`, `connections_map`, and `**legacy_config`
-constructor calls still pass `AgentAuthConfiguration` objects to the provider factory.
-`get_default_connection_configuration()` remains available for those legacy calls;
-configuration-based managers should use `get_default_connection().config`.
-The environment loader is unchanged.
-
 ## Installation
 
 ```bash
@@ -217,9 +199,9 @@ See the [Quickstart sample](https://github.com/microsoft/Agents/tree/main/sample
 agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+CONNECTION_MANAGER = MsalConnectionManager(config=agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, config=agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
@@ -234,7 +216,7 @@ async def on_message(context: TurnContext, state: TurnState):
 start_server(
     agent_application=AGENT_APP,
     adapter=ADAPTER,
-    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
+    config=agents_sdk_config,
 )
 ```
 

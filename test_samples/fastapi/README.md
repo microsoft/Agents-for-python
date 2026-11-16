@@ -23,7 +23,7 @@ A more complex agent that demonstrates user authentication and authorization usi
 - Sign-out functionality
 
 This version loads authorization handlers from the environment through
-`Authorization(settings=agents_sdk_config)`. Status and logout use the fixed handler
+`Authorization(..., config=agents_sdk_config)`. Status and logout use the fixed handler
 names `GRAPH`, `GITHUB`, and `MCS` defined in `env.TEMPLATE`.
 
 Copy `env.TEMPLATE` to `.env` and configure the OAuth connections, then use `/login`,

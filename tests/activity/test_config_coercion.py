@@ -3,7 +3,7 @@
 
 import pytest
 
-from microsoft_agents.activity.config._coercion import (
+from microsoft_agents.activity.config._engine._coercion import (
     coerce_bool,
     coerce_int,
     coerce_float,
