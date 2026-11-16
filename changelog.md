@@ -40,6 +40,12 @@ Use `load_configuration_from_env(os.environ)` to expand environment-style names 
 - **Connection Configuration**: Added `Configuration`-based initialization to `ConnectionManager` and `MsalConnectionManager`, with typed audience/service-URL routing maps supporting lists and named mappings. Consolidated shared connection APIs under `authorization.connections` while retaining legacy import paths and constructor inputs.
 - **Typed Authentication Provider Settings**: Added `MsalConnectionSettings` and migrated `SidecarConnectionSettings` to derive from `ConnectionSettingsBase`. MSAL and Entra sidecar providers now accept bound settings or `Configuration` and expose typed settings through `.config`, while retaining legacy `AgentAuthConfiguration` inputs and the existing environment-loader contract.
 
+## Deprecation
+- **Legacy Configuration Entry Points**: Prefer explicit `config=` arguments over unpacked configuration keyword arguments in connection managers and `Authorization`. Prefer typed provider `.config` settings over legacy `.configuration` access, and `AuthHandlerConfig` over the deprecated `AuthHandler` constructor. Legacy entry points remain available with deprecation warnings.
+
+## Bug Fixes
+- **Channel Service Client Cleanup**: Fixed unclosed connector and user-token clients when conversation creation fails or is cancelled, or when client initialization fails during proactive or incoming activity processing (#650).
+
 ---
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.9.0
