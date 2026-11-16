@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import StrEnum
+from enum import Enum
 
 
-class EndOfConversationCodes(StrEnum):
+class EndOfConversationCodes(str, Enum):
     unknown = "unknown"
     completed_successfully = "completedSuccessfully"
     user_cancelled = "userCancelled"

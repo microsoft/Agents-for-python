@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import StrEnum
+from enum import Enum
 
 
-class ActivityEventNames(StrEnum):
+class ActivityEventNames(str, Enum):
     continue_conversation = "ContinueConversation"
     create_conversation = "CreateConversation"

@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import StrEnum
+from enum import Enum
 
 
-class InstallationUpdateActionTypes(StrEnum):
+class InstallationUpdateActionTypes(str, Enum):
     add = "add"
     remove = "remove"

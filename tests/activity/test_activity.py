@@ -509,7 +509,7 @@ class TestActivityConversationOps:
 
 class TestActivityAsTypeHelpers:
     def test_formatted_activity_type_preserves_dispatch_and_wire_value(self):
-        activity = Activity(type=f"{ActivityTypes.conversation_update}")
+        activity = Activity(type=f"{ActivityTypes.conversation_update.value}")
 
         assert activity.as_conversation_update_activity() is activity
         assert activity.model_dump(mode="json")["type"] == "conversationUpdate"

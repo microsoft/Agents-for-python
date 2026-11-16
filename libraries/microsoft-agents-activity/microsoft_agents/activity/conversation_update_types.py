@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import StrEnum
+from enum import Enum
 
 
-class ConversationUpdateTypes(StrEnum):
+class ConversationUpdateTypes(str, Enum):
     CHANNEL_CREATED = "channelCreated"
     CHANNEL_RENAMED = "channelRenamed"
     CHANNEL_DELETED = "channelDeleted"

@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import StrEnum
+from enum import Enum
 
 
-class AttachmentLayoutTypes(StrEnum):
+class AttachmentLayoutTypes(str, Enum):
     list = "list"
     carousel = "carousel"

@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import StrEnum
+from enum import Enum
 
 
-class DeliveryModes(StrEnum):
+class DeliveryModes(str, Enum):
     normal = "normal"
     notification = "notification"
     expect_replies = "expectReplies"

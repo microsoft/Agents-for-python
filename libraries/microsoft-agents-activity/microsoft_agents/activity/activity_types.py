@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from enum import StrEnum
+from enum import Enum
 
 
-class ActivityTypes(StrEnum):
+class ActivityTypes(str, Enum):
     message = "message"
     contact_relation_update = "contactRelationUpdate"
     conversation_update = "conversationUpdate"
