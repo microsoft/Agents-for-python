@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "zero-code-otel-sample"
 version = "1.0.0"
 description = "Microsoft 365 Agents SDK sample using zero-code OpenTelemetry"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "aiohttp",
     "microsoft-agents-activity",

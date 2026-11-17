@@ -18,7 +18,7 @@ for in-conversation proactive flows.
 
 ## Prerequisites
 
-- Python 3.10+
+- Python 3.11+
 - An Azure Bot registration (App ID + Secret)
 - An OAuth connection configured in your Azure Bot Service registration
 - A tunnel tool such as [dev tunnels](https://learn.microsoft.com/azure/developer/dev-tunnels/get-started) or ngrok

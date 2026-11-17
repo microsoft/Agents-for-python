@@ -3,11 +3,9 @@
 
 from __future__ import annotations
 
-from typing_extensions import Self
-
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Awaitable
+from typing import Awaitable, Self
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from microsoft_agents.activity import ChannelAdapterProtocol
 from microsoft_agents.activity import (
