@@ -7,19 +7,24 @@ import ipaddress
 import logging
 
 from functools import lru_cache
+from typing import Self
 
 from aiohttp import ClientSession
 from aiohttp.abc import ResolveResult
 
 from yarl import URL
 
-from microsoft_agents.activity.config import Configuration
+from microsoft_agents.activity.config import (
+    Configuration,
+    _RootConfigurable,
+    _netpath,
+)
+
 
 from ._connector import _ResolveResultValidator, _SSRFConnector, _SSRFError
 from ._validator import _OutboundHostValidator
 from ._middleware import _validator_middleware
 from ._utils import _normalize_host, _try_create_url
-from .outbound_host_validator_config import OutboundHostValidatorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +132,7 @@ class _BasicResolveResultValidator(_ResolveResultValidator):
         return True
 
 
-class OutboundHostValidator(_OutboundHostValidator):
+class OutboundHostValidator(_OutboundHostValidator, _RootConfigurable):
     """Outbound host validator that checks if URLs are allowed based on configured hosts and network address rules."""
 
     def __init__(
@@ -174,16 +179,28 @@ class OutboundHostValidator(_OutboundHostValidator):
             allow_private_network_addresses=self._allow_private_network_addresses
         )
 
-    @staticmethod
-    def from_config(
-        config: Configuration | OutboundHostValidatorConfig,
-    ) -> OutboundHostValidator:
-        validator_config = OutboundHostValidatorConfig.from_config(config)
-        return OutboundHostValidator(
-            hosts=validator_config.hosts,
-            enabled=validator_config.enabled,
-            include_default_microsoft_hosts=validator_config.include_default_microsoft_hosts,
-            allow_private_network_addresses=validator_config.allow_private_network_addresses,
+    @classmethod
+    def _from_scoped_configuration(cls, config: Configuration) -> Self:
+        return cls(
+            enabled=config.get_bool(_netpath("Enabled"), False),
+            include_default_microsoft_hosts=config.get_bool(
+                _netpath("IncludeDefaultMicrosoftHosts"), True
+            ),
+            allow_private_network_addresses=config.get_bool(
+                _netpath("AllowPrivateNetworkAddresses"), False
+            ),
+            allow_http_for_loopback=config.get_bool(
+                _netpath("AllowHttpForLoopback"), False
+            ),
+            hosts=config.get_str_list(_netpath("Hosts")),
+        )
+
+    @classmethod
+    def _from_root_configuration(cls, config: Configuration) -> Self:
+        return cls._from_scoped_configuration(
+            config.get_section(
+                _netpath("OutboundHostValidator"), default=Configuration()
+            )
         )
 
     @property
@@ -264,7 +281,11 @@ class OutboundHostValidator(_OutboundHostValidator):
 
         try:
             address = ipaddress.ip_address(url.host)
-            if not _allow_addr(address, self._allow_private_network_addresses):
+            if not _allow_addr(
+                address,
+                self._allow_private_network_addresses,
+                self._allow_http_for_loopback,
+            ):
                 return False
 
         except ValueError:
