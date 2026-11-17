@@ -123,8 +123,8 @@ class TestBasicResolveResultValidator:
 
         assert validator.is_allowed(_resolve_result(host)) is False
 
-    @pytest.mark.parametrize("host", ["10.0.0.1", "fd00::1"])
-    def test_allows_private_addresses_when_configured(self, host):
+    @pytest.mark.parametrize("host", ["10.0.0.1", "fd00::1", "127.0.0.1", "::1"])
+    def test_allows_private_and_loopback_addresses_when_configured(self, host):
         validator = _BasicResolveResultValidator(allow_private_network_addresses=True)
 
         assert validator.is_allowed(_resolve_result(host)) is True
@@ -132,8 +132,6 @@ class TestBasicResolveResultValidator:
     @pytest.mark.parametrize(
         "host",
         [
-            "127.0.0.1",
-            "::1",
             "169.254.169.254",
             "fe80::1",
             "0.0.0.0",

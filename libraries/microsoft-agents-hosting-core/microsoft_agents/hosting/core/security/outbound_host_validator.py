@@ -67,7 +67,6 @@ _ALLOWED_CLIENT_SESSION_KWARGS = frozenset(
 def _allow_addr(
     address: ipaddress.IPv4Address | ipaddress.IPv6Address,
     allow_private_network_addresses: bool,
-    allow_http_for_loopback: bool,
 ) -> bool:
     """Allows or denies an IP address based on network address rules.
 
@@ -75,19 +74,24 @@ def _allow_addr(
     :param allow_private_network_addresses: Whether to allow private network addresses.
     :return: True if the address is allowed, False otherwise.
     """
+
+    if address.is_loopback and allow_private_network_addresses:
+        return True
+
     if (
         address.is_multicast
-        or (address.is_loopback and not allow_http_for_loopback)
         or address.is_link_local
         or address.is_unspecified
+        or address.is_loopback
         or address.is_reserved
     ):
         return False
 
-    if address.is_global:
-        return True
     if address.is_private and allow_private_network_addresses:
         return True
+    if address.is_global:
+        return True
+
     return False
 
 
@@ -98,10 +102,8 @@ class _BasicResolveResultValidator(_ResolveResultValidator):
         self,
         *,
         allow_private_network_addresses: bool = False,
-        allow_http_for_loopback: bool = False,
     ):
         self._allow_private_network_addresses = allow_private_network_addresses
-        self._allow_http_for_loopback = allow_http_for_loopback
 
     def is_allowed(self, resolved: ResolveResult) -> bool:
         """Checks if the resolved network address is allowed.
@@ -120,7 +122,6 @@ class _BasicResolveResultValidator(_ResolveResultValidator):
             if not _allow_addr(
                 address,
                 self._allow_private_network_addresses,
-                self._allow_http_for_loopback,
             ):
                 logger.warning("Private or loopback network address not allowed")
                 return False
@@ -264,14 +265,6 @@ class OutboundHostValidator(_OutboundHostValidator, _RootConfigurable):
         if url.host is None:
             return False
 
-        if url.scheme != "https":
-            if not (
-                self._allow_http_for_loopback
-                and url.scheme == "http"
-                and url.is_loopback
-            ):
-                return False
-
         # disallow user info in the URL (scheme://user:password@localhost)
         if url.user or url.password:
             return False
@@ -279,17 +272,30 @@ class OutboundHostValidator(_OutboundHostValidator, _RootConfigurable):
         if not url.host:
             return False
 
+        address = None
         try:
             address = ipaddress.ip_address(url.host)
             if not _allow_addr(
                 address,
                 self._allow_private_network_addresses,
-                self._allow_http_for_loopback,
             ):
                 return False
 
         except ValueError:
             pass
+
+        is_loopback = url.host == "localhost" or (
+            address is not None and address.is_loopback
+        )
+
+        allow_loopback = (
+            url.scheme == "http"
+            and is_loopback
+            and self._allow_private_network_addresses
+            and self._allow_http_for_loopback
+        )
+        if url.scheme != "https" and not allow_loopback:
+            return False
 
         url_host = url.host.casefold()
 
