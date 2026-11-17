@@ -203,7 +203,9 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
             if (
                 not claim_url
                 or not activity_url
+                or claim_url.scheme.casefold() != activity_url.scheme.casefold()
                 or claim_url_host.casefold() != activity_url_host.casefold()
+                or claim_url.port != activity_url.port
             ):
                 if self._host_validator.enabled:
                     logger.warning(
