@@ -26,16 +26,10 @@ from microsoft_agents.hosting.core.app import (
 )
 from tests._common.testing_objects import TestingConnectionManager as _ConnectionManager
 
-from .helpers import _cache_teams_api_client, is_supported_version
+from .helpers import _cache_teams_api_client
 
-pytestmark = pytest.mark.skipif(
-    not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
-)
-
-if is_supported_version:
-    from microsoft_agents.hosting.msteams import TeamsAgentExtension
-    from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
+from microsoft_agents.hosting.msteams import TeamsAgentExtension
+from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
 
 class _StubAdapter:

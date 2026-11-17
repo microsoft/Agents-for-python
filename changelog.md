@@ -3,6 +3,10 @@
 **Release Date:** Unreleased
 **Previous Version:** 1.9.0 (Released 2026-10-19)
 
+## Breaking Changes
+
+- **Python Support**: Python 3.10 is no longer supported. Upgrade to Python 3.11 or later before updating the SDK.
+
 ## microsoft_agents.activity: Configuration
 
 Added `microsoft_agents.activity.config.Configuration` for typed reads, nested sections, wildcard collection, and settings binding from ordinary dictionaries (#636, #649).
@@ -29,18 +33,17 @@ Use `load_configuration_from_env(os.environ)` to expand environment-style names 
 
 ## Major Features & Enhancements
 
+- **Python 3.15 Support**: Added explicit Python 3.15 package classifiers and CI coverage.
+- **Shared Configuration API**: Added a dictionary-backed `Configuration` API with nested path and alias lookup, typed getters, wildcard collection, configurable settings binding, and mapping/default resolution with indexed-list normalization. Retained the existing `load_configuration_from_env()` return contract (#636).
 - **JWT Authorization Configuration**: Added `ConnectionSettingsBase`, `JwtConnectionSettings`, and `TokenValidationConfiguration` to bind inbound JWT policies from application configuration, including explicit audiences, tenant and anonymous-access overrides, and per-connection issuer settings. Retained legacy `AgentAuthConfiguration` support and added application-scoped validator caching without changing `Connections` or `ConnectionManager` (#638).
 - **Explicit JWT Audience Lists**: Scalar and delimited audience strings now bind as explicit allow-lists instead of falling back to all configured connection client IDs. Missing or empty audiences continue to use connection defaults (#638).
 - **Connection Configuration**: Added `Configuration`-based initialization to `ConnectionManager` and `MsalConnectionManager`, with typed audience/service-URL routing maps supporting lists and named mappings. Consolidated shared connection APIs under `authorization.connections` while retaining legacy import paths and constructor inputs.
-- **Typed Authentication Provider Settings**: Added `MsalConnectionSettings` and migrated `SidecarConnectionSettings` to derive from `ConnectionSettingsBase`. MSAL and Entra sidecar providers now accept bound settings or `Configuration` and expose typed settings through `.config`, while retaining legacy `AgentAuthConfiguration` inputs and existing environment-variable names.
-- **Typed User Authorization Configuration**: Added `AuthorizationConfig` and `AuthHandlerConfig` for application sign-in options and individual OAuth handlers. `Authorization` accepts configuration through `config=`, supports explicit handler lists or dictionaries, and allows `auto_sign_in=False` to override a configured `True`.
+- **Typed Authentication Provider Settings**: Added `MsalConnectionSettings` and migrated `SidecarConnectionSettings` to derive from `ConnectionSettingsBase`. MSAL and Entra sidecar providers now accept bound settings or `Configuration` and expose typed settings through `.config`, while retaining legacy `AgentAuthConfiguration` inputs and the existing environment-loader contract.
 
 ## Deprecation
-
 - **Legacy Configuration Entry Points**: Prefer explicit `config=` arguments over unpacked configuration keyword arguments in connection managers and `Authorization`. Prefer typed provider `.config` settings over legacy `.configuration` access, and `AuthHandlerConfig` over the deprecated `AuthHandler` constructor. Legacy entry points remain available with deprecation warnings.
 
 ## Bug Fixes
-
 - **Channel Service Client Cleanup**: Fixed unclosed connector and user-token clients when conversation creation fails or is cancelled, or when client initialization fails during proactive or incoming activity processing (#650).
 
 ---

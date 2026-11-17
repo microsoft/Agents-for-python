@@ -7,8 +7,7 @@ import logging
 import re
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional, Any, cast, Annotated, TypeVar
-from typing_extensions import Self
+from typing import Optional, Any, cast, Annotated, TypeVar, Self
 
 from pydantic import (
     Field,

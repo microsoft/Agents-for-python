@@ -8,13 +8,13 @@ from typing import (
     Any,
     Iterable,
     Mapping,
+    Self,
     MutableMapping,
     MutableSequence,
     TypeVar,
     Sequence,
     overload,
 )
-from typing_extensions import Self
 
 from ._protocol import _MappingConfigurable
 from ._constants import _PATH_SEPARATOR
