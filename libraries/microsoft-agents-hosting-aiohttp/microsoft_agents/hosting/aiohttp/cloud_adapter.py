@@ -34,11 +34,11 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
         """
         Initializes a new instance of the CloudAdapter class.
 
-        :param emit_stack_trace: Include traceback frames in diagnostic traces. Defaults to False; server logging is independent.
         :param connection_manager: Optional connection manager for OAuth.
         :param channel_service_client_factory: Factory for creating channel service clients.
         :param channel_service_client_factory_options: Optional dictionary of options to pass to the channel service client factory
             This is only used if channel_service_client_factory is not provided and connection_manager is provided.
+        :param emit_stack_trace: Include traceback frames in diagnostic traces. Defaults to False; server logging is independent.
         """
         super().__init__(
             connection_manager=connection_manager,
