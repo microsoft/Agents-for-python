@@ -26,7 +26,7 @@ from microsoft_agents.hosting.core import (
 )
 def test_required_credentials_are_validated(auth_type, field):
     with pytest.raises(ValueError, match=field):
-        MsalConnectionSettings.from_mapping(auth_type=auth_type)
+        MsalConnectionSettings.from_config(dict(auth_type=auth_type))
 
 
 def test_msal_settings_bind_aliases_and_round_trip_legacy_fields_without_mutation():
@@ -66,7 +66,9 @@ def test_msal_settings_bind_aliases_and_round_trip_legacy_fields_without_mutatio
     ],
 )
 def test_settings_bind_required_credentials_from_configuration(auth_type, credential):
-    settings = MsalConnectionSettings.from_mapping(auth_type=auth_type, **credential)
+    settings = MsalConnectionSettings.from_config(
+        dict(auth_type=auth_type, **credential)
+    )
     auth = MsalAuth(settings)
 
     assert auth.config.auth_type == auth_type
@@ -106,7 +108,7 @@ def test_settings_bind_required_credentials_from_configuration(auth_type, creden
     ],
 )
 def test_settings_bind_legacy_aliases_and_precedence(values, field, expected):
-    settings = MsalConnectionSettings.from_mapping(values)
+    settings = MsalConnectionSettings.from_config(values)
 
     assert getattr(settings, field) == expected
 
@@ -153,7 +155,7 @@ def test_legacy_msal_provider_and_compatibility_view_emit_deprecations():
 def test_provider_accepts_configuration_or_bound_settings_and_builds_certificate_client(
     mocker, bound
 ):
-    settings = MsalConnectionSettings.from_mapping(
+    settings = MsalConnectionSettings.from_config(
         {
             "SETTINGS": {
                 "CLIENTID": "client",
@@ -169,14 +171,16 @@ def test_provider_accepts_configuration_or_bound_settings_and_builds_certificate
         settings
         if bound
         else Configuration(
-            settings={
-                "client_id": "client",
-                "tenant_id": "tenant",
-                "auth_type": AuthTypes.certificate,
-                "cert_pfx_file": "certificate.pfx",
-                "send_x5c": "true",
-                "azure_region": "westus",
-            }
+            dict(
+                settings={
+                    "client_id": "client",
+                    "tenant_id": "tenant",
+                    "auth_type": AuthTypes.certificate,
+                    "cert_pfx_file": "certificate.pfx",
+                    "send_x5c": "true",
+                    "azure_region": "westus",
+                }
+            )
         )
     )
     factory = mocker.patch(
@@ -197,11 +201,13 @@ def test_provider_accepts_configuration_or_bound_settings_and_builds_certificate
 def test_msal_connection_manager_configuration_routes_and_exposes_typed_settings():
     manager = MsalConnectionManager(
         config=Configuration(
-            connections={
-                "SERVICE_CONNECTION": {"settings": {"client_id": "service"}},
-                "MCS": {"settings": {"client_id": "mcs", "tenant_id": "tenant"}},
-            },
-            connections_map=[{"audience": "mcs", "connection": "MCS"}],
+            dict(
+                connections={
+                    "SERVICE_CONNECTION": {"settings": {"client_id": "service"}},
+                    "MCS": {"settings": {"client_id": "mcs", "tenant_id": "tenant"}},
+                },
+                connections_map=[{"audience": "mcs", "connection": "MCS"}],
+            )
         )
     )
     provider = manager.get_token_provider(

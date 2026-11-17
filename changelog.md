@@ -3,14 +3,41 @@
 **Release Date:** Unreleased
 **Previous Version:** 1.9.0 (Released 2026-10-19)
 
+## microsoft_agents.activity: Configuration
+
+Added `microsoft_agents.activity.config.Configuration` for typed reads, nested sections, wildcard collection, and settings binding from ordinary dictionaries (#636, #649).
+
+```python
+from microsoft_agents.activity.config import Configuration, wildcard
+
+config = Configuration({
+    "services": {"graph": {"timeout": "30"}, "search": {"timeout": "10"}},
+    "enabled": "false",
+    "scopes": "User.Read, Mail.Read",
+})
+graph = config.get_section(["services", "graph"])  # Scoped settings and error paths.
+graph.get_int("timeout")  # 30; stored value stays "30".
+config.get_bool("enabled")  # False, unlike bool("false").
+config.get_int("retries", default=3)  # 3 for a missing setting.
+config.get_scopes("scopes")  # ["User.Read", "Mail.Read"].
+config.collect(["services", wildcard(), "timeout"])  # ["30", "10"], in order.
+```
+
+Direct key lookup is case-sensitive; use lists of segments for nested paths and `wildcard()` (not the literal `"*"`) to collect dictionary entries. Invalid nonempty typed values raise even when a default is supplied.
+
+Use `load_configuration_from_env(os.environ)` to expand environment-style names and prepare application-root configuration. Reuse that object with `MsalConnectionManager(config=config)` and `Authorization(storage, connections, config=config)`, or bind individual settings through their `from_config()` methods.
+
 ## Major Features & Enhancements
 
-- **Shared Configuration API**: Added a dictionary-backed `Configuration` API with nested path and alias lookup, typed getters, wildcard collection, configurable settings binding, and mapping/default resolution with indexed-list normalization. Retained the existing `load_configuration_from_env()` return contract (#636).
 - **JWT Authorization Configuration**: Added `ConnectionSettingsBase`, `JwtConnectionSettings`, and `TokenValidationConfiguration` to bind inbound JWT policies from application configuration, including explicit audiences, tenant and anonymous-access overrides, and per-connection issuer settings. Retained legacy `AgentAuthConfiguration` support and added application-scoped validator caching without changing `Connections` or `ConnectionManager` (#638).
-
 - **Explicit JWT Audience Lists**: Scalar and delimited audience strings now bind as explicit allow-lists instead of falling back to all configured connection client IDs. Missing or empty audiences continue to use connection defaults (#638).
 - **Connection Configuration**: Added `Configuration`-based initialization to `ConnectionManager` and `MsalConnectionManager`, with typed audience/service-URL routing maps supporting lists and named mappings. Consolidated shared connection APIs under `authorization.connections` while retaining legacy import paths and constructor inputs.
-- **Typed Authentication Provider Settings**: Added `MsalConnectionSettings` and migrated `SidecarConnectionSettings` to derive from `ConnectionSettingsBase`. MSAL and Entra sidecar providers now accept bound settings or `Configuration` and expose typed settings through `.config`, while retaining legacy `AgentAuthConfiguration` inputs and the existing environment-loader contract.
+- **Typed Authentication Provider Settings**: Added `MsalConnectionSettings` and migrated `SidecarConnectionSettings` to derive from `ConnectionSettingsBase`. MSAL and Entra sidecar providers now accept bound settings or `Configuration` and expose typed settings through `.config`, while retaining legacy `AgentAuthConfiguration` inputs and existing environment-variable names.
+- **Typed User Authorization Configuration**: Added `AuthorizationConfig` and `AuthHandlerConfig` for application sign-in options and individual OAuth handlers. `Authorization` accepts configuration through `config=`, supports explicit handler lists or dictionaries, and allows `auto_sign_in=False` to override a configured `True`.
+
+## Deprecation
+
+- **Legacy Configuration Entry Points**: Prefer explicit `config=` arguments over unpacked configuration keyword arguments in connection managers and `Authorization`. Prefer typed provider `.config` settings over legacy `.configuration` access, and `AuthHandlerConfig` over the deprecated `AuthHandler` constructor. Legacy entry points remain available with deprecation warnings.
 
 ## Bug Fixes
 

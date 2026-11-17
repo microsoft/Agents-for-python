@@ -15,7 +15,7 @@ from ...._oauth._flow_state import _FlowStateTag
 from ....turn_context import TurnContext
 from ....storage import Storage
 from ....authorization import Connections
-from ..auth_handler import AuthHandlerSettings
+from ..auth_handler import AuthHandlerConfig
 from ._authorization_handler import _AuthorizationHandler
 from .._sign_in_response import _SignInResponse
 
@@ -32,29 +32,29 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         self,
         storage: Storage,
         connection_manager: Connections,
-        settings: Mapping | AuthHandlerSettings | None = None,
+        config: Mapping | AuthHandlerConfig | None = None,
         *,
         auth_handler_id: str | None = None,
-        auth_handler: AuthHandlerSettings | None = None,
+        auth_handler: AuthHandlerConfig | None = None,
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
         """Create a connector authorization strategy.
 
-        Prefer settings containing an AuthHandlerSettings instance or a mapping.
+        Pass config as an AuthHandlerConfig instance or a nonempty mapping.
         Legacy settings arguments remain accepted but emit a DeprecationWarning.
 
         :param storage: The storage system to use for state management.
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param settings: Handler settings, accepted positionally or by keyword.
-        :type settings: Mapping | AuthHandlerSettings | None
+        :param config: Handler configuration, accepted positionally or by keyword.
+        :type config: Mapping | AuthHandlerConfig | None
         :param auth_handler_id: Optional override of the settings name.
         :type auth_handler_id: str | None
-        :param auth_handler: Deprecated bound settings; use settings instead.
-        :type auth_handler: AuthHandlerSettings | None
-        :param auth_handler_settings: Deprecated mapping; use settings instead.
+        :param auth_handler: Deprecated bound settings; use config instead.
+        :type auth_handler: AuthHandlerConfig | None
+        :param auth_handler_settings: Deprecated mapping; use config instead.
         :type auth_handler_settings: dict | None
         :param kwargs: Compatibility arguments forwarded to the base handler.
         :raises ValueError: If storage, nonempty settings, or a handler ID is
@@ -63,7 +63,7 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         super().__init__(
             storage,
             connection_manager,
-            settings,
+            config,
             auth_handler=auth_handler,
             auth_handler_id=auth_handler_id,
             auth_handler_settings=auth_handler_settings,
