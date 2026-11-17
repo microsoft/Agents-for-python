@@ -6,7 +6,14 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Callable, Mapping, Self
+
+from microsoft_agents.activity.config import (
+    Configuration,
+    _RootConfigurable,
+    ignore_case,
+    _legpath as legpath,
+)
 
 from microsoft_agents.hosting.core.app.oauth import AuthHandlerConfig
 from microsoft_agents.hosting.core.storage import Storage
@@ -21,7 +28,7 @@ from .proactive.proactive_options import ProactiveOptions
 
 
 @dataclass
-class ApplicationOptions:
+class ApplicationOptions(_RootConfigurable):
     adapter: ChannelServiceAdapter | None = None
     """
     Optional. Options used to initialize your `BotAdapter`
@@ -95,3 +102,23 @@ class ApplicationOptions:
     When set, :attr:`microsoft_agents.hosting.core.AgentApplication.proactive` is available for storing
     conversations and initiating proactive turns.
     """
+
+    @classmethod
+    def _from_scoped_configuration(cls, config: Configuration) -> Self:
+        auth_handlers = config.get(legpath("authorization_handlers"), None)
+        if auth_handlers is not None and not isinstance(auth_handlers, Mapping):
+            raise TypeError("authorization_handlers must be a mapping")
+        return ApplicationOptions(
+            bot_app_id=config.get_str(legpath("bot_app_id"), ""),
+            start_typing_timer=config.get(legpath("start_typing_timer"), True),
+            remove_recipient_mention=config.get(legpath("remove_recipient_mention"), True),
+            long_running_messages=config.get(legpath("long_running_messages"), False),
+            authorization_handlers=auth_handlers,
+        )
+
+
+    @classmethod
+    def _from_root_configuration(cls, config: Configuration) -> Self:
+        return cls._from_scoped_configuration(
+            config.get_section(ignore_case("AgentApplication"), default=Configuration())
+        )

@@ -136,15 +136,7 @@ class AgentApplication(Agent, Generic[StateT]):
         configuration = kwargs
 
         if not options:
-            # TODO: consolidate configuration story
-            # Take the options from the kwargs and create an ApplicationOptions instance
-            option_kwargs = dict(
-                filter(
-                    lambda x: x[0] in ApplicationOptions.__dataclass_fields__,
-                    kwargs.items(),
-                )
-            )
-            options = ApplicationOptions(**option_kwargs)
+            options = ApplicationOptions.from_config(kwargs)
 
         self._options = options
 
