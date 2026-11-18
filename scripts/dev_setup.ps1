@@ -8,7 +8,6 @@ pip install -e ./libraries/microsoft-agents-authentication-entra-auth-sidecar/ -
 pip install -e ./libraries/microsoft-agents-copilotstudio-client/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-hosting-aiohttp/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-hosting-core/ --config-settings editable_mode=compat
-pip install -e ./libraries/microsoft-agents-hosting-teams/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-hosting-msteams/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-hosting-dialogs/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-storage-blob/ --config-settings editable_mode=compat

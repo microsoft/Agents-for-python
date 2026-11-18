@@ -93,8 +93,9 @@ def test_configuration_manager_binds_aliases_and_routes_without_legacy_settings(
         )
         is manager.get_default_connection()
     )
-    with pytest.raises(ValueError, match="get_default_connection\\(\\).config"):
-        manager.get_default_connection_configuration()
+    with pytest.warns(DeprecationWarning, match="get_default_connection\\(\\).config"):
+        with pytest.raises(ValueError, match="get_default_connection\\(\\).config"):
+            manager.get_default_connection_configuration()
 
 
 def test_configuration_manager_redirects_agentic_requests_to_alternate_blueprint():
