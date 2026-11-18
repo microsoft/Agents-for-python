@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
 from typing import TypeVar
-from typing_extensions import Self
+from typing import Self
 
 from microsoft_agents.activity.config import (
     Configuration,

@@ -6,7 +6,27 @@ from typing import Any, Mapping
 from .configuration import Configuration
 from ._logging import _configure_logging
 from ._engine._resolve import _resolve
+from ._engine._utils import _parse_env_var_name
 from ._metadata import _RootConfigMetadata
+
+# Top-level SDK keys retained by load_configuration_from_env. Matching
+# ignores case but keeps underscores significant.
+_SDK_SECTIONS = frozenset(
+    name.casefold()
+    for name in (
+        "Connections",
+        "ConnectionsMap",
+        "TokenValidation",
+        "AgentApplication",
+        "Logging",
+        "Port",
+    )
+)
+
+
+def _is_sdk_section(key: Any) -> bool:
+    section = _parse_env_var_name(str(key)).split("::", 1)[0]
+    return section.casefold() in _SDK_SECTIONS
 
 
 def load_configuration_from_env(config_dict: Mapping[str, Any], /) -> Configuration:
@@ -17,17 +37,26 @@ def load_configuration_from_env(config_dict: Mapping[str, Any], /) -> Configurat
     key capitalization is preserved. Values such as ``"30"`` and ``"false"``
     remain strings until you read them with a typed getter.
 
+    Only the SDK's top-level keys are kept: ``Connections``,
+    ``ConnectionsMap``, ``TokenValidation``, ``AgentApplication``,
+    ``Logging``, and ``Port``. Names ignore case but not underscores, so
+    ``CONNECTIONSMAP`` is kept while ``CONNECTIONS_MAP`` is not. Other keys,
+    such as ``PATH`` or unrelated secrets, are discarded.
+
     For example, without changing the process environment::
 
         >>> from microsoft_agents.activity.config import load_configuration_from_env
         >>> config = load_configuration_from_env({
-        ...     "SERVICE__TIMEOUT": "30",
-        ...     "SERVICE__ENABLED": "false",
+        ...     "AGENTAPPLICATION__STARTTYPINGTIMER": "false",
+        ...     "CONNECTIONSMAP__0__SERVICEURL": "*",
+        ...     "PATH": "/usr/bin",
         ... })
-        >>> config.get_int(["SERVICE", "TIMEOUT"])
-        30
-        >>> config.get_bool(["SERVICE", "ENABLED"])
+        >>> config.get_bool(["AGENTAPPLICATION", "STARTTYPINGTIMER"])
         False
+        >>> config.get(["CONNECTIONSMAP", 0, "SERVICEURL"])
+        '*'
+        >>> config.get("PATH") is None
+        True
 
     The result represents the full application configuration. APIs such as
     ``Authorization`` can use it to find their own sections automatically.
@@ -39,7 +68,10 @@ def load_configuration_from_env(config_dict: Mapping[str, Any], /) -> Configurat
     :param config_dict: Environment variables or other application settings.
     :return: Configuration ready to pass to SDK application components.
     """
-    config = Configuration(_resolve(config_dict))
+    sdk_settings = {
+        key: value for key, value in config_dict.items() if _is_sdk_section(key)
+    }
+    config = Configuration(_resolve(sdk_settings))
     _RootConfigMetadata.set(config, True)
     _configure_logging(config)
     return config
