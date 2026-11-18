@@ -6,10 +6,12 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from aiohttp import ClientTimeout, TCPConnector
+from aiohttp import ClientTimeout, TCPConnector, web
 from aiohttp.abc import ResolveResult
+from aiohttp.test_utils import TestServer
 from yarl import URL
 
+from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.hosting.core.security._connector import (
     _SSRFConnector,
     _SSRFError,
@@ -311,6 +313,72 @@ class TestOutboundHostValidator:
         assert validator.is_allowed("https://10.0.0.1/file") is True
         assert validator.is_allowed("https://10.0.0.2/file") is False
 
+    @pytest.mark.parametrize("host", ["localhost", "127.0.0.1", "[::1]"])
+    @pytest.mark.parametrize("allow_http", [False, True])
+    @pytest.mark.parametrize("allow_private", [False, True])
+    @pytest.mark.parametrize("allow_host", [False, True])
+    def test_loopback_http_requires_transport_network_and_host_permissions(
+        self, host, allow_http, allow_private, allow_host
+    ):
+        validator = OutboundHostValidator(
+            enabled=True,
+            hosts=[host] if allow_host else ["excluded.example"],
+            include_default_microsoft_hosts=False,
+            allow_private_network_addresses=allow_private,
+            allow_http_for_loopback=allow_http,
+        )
+
+        assert validator.is_allowed(f"http://{host}:3978/file") is (
+            allow_http and allow_private and allow_host
+        )
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://smba.trafficmanager.net/teams/",
+            "http://graph.microsoft.com/v1.0/me",
+            "http://files.contoso.com/file",
+            "http://10.0.0.1/file",
+            "http://localhost.contoso.com/file",
+            "http://[::]/file",
+            "http://user@localhost/file",
+            "ftp://localhost/file",
+        ],
+    )
+    def test_loopback_exception_does_not_relax_other_url_restrictions(self, url):
+        validator = OutboundHostValidator(
+            enabled=True,
+            hosts=["contoso.com", "10.0.0.1", "localhost", "::"],
+            allow_private_network_addresses=True,
+            allow_http_for_loopback=True,
+        )
+
+        assert validator.is_allowed(url) is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("host", ["localhost", "127.0.0.1"])
+    async def test_client_connects_to_explicitly_permitted_loopback(self, host):
+        async def handler(request):
+            return web.Response(text="loopback response")
+
+        app = web.Application()
+        app.router.add_get("/file", handler)
+        validator = OutboundHostValidator(
+            enabled=True,
+            hosts=[host],
+            include_default_microsoft_hosts=False,
+            allow_private_network_addresses=True,
+            allow_http_for_loopback=True,
+        )
+
+        async with TestServer(app, host="127.0.0.1") as server:
+            async with validator.client() as client:
+                async with client.get(
+                    server.make_url("/file").with_host(host)
+                ) as response:
+                    assert response.status == 200
+                    assert await response.text() == "loopback response"
+
     @pytest.mark.asyncio
     async def test_client_uses_ssrf_connector_when_enabled(self):
         validator = OutboundHostValidator(
@@ -379,6 +447,85 @@ class TestOutboundHostValidator:
             match="Unsupported ClientSession options: proxy, trust_env",
         ):
             validator.client({"trust_env": True, "proxy": "http://proxy.example"})
+
+
+class TestOutboundHostValidatorConfiguration:
+    @pytest.mark.parametrize("nested", [False, True])
+    def test_from_loaded_configuration_binds_all_options(self, nested):
+        settings = {
+            "Enabled": "true",
+            "IncludeDefaultMicrosoftHosts": "false",
+            "AllowPrivateNetworkAddresses": "true",
+            "AllowHttpForLoopback": "true",
+            "Hosts": ["localhost", "contoso.com"],
+        }
+        if nested:
+            environment = {"OutboundHostValidator": settings}
+        else:
+            environment = {
+                f"OUTBOUNDHOSTVALIDATOR__{key.upper()}": value
+                for key, value in settings.items()
+                if key != "Hosts"
+            }
+            environment["OUTBOUNDHOSTVALIDATOR__HOSTS__0"] = "localhost"
+            environment["OUTBOUNDHOSTVALIDATOR__HOSTS__1"] = "contoso.com"
+        config = load_configuration_from_env(environment)
+        validator = OutboundHostValidator.from_config(config)
+
+        assert validator.enabled is True
+        assert validator.is_allowed("http://localhost:3978/file") is True
+        assert validator.is_allowed("https://files.contoso.com/file") is True
+        assert validator.is_allowed("https://graph.microsoft.com/file") is False
+        assert validator.is_allowed("https://excluded.example/file") is False
+        assert validator.is_allowed("http://contoso.com/file") is False
+
+    @pytest.mark.parametrize(
+        "option",
+        ["AllowHttpForLoopback", "AllowPrivateNetworkAddresses"],
+    )
+    @pytest.mark.parametrize("value", [None, "false"])
+    def test_from_loaded_configuration_requires_both_loopback_opt_ins(
+        self, option, value
+    ):
+        environment = {
+            "OutboundHostValidator__Enabled": "true",
+            "OutboundHostValidator__Hosts__0": "localhost",
+            "OutboundHostValidator__AllowHttpForLoopback": "true",
+            "OutboundHostValidator__AllowPrivateNetworkAddresses": "true",
+        }
+        key = f"OutboundHostValidator__{option}"
+        if value is None:
+            del environment[key]
+        else:
+            environment[key] = value
+        validator = OutboundHostValidator.from_config(
+            load_configuration_from_env(environment)
+        )
+
+        assert validator.enabled is True
+        assert validator.is_allowed("http://localhost:3978/file") is False
+
+    def test_from_loaded_configuration_preserves_default_microsoft_hosts(self):
+        validator = OutboundHostValidator.from_config(
+            load_configuration_from_env({"OutboundHostValidator__Enabled": "true"})
+        )
+
+        assert validator.is_allowed("https://graph.microsoft.com/file") is True
+        assert validator.is_allowed("http://graph.microsoft.com/file") is False
+        assert validator.is_allowed("https://excluded.example/file") is False
+
+    @pytest.mark.parametrize(
+        "environment", [{}, {"OutboundHostValidator__Enabled": "false"}]
+    )
+    def test_from_loaded_configuration_preserves_disabled_enforcement(
+        self, environment
+    ):
+        validator = OutboundHostValidator.from_config(
+            load_configuration_from_env(environment)
+        )
+
+        assert validator.enabled is False
+        assert validator.is_allowed("http://excluded.example/file") is True
 
 
 class TestValidatorMiddleware:
