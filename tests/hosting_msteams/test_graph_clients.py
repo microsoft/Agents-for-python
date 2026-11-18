@@ -7,24 +7,16 @@ from types import SimpleNamespace
 
 import pytest
 
-from .helpers import is_supported_version
+from kiota_abstractions.method import Method
+from kiota_abstractions.request_information import RequestInformation
 
-pytestmark = pytest.mark.skipif(
-    not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
+from microsoft_agents.activity import TokenResponse
+from microsoft_agents.hosting.msteams._graph import (
+    _common_get_app_graph_client,
+    _common_get_app_graph_client_for_connection,
+    _create_app_graph_service_client,
+    _create_user_graph_service_client,
 )
-
-if is_supported_version:
-    from kiota_abstractions.method import Method
-    from kiota_abstractions.request_information import RequestInformation
-
-    from microsoft_agents.activity import TokenResponse
-    from microsoft_agents.hosting.msteams._graph import (
-        _common_get_app_graph_client,
-        _common_get_app_graph_client_for_connection,
-        _create_app_graph_service_client,
-        _create_user_graph_service_client,
-    )
 
 
 class _RecordingAuthorization:

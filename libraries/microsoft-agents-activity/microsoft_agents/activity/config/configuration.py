@@ -8,13 +8,13 @@ from typing import (
     Any,
     Iterable,
     Mapping,
+    Self,
     MutableMapping,
     MutableSequence,
     TypeVar,
     Sequence,
     overload,
 )
-from typing_extensions import Self
 
 from ._protocol import _MappingConfigurable
 from ._constants import _PATH_SEPARATOR
@@ -383,11 +383,11 @@ class Configuration(_QueryDict, _MappingConfigurable):
         return self.get_bool(path, default=default)
 
     @overload
-    def get_int(self, path: _PathProxy, default: None = None) -> int | None: ...
-    @overload
     def get_int(
         self, path: _PathProxy, default: int | _MissingType = _MISSING
     ) -> int: ...
+    @overload
+    def get_int(self, path: _PathProxy, default: None = None) -> int | None: ...
     def get_int(
         self, path: _PathProxy, default: int | None | _MissingType = _MISSING
     ) -> int | None:
@@ -432,11 +432,11 @@ class Configuration(_QueryDict, _MappingConfigurable):
         return self.get_int(path, default=default)
 
     @overload
-    def get_float(self, path: _PathProxy, default: None = None) -> float | None: ...
-    @overload
     def get_float(
         self, path: _PathProxy, default: float | _MissingType = _MISSING
     ) -> float: ...
+    @overload
+    def get_float(self, path: _PathProxy, default: None = None) -> float | None: ...
     def get_float(
         self, path: _PathProxy, default: float | None | _MissingType = _MISSING
     ) -> float | None:

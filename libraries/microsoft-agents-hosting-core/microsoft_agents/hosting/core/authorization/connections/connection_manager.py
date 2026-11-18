@@ -324,6 +324,19 @@ class ConnectionManager(Connections):
             self._deprecated_config_map, legpath("service_connection"), default=None
         )
         if not config:
+            warnings.warn(
+                "This ConnectionManager was initialized with `config=` (the "
+                "Configuration system), so there is no legacy AgentAuthConfiguration "
+                "to return. To migrate, use `get_default_connection().config` for the "
+                "service connection's typed settings, and pass the Configuration "
+                "returned by `load_configuration_from_env(...)` wherever an "
+                "AgentAuthConfiguration was expected. For example, set "
+                "`app['agent_configuration'] = config` for "
+                "`jwt_authorization_middleware` instead of using "
+                "`get_default_connection_configuration()`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             raise ValueError(
                 "get_default_connection_configuration() is only available for "
                 "managers initialized with legacy AgentAuthConfiguration instances. "

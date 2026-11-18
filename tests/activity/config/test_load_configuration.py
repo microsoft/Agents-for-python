@@ -145,9 +145,34 @@ def test_caller_resolves_defaults_before_loading_configuration():
         "client_id": "env-client",
         "tenant_id": "tenant",
     }
-    assert config["custom"] == {"enabled": "false"}
+    assert "custom" not in config
     assert _RootConfigMetadata.get(config) is True
     assert (
         defaults["connections"]["service_connection"]["settings"]["client_id"]
         == "default-client"
     )
+
+
+def test_load_configuration_keeps_only_sdk_sections():
+    config = load_configuration_from_env(
+        {
+            "Connections__SERVICE_CONNECTION__SETTINGS__CLIENTID": "client",
+            "connectionsmap::0::SERVICEURL": "*",
+            "TokenValidation": {"AUDIENCES": "client"},
+            "AGENTAPPLICATION__STARTTYPINGTIMER": "false",
+            "PORT": "4123",
+            "CONNECTIONS_MAP__0__SERVICEURL": "ignored",
+            "TOKEN_VALIDATION__AUDIENCES": "ignored",
+            "PATH": "/usr/bin",
+            "SECRET": "value",
+            "PATH__NESTED": "value",
+        }
+    )
+
+    assert set(config) - {_RootConfigMetadata._KEY} == {
+        "Connections",
+        "connectionsmap",
+        "TokenValidation",
+        "AGENTAPPLICATION",
+        "PORT",
+    }
