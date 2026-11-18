@@ -13,7 +13,7 @@ import certifi
 
 from typing import Callable, Awaitable
 
-import httpx
+import httpx2
 
 from microsoft_teams.common import Client, ClientOptions
 from microsoft_teams.api import ApiClient
@@ -29,11 +29,8 @@ _ssl_context: ssl.SSLContext | None = None
 def _get_ssl_context() -> ssl.SSLContext:
     """Get or create the SSL context for verifying HTTPS requests.
 
-    httpx by default creates a new SSL context for each new client instance. This can be
-    inefficient. For example, at the time of writing this, without caching the SSL context,
-    the hosting_msteams unit tests took 32 seconds to complete. With caching, the total
-    time for the unit tests dropped to 7 seconds. For an agent with lots of traffic,
-    caching the SSL context may significantly improve performance and avoid extra io operations.
+    httpx2 by default creates a new SSL context for each new client instance. This can be
+    inefficient.
     """
     global _ssl_context
 
@@ -64,7 +61,7 @@ def _client(
 
     return Client(
         options,
-        _http=httpx.AsyncClient(
+        _http=httpx2.AsyncClient(
             base_url=base_url,
             headers=headers,
             timeout=options.timeout,

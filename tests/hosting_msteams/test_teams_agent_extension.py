@@ -141,6 +141,37 @@ class TestBeforeTurnHook:
         close_spy.assert_awaited_once_with()
 
     @pytest.mark.asyncio
+    async def test_teams_channel_deserializes_chat_reply_chain_and_source(self):
+        channel_data = {
+            "chat": {"id": "chat-id"},
+            "replyChain": {"id": "root-message-id"},
+            "source": {"name": "message"},
+        }
+        activity = Activity(
+            type="message",
+            channel_id=Channels.ms_teams,
+            service_url="https://smba.trafficmanager.net/teams/",
+            channel_data=channel_data,
+        )
+        ctx = _FakeContext(activity)
+
+        try:
+            result = await self.hook(ctx, None)
+
+            assert result is True
+            data = activity.channel_data
+            assert isinstance(data, ChannelData)
+            assert data.chat.id == "chat-id"
+            assert data.reply_chain.id == "root-message-id"
+            assert data.source.name == "message"
+            assert (
+                data.model_dump(mode="json", by_alias=True, exclude_none=True)
+                == channel_data
+            )
+        finally:
+            await ctx._aclose()
+
+    @pytest.mark.asyncio
     async def test_teams_channel_without_channel_data_sets_none(self, mocker):
         activity = Activity(
             type="conversationUpdate",
