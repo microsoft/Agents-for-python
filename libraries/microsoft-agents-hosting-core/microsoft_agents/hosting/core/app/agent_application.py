@@ -141,6 +141,7 @@ class AgentApplication(Agent, Generic[StateT]):
             options = ApplicationOptions.from_config(kwargs)
         else:
             alt_options = ApplicationOptions.from_config(kwargs)
+            options = copy(options)
             options.storage = options.storage or alt_options.storage
             options.proactive = options.proactive or alt_options.proactive
             options.turn_state_factory = (
