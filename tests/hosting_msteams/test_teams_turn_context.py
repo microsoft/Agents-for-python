@@ -9,32 +9,26 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from .helpers import _make_context, is_supported_version
+from .helpers import _make_context
 
-pytestmark = pytest.mark.skipif(
-    not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
+from microsoft_agents.activity import (
+    Activity,
+    ActivityTreatment,
+    ActivityTreatmentTypes,
+    ActivityTypes,
+    ChannelAccount,
+    ConversationAccount,
+    Entity,
+    ResourceResponse,
+    RoleTypes,
 )
 
-if is_supported_version:
-    from microsoft_agents.activity import (
-        Activity,
-        ActivityTreatment,
-        ActivityTreatmentTypes,
-        ActivityTypes,
-        ChannelAccount,
-        ConversationAccount,
-        Entity,
-        ResourceResponse,
-        RoleTypes,
-    )
-
-    from microsoft_agents.hosting.msteams import TeamsActivity, TeamsTurnContext
-    from microsoft_agents.hosting.msteams.models import (
-        QuotedReply,
-        QuotedReplyData,
-        TargetedMessageInfo,
-    )
+from microsoft_agents.hosting.msteams import TeamsActivity, TeamsTurnContext
+from microsoft_agents.hosting.msteams.models import (
+    QuotedReply,
+    QuotedReplyData,
+    TargetedMessageInfo,
+)
 
 
 class TestSendTargetedActivity:
