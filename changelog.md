@@ -39,7 +39,7 @@ Use `load_configuration_from_env(os.environ)` to expand environment-style names 
 
 ## Major Features & Enhancements
 
-- **Application Options Configuration**: Added `Configuration`-based binding for `ApplicationOptions` from scoped settings or the application-root `AgentApplication` section (#656).
+- **Application Options Configuration**: Added `ApplicationOptions.from_config()` to bind scoped settings or the application-root `AgentApplication` section. Pass the resulting options to `AgentApplication(options=...)` to use nested settings; constructor keyword arguments continue to read only top-level options for backward compatibility (#656).
 - **JWT Authorization Configuration**: Added `ConnectionSettingsBase`, `JwtConnectionSettings`, and `TokenValidationConfig` to bind inbound JWT policies from application configuration, including explicit audiences, tenant and anonymous-access overrides, and per-connection issuer settings. Retained legacy `AgentAuthConfiguration` support and added application-scoped validator caching without changing `Connections` or `ConnectionManager` (#638).
 - **Explicit JWT Audience Lists**: Scalar and delimited audience strings now bind as explicit allow-lists instead of falling back to all configured connection client IDs. Missing or empty audiences continue to use connection defaults (#638).
 - **Connection Configuration**: Added `Configuration`-based initialization to `ConnectionManager` and `MsalConnectionManager`, with typed audience/service-URL routing maps supporting lists and named mappings. Consolidated shared connection APIs under `authorization.connections` while retaining legacy import paths and constructor inputs.
