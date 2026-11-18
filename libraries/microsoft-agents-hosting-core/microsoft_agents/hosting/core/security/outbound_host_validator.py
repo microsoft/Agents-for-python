@@ -183,7 +183,7 @@ class OutboundHostValidator(_OutboundHostValidator, _RootConfigurable):
     @classmethod
     def _from_scoped_configuration(cls, config: Configuration) -> Self:
         return cls(
-            enabled=config.get_bool(_netpath("Enabled"), None),
+            enabled=config.get_bool(_netpath("Enabled"), False),
             include_default_microsoft_hosts=config.get_bool(
                 _netpath("IncludeDefaultMicrosoftHosts"), True
             ),
