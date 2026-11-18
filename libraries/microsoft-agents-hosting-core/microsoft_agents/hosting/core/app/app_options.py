@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, Mapping, Self
+from typing import Callable
 
 from microsoft_agents.activity.config import (
     Configuration,
@@ -104,10 +104,14 @@ class ApplicationOptions(_RootConfigurable):
     """
 
     @classmethod
-    def _from_scoped_configuration(cls, config: Configuration) -> Self:
+    def _from_scoped_configuration(cls, config: Configuration) -> ApplicationOptions:
         auth_handlers = config.get(legpath("authorization_handlers"), None)
-        if auth_handlers is not None and not isinstance(auth_handlers, Mapping):
+        if auth_handlers is not None and not isinstance(auth_handlers, dict):
             raise TypeError("authorization_handlers must be a mapping")
+
+        typing = config.get("typing")
+        if typing is not None and not isinstance(typing, TypingOptions):
+            raise TypeError("typing must be an instance of TypingOptions or None")
 
         storage = config.get("storage")
         if storage is not None and not isinstance(storage, Storage):
@@ -135,15 +139,20 @@ class ApplicationOptions(_RootConfigurable):
 
         adapter = config.get("adapter")
         if adapter is not None and not isinstance(adapter, ChannelServiceAdapter):
-            raise TypeError("adapter must be an instance of Adapter or None")
+            raise TypeError(
+                "adapter must be an instance of ChannelServiceAdapter or None"
+            )
 
         return ApplicationOptions(
+            typing=typing,
             bot_app_id=config.get_str(legpath("bot_app_id"), ""),
-            start_typing_timer=config.get(legpath("start_typing_timer"), True),
-            remove_recipient_mention=config.get(
+            start_typing_timer=config.get_bool(legpath("start_typing_timer"), True),
+            remove_recipient_mention=config.get_bool(
                 legpath("remove_recipient_mention"), True
             ),
-            long_running_messages=config.get(legpath("long_running_messages"), False),
+            long_running_messages=config.get_bool(
+                legpath("long_running_messages"), False
+            ),
             authorization_handlers=auth_handlers,
             storage=storage,
             proactive=proactive_options,
@@ -153,7 +162,7 @@ class ApplicationOptions(_RootConfigurable):
         )
 
     @classmethod
-    def _from_root_configuration(cls, config: Configuration) -> Self:
+    def _from_root_configuration(cls, config: Configuration) -> ApplicationOptions:
         return cls._from_scoped_configuration(
-            config.get_section(ignore_case("AgentApplication"), default=Configuration())
+            config.get_section(legpath("AgentApplication"), default=Configuration())
         )

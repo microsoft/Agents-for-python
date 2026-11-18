@@ -35,6 +35,8 @@ from microsoft_agents.activity import (
     InvokeResponse,
 )
 
+from microsoft_agents.activity.config._metadata import _RootConfigMetadata
+
 from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from ..agent import Agent
@@ -133,10 +135,25 @@ class AgentApplication(Agent, Generic[StateT]):
         ).strip()
         self._agent_name = sanitized_agent_name or type(self).__name__
 
-        configuration = kwargs
+        _RootConfigMetadata.set(kwargs, False)  # required for back-compat
 
         if not options:
             options = ApplicationOptions.from_config(kwargs)
+        else:
+            alt_options = ApplicationOptions.from_config(kwargs)
+            options.storage = options.storage or alt_options.storage
+            options.proactive = options.proactive or alt_options.proactive
+            options.turn_state_factory = (
+                options.turn_state_factory or alt_options.turn_state_factory
+            )
+            options.file_downloaders = (
+                options.file_downloaders or alt_options.file_downloaders
+            )
+            options.adapter = options.adapter or alt_options.adapter
+            options.authorization_handlers = (
+                options.authorization_handlers or alt_options.authorization_handlers
+            )
+            options.typing = options.typing or alt_options.typing
 
         self._options = options
 
@@ -158,7 +175,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 """)
         self._storage = self._options.storage
 
-        if options.long_running_messages and not options.bot_app_id:
+        if self._options.long_running_messages and not self._options.bot_app_id:
             logger.error(
                 "ApplicationOptions.long_running_messages requires an adapter and bot_app_id.",
                 stack_info=True,
@@ -168,14 +185,12 @@ class AgentApplication(Agent, Generic[StateT]):
                 no adapter or `bot_app_id` was configured.
                 """)
 
-        self._turn_state_factory = (
-            options.turn_state_factory
-            or kwargs.get("turn_state_factory", None)
-            or partial(TurnState.with_storage, self._storage)
+        self._turn_state_factory = self._options.turn_state_factory or partial(
+            TurnState.with_storage, self._storage
         )
 
-        if options.proactive:
-            proactive_opts = copy(options.proactive)
+        if self._options.proactive:
+            proactive_opts = copy(self._options.proactive)
             if not proactive_opts.storage:
                 proactive_opts.storage = self._storage
             self._proactive = Proactive(self, proactive_opts)
@@ -203,7 +218,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
             auth_options = {
                 key: value
-                for key, value in configuration.items()
+                for key, value in kwargs.items()
                 if key
                 not in ["storage", "connection_manager", "handlers", "agent_name"]
             }
