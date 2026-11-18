@@ -1,15 +1,25 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 import ipaddress
 import logging
 
 from functools import lru_cache
+from typing import Self
 
 from aiohttp import ClientSession
 from aiohttp.abc import ResolveResult
 
 from yarl import URL
+
+from microsoft_agents.activity.config import (
+    Configuration,
+    _RootConfigurable,
+    _netpath,
+)
+
 
 from ._connector import _ResolveResultValidator, _SSRFConnector, _SSRFError
 from ._validator import _OutboundHostValidator
@@ -64,26 +74,35 @@ def _allow_addr(
     :param allow_private_network_addresses: Whether to allow private network addresses.
     :return: True if the address is allowed, False otherwise.
     """
+
+    if address.is_loopback and allow_private_network_addresses:
+        return True
+
     if (
         address.is_multicast
-        or address.is_loopback
         or address.is_link_local
         or address.is_unspecified
+        or address.is_loopback
         or address.is_reserved
     ):
         return False
 
-    if address.is_global:
-        return True
     if address.is_private and allow_private_network_addresses:
         return True
+    if address.is_global:
+        return True
+
     return False
 
 
 class _BasicResolveResultValidator(_ResolveResultValidator):
     """Validates resolved network addresses used by the SSRF-safe connector."""
 
-    def __init__(self, *, allow_private_network_addresses: bool = False):
+    def __init__(
+        self,
+        *,
+        allow_private_network_addresses: bool = False,
+    ):
         self._allow_private_network_addresses = allow_private_network_addresses
 
     def is_allowed(self, resolved: ResolveResult) -> bool:
@@ -100,7 +119,10 @@ class _BasicResolveResultValidator(_ResolveResultValidator):
 
         try:
             address = ipaddress.ip_address(host)
-            if not _allow_addr(address, self._allow_private_network_addresses):
+            if not _allow_addr(
+                address,
+                self._allow_private_network_addresses,
+            ):
                 logger.warning("Private or loopback network address not allowed")
                 return False
 
@@ -111,7 +133,7 @@ class _BasicResolveResultValidator(_ResolveResultValidator):
         return True
 
 
-class OutboundHostValidator(_OutboundHostValidator):
+class OutboundHostValidator(_OutboundHostValidator, _RootConfigurable):
     """Outbound host validator that checks if URLs are allowed based on configured hosts and network address rules."""
 
     def __init__(
@@ -121,6 +143,7 @@ class OutboundHostValidator(_OutboundHostValidator):
         enabled: bool | None = None,
         include_default_microsoft_hosts: bool = True,
         allow_private_network_addresses: bool = False,
+        allow_http_for_loopback: bool = False,
     ):
         """
         Initializes the outbound host validator.
@@ -129,6 +152,7 @@ class OutboundHostValidator(_OutboundHostValidator):
         :param enabled: Whether the validator is enabled. If None, it will be automatically enabled if hosts are provided.
         :param include_default_microsoft_hosts: Whether to include the default Microsoft hosts in the allowed list.
         :param allow_private_network_addresses: Whether to allow private network addresses.
+        :param allow_http_for_loopback: Whether to allow HTTP for loopback addresses.
         """
         self._enabled = bool(hosts) if enabled is None else enabled
 
@@ -142,6 +166,7 @@ class OutboundHostValidator(_OutboundHostValidator):
                 logger.warning("Failed to normalize host: %s", host)
 
         self._allow_private_network_addresses = allow_private_network_addresses
+        self._allow_http_for_loopback = allow_http_for_loopback
 
         if include_default_microsoft_hosts:
             for host in _DEFAULT_MICROSOFT_HOSTS:
@@ -153,6 +178,30 @@ class OutboundHostValidator(_OutboundHostValidator):
 
         self._resolved_validator = _BasicResolveResultValidator(
             allow_private_network_addresses=self._allow_private_network_addresses
+        )
+
+    @classmethod
+    def _from_scoped_configuration(cls, config: Configuration) -> Self:
+        return cls(
+            enabled=config.get_bool(_netpath("Enabled"), False),
+            include_default_microsoft_hosts=config.get_bool(
+                _netpath("IncludeDefaultMicrosoftHosts"), True
+            ),
+            allow_private_network_addresses=config.get_bool(
+                _netpath("AllowPrivateNetworkAddresses"), False
+            ),
+            allow_http_for_loopback=config.get_bool(
+                _netpath("AllowHttpForLoopback"), False
+            ),
+            hosts=config.get_str_list(_netpath("Hosts")),
+        )
+
+    @classmethod
+    def _from_root_configuration(cls, config: Configuration) -> Self:
+        return cls._from_scoped_configuration(
+            config.get_section(
+                _netpath("OutboundHostValidator"), default=Configuration()
+            )
         )
 
     @property
@@ -216,9 +265,6 @@ class OutboundHostValidator(_OutboundHostValidator):
         if url.host is None:
             return False
 
-        if url.scheme != "https":
-            return False
-
         # disallow user info in the URL (scheme://user:password@localhost)
         if url.user or url.password:
             return False
@@ -226,13 +272,30 @@ class OutboundHostValidator(_OutboundHostValidator):
         if not url.host:
             return False
 
+        address = None
         try:
             address = ipaddress.ip_address(url.host)
-            if not _allow_addr(address, self._allow_private_network_addresses):
+            if not _allow_addr(
+                address,
+                self._allow_private_network_addresses,
+            ):
                 return False
 
         except ValueError:
             pass
+
+        is_loopback = url.host == "localhost" or (
+            address is not None and address.is_loopback
+        )
+
+        allow_loopback = (
+            url.scheme == "http"
+            and is_loopback
+            and self._allow_private_network_addresses
+            and self._allow_http_for_loopback
+        )
+        if url.scheme != "https" and not allow_loopback:
+            return False
 
         url_host = url.host.casefold()
 

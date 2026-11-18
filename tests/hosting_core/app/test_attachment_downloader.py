@@ -2,9 +2,11 @@
 # Licensed under the MIT License.
 
 import json
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
+from aiohttp import ClientResponse, ClientSession
+from yarl import URL
 
 from microsoft_agents.activity import (
     Activity,
@@ -14,6 +16,9 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app.attachment_downloader import AttachmentDownloader
+from microsoft_agents.hosting.core.app.m365_attachment_downloader import (
+    M365AttachmentDownloader,
+)
 from microsoft_agents.hosting.core.security import OutboundHostValidator, _SSRFError
 
 
@@ -122,6 +127,57 @@ class TestAttachmentDownloaderInlineContent:
         assert files[0].content == bytes(json.dumps({"foo": "bar"}), "utf-8")
         assert files[0].content_type == "application/vnd.custom"
         assert files[0].filename == "data.json"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("m365", [False, True])
+@pytest.mark.parametrize(
+    "redirect_url",
+    ["http://localhost/file.txt", "https://excluded.example/file.txt"],
+)
+async def test_downloaders_reject_redirect_before_requesting_disallowed_target(
+    monkeypatch, m365, redirect_url, caplog
+):
+    initial_url = "https://localhost/file.txt"
+    redirect_response = Mock(spec=ClientResponse)
+    redirect_response.status = 302
+    redirect_response.method = "GET"
+    redirect_response.headers = {"Location": redirect_url}
+    redirect_response.url = URL(initial_url)
+    redirect_response.cookies = {}
+    redirect_response._raw_cookie_headers = ()
+    transport = AsyncMock(return_value=redirect_response)
+
+    def create_client(**kwargs):
+        # Preserve real validation and redirect handling, replacing only transport.
+        middlewares = (*kwargs.pop("middlewares"), transport)
+        return ClientSession(middlewares=middlewares, **kwargs)
+
+    monkeypatch.setattr(
+        "microsoft_agents.hosting.core.security.outbound_host_validator.ClientSession",
+        create_client,
+    )
+    validator = OutboundHostValidator(
+        enabled=True,
+        hosts=["localhost"],
+        include_default_microsoft_hosts=False,
+        allow_private_network_addresses=True,
+    )
+    if m365:
+        downloader = M365AttachmentDownloader(
+            connections=Mock(), host_validator=validator, use_anonymous=True
+        )
+    else:
+        downloader = AttachmentDownloader(host_validator=validator)
+    context = _make_context(
+        channel_id="msteams" if m365 else "test",
+        attachments=[Attachment(content_type="text/plain", content_url=initial_url)],
+    )
+
+    assert await downloader.download_files(context) == []
+    transport.assert_awaited_once()
+    assert transport.await_args.args[0].url == URL(initial_url)
+    assert "Outbound host validation failed" in caplog.text
 
 
 class TestAttachmentDownloaderRemoteContent:

@@ -18,6 +18,7 @@ _SDK_SECTIONS = frozenset(
         "ConnectionsMap",
         "TokenValidation",
         "AgentApplication",
+        "OutboundHostValidator",
         "Logging",
         "Port",
     )
@@ -39,9 +40,9 @@ def load_configuration_from_env(config_dict: Mapping[str, Any], /) -> Configurat
 
     Only the SDK's top-level keys are kept: ``Connections``,
     ``ConnectionsMap``, ``TokenValidation``, ``AgentApplication``,
-    ``Logging``, and ``Port``. Names ignore case but not underscores, so
-    ``CONNECTIONSMAP`` is kept while ``CONNECTIONS_MAP`` is not. Other keys,
-    such as ``PATH`` or unrelated secrets, are discarded.
+    ``OutboundHostValidator``, ``Logging``, and ``Port``. Names ignore case but
+    not underscores, so ``CONNECTIONSMAP`` is kept while ``CONNECTIONS_MAP`` is
+    not. Other keys, such as ``PATH`` or unrelated secrets, are discarded.
 
     For example, without changing the process environment::
 

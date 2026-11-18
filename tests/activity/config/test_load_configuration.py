@@ -160,9 +160,11 @@ def test_load_configuration_keeps_only_sdk_sections():
             "connectionsmap::0::SERVICEURL": "*",
             "TokenValidation": {"AUDIENCES": "client"},
             "AGENTAPPLICATION__STARTTYPINGTIMER": "false",
+            "OutboundHostValidator__Enabled": "true",
             "PORT": "4123",
             "CONNECTIONS_MAP__0__SERVICEURL": "ignored",
             "TOKEN_VALIDATION__AUDIENCES": "ignored",
+            "OUTBOUND_HOST_VALIDATOR__ENABLED": "ignored",
             "PATH": "/usr/bin",
             "SECRET": "value",
             "PATH__NESTED": "value",
@@ -174,5 +176,6 @@ def test_load_configuration_keeps_only_sdk_sections():
         "connectionsmap",
         "TokenValidation",
         "AGENTAPPLICATION",
+        "OutboundHostValidator",
         "PORT",
     }

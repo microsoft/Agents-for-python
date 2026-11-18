@@ -39,6 +39,8 @@ Use `load_configuration_from_env(os.environ)` to expand environment-style names 
 
 ## Major Features & Enhancements
 
+- **Outbound Host Validator Configuration**: Added `OutboundHostValidator.from_config()` to bind validator settings from dictionaries or `Configuration`. (#655).
+- **Loopback HTTP Opt-In**: Added the default-off `allow_http_for_loopback` setting (`AllowHttpForLoopback` in configuration) to permit HTTP requests to allowlisted loopback hosts when `allow_private_network_addresses` is also enabled (#655).
 - **JWT Authorization Configuration**: Added `ConnectionSettingsBase`, `JwtConnectionSettings`, and `TokenValidationConfig` to bind inbound JWT policies from application configuration, including explicit audiences, tenant and anonymous-access overrides, and per-connection issuer settings. Retained legacy `AgentAuthConfiguration` support and added application-scoped validator caching without changing `Connections` or `ConnectionManager` (#638).
 - **Explicit JWT Audience Lists**: Scalar and delimited audience strings now bind as explicit allow-lists instead of falling back to all configured connection client IDs. Missing or empty audiences continue to use connection defaults (#638).
 - **Connection Configuration**: Added `Configuration`-based initialization to `ConnectionManager` and `MsalConnectionManager`, with typed audience/service-URL routing maps supporting lists and named mappings. Consolidated shared connection APIs under `authorization.connections` while retaining legacy import paths and constructor inputs.
