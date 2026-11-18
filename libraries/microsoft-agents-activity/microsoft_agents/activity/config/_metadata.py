@@ -40,7 +40,8 @@ class _RootConfigMetadata(_Metadata[bool]):
 
     @staticmethod
     def set(mapping: MutableMapping, value: bool) -> None:
-        if value is False and _RootConfigMetadata._KEY in mapping:
-            del mapping[_RootConfigMetadata._KEY]
+        if value is False:
+            if _RootConfigMetadata._KEY in mapping:
+                del mapping[_RootConfigMetadata._KEY]
         else:
             mapping[_RootConfigMetadata._KEY] = value
