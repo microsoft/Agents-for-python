@@ -129,6 +129,34 @@ class TestMeetingStartEnd:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("include_join_url", [False, True], ids=["missing", "null"])
+    async def test_start_handler_accepts_missing_or_null_join_url(
+        self, include_join_url
+    ):
+        user_handler = AsyncMock()
+
+        @self.ext.meetings.start()
+        async def handler(ctx, state, meeting: MeetingStartEventValue):
+            await user_handler(ctx, state, meeting)
+
+        value = _meeting_start_value()
+        value.pop("JoinUrl")
+        if include_join_url:
+            value["JoinUrl"] = None
+        ctx = _make_context(
+            ActivityTypes.event,
+            name="application/vnd.microsoft.meetingStart",
+            value=value,
+        )
+
+        await self.app._routes[0]["handler"](ctx, MagicMock())
+
+        user_handler.assert_awaited_once()
+        meeting = user_handler.await_args.args[2]
+        assert isinstance(meeting, MeetingStartEventValue)
+        assert meeting.join_url is None
+
+    @pytest.mark.asyncio
     async def test_end_handler_parses_meeting_details(self):
         user_handler = AsyncMock()
 
@@ -153,6 +181,32 @@ class TestMeetingStartEnd:
         assert meeting.end_time == datetime(
             2026, 10, 2, 20, 49, 20, 330067, tzinfo=timezone.utc
         )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("include_join_url", [False, True], ids=["missing", "null"])
+    async def test_end_handler_accepts_missing_or_null_join_url(self, include_join_url):
+        user_handler = AsyncMock()
+
+        @self.ext.meetings.end()
+        async def handler(ctx, state, meeting: MeetingEndEventValue):
+            await user_handler(ctx, state, meeting)
+
+        value = _meeting_end_value()
+        value.pop("JoinUrl")
+        if include_join_url:
+            value["JoinUrl"] = None
+        ctx = _make_context(
+            ActivityTypes.event,
+            name="application/vnd.microsoft.meetingEnd",
+            value=value,
+        )
+
+        await self.app._routes[0]["handler"](ctx, MagicMock())
+
+        user_handler.assert_awaited_once()
+        meeting = user_handler.await_args.args[2]
+        assert isinstance(meeting, MeetingEndEventValue)
+        assert meeting.join_url is None
 
 
 class TestMeetingParticipants:
