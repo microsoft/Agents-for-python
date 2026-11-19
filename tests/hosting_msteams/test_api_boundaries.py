@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-import httpx
+import httpx2
 from pydantic import ValidationError
 from microsoft_teams.api import ApiClient
 from microsoft_teams.api.models import (
@@ -49,14 +49,14 @@ async def test_client_preserves_headers_url_token_callback_and_per_turn_cache(
 
     def record(request):
         requests.append(request)
-        return httpx.Response(200, json={"ok": True})
+        return httpx2.Response(200, json={"ok": True})
 
-    original = httpx.AsyncClient
+    original = httpx2.AsyncClient
 
     def client_with_transport(*args, **kwargs):
-        return original(*args, transport=httpx.MockTransport(record), **kwargs)
+        return original(*args, transport=httpx2.MockTransport(record), **kwargs)
 
-    monkeypatch.setattr(httpx, "AsyncClient", client_with_transport)
+    monkeypatch.setattr(httpx2, "AsyncClient", client_with_transport)
     provider = SimpleNamespace(get_access_token=AsyncMock(return_value="test-token"))
     manager = SimpleNamespace(get_token_provider=Mock(return_value=provider))
     identity = object() if authenticated else None
