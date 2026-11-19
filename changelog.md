@@ -39,6 +39,7 @@ Use `load_configuration_from_env(os.environ)` to expand environment-style names 
 
 ## Major Features & Enhancements
 
+- **Application Options Configuration**: Added `ApplicationOptions.from_config()` to bind scoped settings or the application-root `AgentApplication` section. Pass the resulting options to `AgentApplication(options=...)` to use nested settings; constructor keyword arguments continue to read only top-level options for backward compatibility (#656).
 - **Teams API Dependency**: Updated `microsoft-agents-hosting-msteams` to use `microsoft-teams-api` 2.2.0, including HTTPX2 transport, nullable meeting join URLs, and typed chat, reply-chain, and source channel data.
 - **JWT Authorization Configuration**: Added `ConnectionSettingsBase`, `JwtConnectionSettings`, and `TokenValidationConfig` to bind inbound JWT policies from application configuration, including explicit audiences, tenant and anonymous-access overrides, and per-connection issuer settings. Retained legacy `AgentAuthConfiguration` support and added application-scoped validator caching without changing `Connections` or `ConnectionManager` (#638).
 - **Explicit JWT Audience Lists**: Scalar and delimited audience strings now bind as explicit allow-lists instead of falling back to all configured connection client IDs. Missing or empty audiences continue to use connection defaults (#638).

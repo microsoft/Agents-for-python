@@ -8,6 +8,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable
 
+from microsoft_agents.activity.config import (
+    Configuration,
+    _RootConfigurable,
+    ignore_case,
+    _legpath as legpath,
+)
+
 from microsoft_agents.hosting.core.app.oauth import AuthHandlerConfig
 from microsoft_agents.hosting.core.storage import Storage
 
@@ -21,7 +28,7 @@ from .proactive.proactive_options import ProactiveOptions
 
 
 @dataclass
-class ApplicationOptions:
+class ApplicationOptions(_RootConfigurable):
     adapter: ChannelServiceAdapter | None = None
     """
     Optional. Options used to initialize your `BotAdapter`
@@ -95,3 +102,67 @@ class ApplicationOptions:
     When set, :attr:`microsoft_agents.hosting.core.AgentApplication.proactive` is available for storing
     conversations and initiating proactive turns.
     """
+
+    @classmethod
+    def _from_scoped_configuration(cls, config: Configuration) -> ApplicationOptions:
+        auth_handlers = config.get(legpath("authorization_handlers"), None)
+        if auth_handlers is not None and not isinstance(auth_handlers, dict):
+            raise TypeError("authorization_handlers must be a mapping")
+
+        typing = config.get("typing")
+        if typing is not None and not isinstance(typing, TypingOptions):
+            raise TypeError("typing must be an instance of TypingOptions or None")
+
+        storage = config.get("storage")
+        if storage is not None and not isinstance(storage, Storage):
+            raise TypeError("storage must be an instance of Storage or None")
+
+        proactive_options = config.get("proactive")
+        if proactive_options is not None and not isinstance(
+            proactive_options, ProactiveOptions
+        ):
+            raise TypeError("proactive must be an instance of ProactiveOptions or None")
+
+        turn_state_factory = config.get("turn_state_factory")
+
+        file_downloaders = config.get("file_downloaders")
+        if file_downloaders is not None and isinstance(file_downloaders, list):
+            if file_downloaders:
+                for downloader in file_downloaders:
+                    if not isinstance(downloader, InputFileDownloader):
+                        raise TypeError(
+                            "each item in file_downloaders must be an instance of FileDownloader"
+                        )
+        elif file_downloaders is not None and not isinstance(file_downloaders, list):
+            raise TypeError("file_downloaders must be a list or None")
+        file_downloaders = file_downloaders or []
+
+        adapter = config.get("adapter")
+        if adapter is not None and not isinstance(adapter, ChannelServiceAdapter):
+            raise TypeError(
+                "adapter must be an instance of ChannelServiceAdapter or None"
+            )
+
+        return ApplicationOptions(
+            typing=typing,
+            bot_app_id=config.get_str(legpath("bot_app_id"), ""),
+            start_typing_timer=config.get_bool(legpath("start_typing_timer"), True),
+            remove_recipient_mention=config.get_bool(
+                legpath("remove_recipient_mention"), True
+            ),
+            long_running_messages=config.get_bool(
+                legpath("long_running_messages"), False
+            ),
+            authorization_handlers=auth_handlers,
+            storage=storage,
+            proactive=proactive_options,
+            turn_state_factory=turn_state_factory,
+            file_downloaders=file_downloaders,
+            adapter=adapter,
+        )
+
+    @classmethod
+    def _from_root_configuration(cls, config: Configuration) -> ApplicationOptions:
+        return cls._from_scoped_configuration(
+            config.get_section(legpath("AgentApplication"), default=Configuration())
+        )
