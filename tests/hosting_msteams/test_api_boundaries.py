@@ -2,34 +2,28 @@
 # Licensed under the MIT License.
 """Real upstream clients/models at the extension boundary; no network requests."""
 
-import sys
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-pytestmark = pytest.mark.skipif(
-    sys.version_info < (3, 11), reason="Teams API requires Python 3.11+"
+import httpx2
+from pydantic import ValidationError
+from microsoft_teams.api import ApiClient
+from microsoft_teams.api.models import (
+    ChannelData,
+    TaskModuleRequest,
+    NotificationInfo,
 )
-
-if sys.version_info >= (3, 11):
-    import httpx
-    from pydantic import ValidationError
-    from microsoft_teams.api import ApiClient
-    from microsoft_teams.api.models import (
-        ChannelData,
-        TaskModuleRequest,
-        NotificationInfo,
-    )
-    from microsoft_agents.activity import Activity
-    from microsoft_agents.hosting.msteams._teams_api_client import (
-        _get_teams_api_client,
-        _set_teams_api_client,
-    )
-    from microsoft_agents.hosting.msteams._utils import (
-        _send_invoke_response,
-        _try_get_channel_data,
-    )
+from microsoft_agents.activity import Activity
+from microsoft_agents.hosting.msteams._teams_api_client import (
+    _get_teams_api_client,
+    _set_teams_api_client,
+)
+from microsoft_agents.hosting.msteams._utils import (
+    _send_invoke_response,
+    _try_get_channel_data,
+)
 
 
 class Services:
@@ -55,14 +49,14 @@ async def test_client_preserves_headers_url_token_callback_and_per_turn_cache(
 
     def record(request):
         requests.append(request)
-        return httpx.Response(200, json={"ok": True})
+        return httpx2.Response(200, json={"ok": True})
 
-    original = httpx.AsyncClient
+    original = httpx2.AsyncClient
 
     def client_with_transport(*args, **kwargs):
-        return original(*args, transport=httpx.MockTransport(record), **kwargs)
+        return original(*args, transport=httpx2.MockTransport(record), **kwargs)
 
-    monkeypatch.setattr(httpx, "AsyncClient", client_with_transport)
+    monkeypatch.setattr(httpx2, "AsyncClient", client_with_transport)
     provider = SimpleNamespace(get_access_token=AsyncMock(return_value="test-token"))
     manager = SimpleNamespace(get_token_provider=Mock(return_value=provider))
     identity = object() if authenticated else None

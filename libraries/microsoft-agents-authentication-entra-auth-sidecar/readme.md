@@ -16,6 +16,15 @@ handles secrets, certificates, or keys.
     <th style="width:60%">Release Notes</th>
   </tr>
   <tr>
+    <td>1.10.0</td>
+    <td>2026-11-19</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v1100">
+        1.10.0 Release Notes
+      </a>
+    </td>
+  </tr>
+  <tr>
     <td>1.9.0</td>
     <td>2026-10-19</td>
     <td>
@@ -126,19 +135,23 @@ Use the generic `ConnectionManager` from `microsoft-agents-hosting-core` with
 
 ```python
 from microsoft_agents.hosting.core import ConnectionManager
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
 
 connection_manager = ConnectionManager(
     provider_factory=SidecarAuth,
-    CONNECTIONS={
-        "SERVICE_CONNECTION": {
-            "SETTINGS": {
-                "AUTHTYPE": "EntraAuthSideCar",
-                "CLIENTID": "<blueprint-app-id>",
+    config=Configuration({
+        "connections": {
+            "SERVICE_CONNECTION": {
+                "settings": {
+                    "client_id": "<blueprint-app-id>",
+                }
             }
-        }
-    },
-    CONNECTIONSMAP=[{"SERVICEURL": "*", "CONNECTION": "SERVICE_CONNECTION"}],
+        },
+        "connections_map": [
+            {"service_url": "*", "connection": "SERVICE_CONNECTION"}
+        ],
+    }),
 )
 ```
 
@@ -156,12 +169,14 @@ from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
 connection_manager = ConnectionManager(
     SidecarAuth,
     config=Configuration(
-        connections={
-            "SERVICE_CONNECTION": {
-                "settings": {
-                    "client_id": "your-blueprint-id",
-                    "service_name": "default",
-                    "sidecar_base_url": "http://localhost:5178",
+        {
+            "connections": {
+                "SERVICE_CONNECTION": {
+                    "settings": {
+                        "client_id": "your-blueprint-id",
+                        "service_name": "default",
+                        "sidecar_base_url": "http://localhost:5178",
+                    }
                 }
             }
         }
@@ -172,6 +187,10 @@ connection_manager = ConnectionManager(
 Legacy inputs and the previous settings import remain supported. The legacy
 `provider.configuration` view is available only when constructed with an
 `AgentAuthConfiguration`; new callers should use `provider.config`.
+
+Use `SidecarConnectionSettings.from_config(mapping)` to bind scoped settings or
+reuse an existing settings instance. The `from_configuration()` compatibility
+method also accepts `AgentAuthConfiguration`.
 
 ## Sidecar endpoint mapping
 

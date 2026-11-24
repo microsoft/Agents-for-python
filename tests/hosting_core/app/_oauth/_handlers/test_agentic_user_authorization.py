@@ -7,6 +7,7 @@ from microsoft_agents.activity import (
     RoleTypes,
     TokenResponse,
 )
+from microsoft_agents.activity.config import Configuration
 
 from microsoft_agents.authentication.msal import MsalAuth, MsalConnectionManager
 
@@ -42,7 +43,7 @@ class TestUtils:
 
     @pytest.fixture
     def connection_manager(self, mocker):
-        return MsalConnectionManager(**AGENTIC_ENV_DICT)
+        return MsalConnectionManager(config=Configuration(AGENTIC_ENV_DICT))
 
     @pytest.fixture
     def auth_handler_settings(self):
@@ -55,7 +56,7 @@ class TestUtils:
         return AgenticUserAuthorization(
             storage,
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            config=auth_handler_settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
 
@@ -145,7 +146,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            config=auth_handler_settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
 
@@ -177,7 +178,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            config=auth_handler_settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
 
@@ -222,7 +223,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            config=auth_handler_settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
         activity = Activity(
@@ -270,7 +271,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            config=auth_handler_settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
         activity = Activity(
@@ -318,7 +319,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            config=auth_handler_settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
         activity = Activity(
@@ -367,7 +368,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            config=auth_handler_settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
         activity = Activity(

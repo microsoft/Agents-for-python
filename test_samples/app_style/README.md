@@ -5,7 +5,7 @@ This folder contains end-to-end samples that resemble production “app-style”
 ## Authorization sample
 
 `authorization_agent.py` loads authorization handlers from the environment through
-`Authorization(settings=agents_sdk_config)`. Status and logout use the fixed handler
+`Authorization(..., config=agents_sdk_config)`. Status and logout use the fixed handler
 names `GRAPH`, `GITHUB`, and `MCS` defined in `env.TEMPLATE`.
 
 Copy `env.TEMPLATE` to `.env`, configure the Azure Bot OAuth connections and any
@@ -26,7 +26,7 @@ open pull requests from `octocat/Hello-World`.
 
 ### Prerequisites
 
-1. Python 3.10 or later.
+1. Python 3.11 or later.
 2. Install the Agents Python SDK packages (for example by running `pip install -e libraries/microsoft-agents-*`).
 3. A published Copilot Studio agent configured for Teams with application (client) ID, client secret, and tenant ID.
 

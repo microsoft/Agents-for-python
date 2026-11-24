@@ -17,6 +17,15 @@ This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehe
     <th style="width:60%">Release Notes</th>
   </tr>
   <tr>
+    <td>1.10.0</td>
+    <td>2026-11-19</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v1100">
+        1.10.0 Release Notes
+      </a>
+    </td>
+  </tr>
+  <tr>
     <td>1.9.0</td>
     <td>2026-10-19</td>
     <td>
@@ -564,7 +573,7 @@ audience = PowerPlatformEnvironment.get_token_audience(
 
 ## Requirements
 
-- Python 3.10+ (supports 3.10, 3.11, 3.12, 3.13, 3.14)
+- Python 3.11+ (supports 3.11, 3.12, 3.13, 3.14, 3.15)
 - Valid Azure AD app registration
 - Access to Microsoft Power Platform environment
 - Published Copilot Studio agent

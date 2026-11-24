@@ -56,12 +56,16 @@ class MsalAuth(AccessTokenProviderBase):
             Configuration | MsalConnectionSettings | AgentAuthConfiguration
         ),
     ):
-        """Initializes the MsalAuth class with the given configuration.
+        """Create an MSAL token provider for one connection.
 
-        :param msal_configuration: Raw Configuration or bound MsalConnectionSettings.
-            AgentAuthConfiguration remains accepted for deprecated compatibility.
-            Do not mutate settings or their nested values after passing them in.
-        :type config: Configuration | MsalConnectionSettings | AgentAuthConfiguration
+        :param msal_configuration: MsalConnectionSettings, or a Configuration
+            containing one connection's settings. For a dictionary, use
+            ``MsalConnectionSettings.from_config(your_settings)`` first.
+            Do not pass the whole application's configuration. Legacy
+            AgentAuthConfiguration is still accepted but is deprecated.
+            Existing settings objects are reused; do not change their nested
+            lists or dictionaries after creating the provider.
+        :type msal_configuration: Configuration | MsalConnectionSettings | AgentAuthConfiguration
         """
         config = msal_configuration
         if isinstance(config, MsalConnectionSettings):
@@ -69,7 +73,7 @@ class MsalAuth(AccessTokenProviderBase):
             _msal_configuration = config
         elif isinstance(config, Configuration):
             self._deprecated_config = None
-            _msal_configuration = MsalConnectionSettings.from_configuration(config)
+            _msal_configuration = MsalConnectionSettings.from_config(config)
         else:
             warnings.warn(
                 "AgentAuthConfiguration is deprecated and will be removed in future versions. "
@@ -93,7 +97,7 @@ class MsalAuth(AccessTokenProviderBase):
     def configuration(self) -> AgentAuthConfiguration:
         """Return the deprecated AgentAuthConfiguration compatibility view.
 
-        Use :attr:`config` for the bound MsalConnectionSettings instead.
+        Use :attr:`config` to read the MsalConnectionSettings instead.
 
         :return: The legacy authentication configuration.
         :rtype: AgentAuthConfiguration
@@ -109,7 +113,10 @@ class MsalAuth(AccessTokenProviderBase):
 
     @property
     def config(self) -> MsalConnectionSettings:
-        """Return the bound MSAL settings; nested mutable values remain mutable.
+        """Return the MSAL settings this provider uses.
+
+        This is not a copy. Do not change lists or dictionaries inside it after
+        creating the provider.
 
         :return: The MSAL connection settings.
         :rtype: MsalConnectionSettings
@@ -421,7 +428,7 @@ class MsalAuth(AccessTokenProviderBase):
             return client
 
     @staticmethod
-    def _uri_validator(url_str: str) -> tuple[bool, Optional[URI]]:
+    def _uri_validator(url_str: str) -> tuple[bool, URI | None]:
         try:
             result = urlparse(url_str)
             return all([result.scheme, result.netloc]), result
@@ -449,13 +456,13 @@ class MsalAuth(AccessTokenProviderBase):
     # to avoid this
     async def get_agentic_application_token(
         self, tenant_id: str, agent_app_instance_id: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Gets the agentic application token for the given agent application instance ID.
 
         :param agent_app_instance_id: The agent application instance ID.
         :type agent_app_instance_id: str
         :return: The agentic application token, or None if not found.
-        :rtype: Optional[str]
+        :rtype: str | None
         """
 
         if not agent_app_instance_id:
@@ -597,7 +604,7 @@ class MsalAuth(AccessTokenProviderBase):
         agent_app_instance_id: str,
         agentic_user_id: str,
         scopes: list[str],
-    ) -> Optional[str]:
+    ) -> str | None:
         """Gets the agentic user token for the given agent application instance ID and agentic user Id and the scopes.
 
         :param agent_app_instance_id: The agent application instance ID.
@@ -607,7 +614,7 @@ class MsalAuth(AccessTokenProviderBase):
         :param scopes: The scopes to request for the token.
         :type scopes: list[str]
         :return: The agentic user token, or None if not found.
-        :rtype: Optional[str]
+        :rtype: str | None
         """
         if not agent_app_instance_id or not agentic_user_id:
             raise ValueError(
