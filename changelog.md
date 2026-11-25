@@ -1,15 +1,15 @@
-# Microsoft 365 Agents SDK for Python - Release Notes v1.10.0 (Unreleased)
+# Microsoft 365 Agents SDK for Python - Release Notes v1.10.0
 
-**Release Date:** Unreleased
+**Release Date:** 2026-11-19
 **Previous Version:** 1.9.0 (Released 2026-10-19)
 
 ## Breaking Changes
 
-- **Python Support**: Python 3.10 is no longer supported. Upgrade to Python 3.11 or later before updating the SDK.
+- **Python Support**: Python 3.10 is no longer supported. Upgrade to Python 3.11 or later before updating the SDK (#640).
 
-## microsoft_agents.activity: Configuration
+## Configuration
 
-Added `microsoft_agents.activity.config.Configuration` for typed reads, nested sections, wildcard collection, and settings binding from ordinary dictionaries (#636, #649).
+Added `microsoft_agents.activity.config.Configuration` for typed reads, nested sections, wildcard collection, and settings binding from ordinary dictionaries (#636, #649, #653).
 
 Previously, each component parsed its own settings from raw dictionaries or `AgentAuthConfiguration`, with inconsistent key matching and type conversion. `Configuration` gives every component one consistent way to read settings, closer to .NET's `IConfiguration`.
 
@@ -39,19 +39,22 @@ Use `load_configuration_from_env(os.environ)` to expand environment-style names 
 
 ## Major Features & Enhancements
 
-- **Teams API Dependency**: Updated `microsoft-agents-hosting-msteams` to use `microsoft-teams-api` 2.2.0, including HTTPX2 transport, nullable meeting join URLs, and typed chat, reply-chain, and source channel data.
+- **Application Options Configuration**: Added `ApplicationOptions.from_config()` to bind scoped settings or the application-root `AgentApplication` section. Pass the resulting options to `AgentApplication(options=...)` to use nested settings; constructor keyword arguments continue to read only top-level options for backward compatibility (#656).
+- **Teams API Dependency**: Updated `microsoft-agents-hosting-msteams` to use `microsoft-teams-api` 2.2.0, including HTTPX2 transport, nullable meeting join URLs, and typed chat, reply-chain, and source channel data (#657).
 - **JWT Authorization Configuration**: Added `ConnectionSettingsBase`, `JwtConnectionSettings`, and `TokenValidationConfig` to bind inbound JWT policies from application configuration, including explicit audiences, tenant and anonymous-access overrides, and per-connection issuer settings. Retained legacy `AgentAuthConfiguration` support and added application-scoped validator caching without changing `Connections` or `ConnectionManager` (#638).
 - **Explicit JWT Audience Lists**: Scalar and delimited audience strings now bind as explicit allow-lists instead of falling back to all configured connection client IDs. Missing or empty audiences continue to use connection defaults (#638).
-- **Connection Configuration**: Added `Configuration`-based initialization to `ConnectionManager` and `MsalConnectionManager`, with typed audience/service-URL routing maps supporting lists and named mappings. Consolidated shared connection APIs under `authorization.connections` while retaining legacy import paths and constructor inputs.
-- **Typed Authentication Provider Settings**: Added `MsalConnectionSettings` and migrated `SidecarConnectionSettings` to derive from `ConnectionSettingsBase`. MSAL and Entra sidecar providers now accept bound settings or `Configuration` and expose typed settings through `.config`, while retaining legacy `AgentAuthConfiguration` inputs and existing environment-variable names.
-- **Typed User Authorization Configuration**: Added `AuthorizationConfig` and `AuthHandlerConfig` for application sign-in options and individual OAuth handlers. `Authorization` accepts configuration through `config=` and supports explicit handler lists or dictionaries.
-- **Shared Configuration API**: Added a dictionary-backed `Configuration` API with nested path and alias lookup, typed getters, wildcard collection, configurable settings binding, and mapping/default resolution with indexed-list normalization. Retained the existing `load_configuration_from_env()` return contract (#636).
+- **Connection Configuration**: Added `Configuration`-based initialization to `ConnectionManager` and `MsalConnectionManager`, with typed audience/service-URL routing maps supporting lists and named mappings. Consolidated shared connection APIs under `authorization.connections` while retaining legacy package-level imports and constructor inputs (#642).
+- **Typed Authentication Provider Settings**: Added `MsalConnectionSettings` and migrated `SidecarConnectionSettings` to derive from `ConnectionSettingsBase`. MSAL and Entra sidecar providers now accept bound settings or `Configuration` and expose typed settings through `.config`, while retaining legacy `AgentAuthConfiguration` inputs and existing environment-variable names (#642).
+- **Typed User Authorization Configuration**: Added `AuthorizationConfig` and `AuthHandlerConfig` for application sign-in options and individual OAuth handlers. `Authorization` accepts configuration through `config=` and supports explicit handler lists or dictionaries (#644, #649).
+- **Shared Configuration API**: Added a dictionary-backed `Configuration` API with nested path and alias lookup, typed getters, wildcard collection, configurable settings binding, and mapping/default resolution with indexed-list normalization. Retained the existing `load_configuration_from_env()` return contract (#636, #649, #653).
 
 ## Deprecation
-- **Legacy Configuration Entry Points**: Prefer explicit `config=` arguments over unpacked configuration keyword arguments in connection managers and `Authorization`. Prefer typed provider `.config` settings over legacy `.configuration` access, and `AuthHandlerConfig` over the deprecated `AuthHandler` constructor. Legacy entry points remain available with deprecation warnings.
+
+- **Legacy Configuration Entry Points**: Prefer explicit `config=` arguments over unpacked configuration keyword arguments in connection managers and `Authorization`. Prefer typed provider `.config` settings over legacy `.configuration` access, and `AuthHandlerConfig` over the deprecated `AuthHandler` constructor. Legacy entry points remain available with deprecation warnings (#642, #644, #649).
 
 ## Bug Fixes
-- **Channel Service Client Cleanup**: Fixed unclosed connector and user-token clients when conversation creation fails or is cancelled, or when client initialization fails during proactive or incoming activity processing (#650).
+
+- **Channel Service Client Cleanup**: Fixed unclosed connector and user-token clients when conversation creation fails or is cancelled, or when client initialization fails during proactive or incoming activity processing (#651).
 
 ---
 
