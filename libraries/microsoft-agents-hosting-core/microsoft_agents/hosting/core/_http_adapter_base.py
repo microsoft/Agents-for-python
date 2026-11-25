@@ -6,7 +6,7 @@
 from abc import ABC
 from uuid import uuid4
 from http import HTTPStatus
-from traceback import format_exc
+from traceback import format_exception
 
 import logging
 
@@ -42,30 +42,19 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
         channel_service_client_factory: ChannelServiceClientFactoryBase | None = None,
         channel_service_client_factory_options: dict | None = None,
         host_validator: OutboundHostValidator | None = None,
+        emit_stack_trace: bool = False,
     ):
         """Initialize the HTTP adapter.
 
+        :param emit_stack_trace: Include traceback frames in diagnostic traces. Defaults to False; server logging is independent.
         :param connection_manager: Optional connection manager for OAuth.
         :param channel_service_client_factory: Factory for creating channel service clients.
         :param channel_service_client_factory_options: Optional dictionary of options to pass to the channel service client factory
             This is only used if channel_service_client_factory is not provided and connection_manager is provided.
         """
 
-        async def on_turn_error(context: TurnContext, error: Exception):
-            error_message = f"Exception caught : {error}"
-            print(format_exc())
-
-            await context.send_activity(MessageFactory.text(error_message))
-
-            # Send a trace activity
-            await context.send_trace_activity(
-                "OnTurnError Trace",
-                error_message,
-                "https://www.botframework.com/schemas/error",
-                "TurnError",
-            )
-
-        self.on_turn_error = on_turn_error
+        self._emit_stack_trace = emit_stack_trace
+        self.on_turn_error = self._handle_turn_error
 
         factory: ChannelServiceClientFactoryBase
 
@@ -83,6 +72,26 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
         self._host_validator = host_validator or OutboundHostValidator(enabled=False)
 
         super().__init__(factory)
+
+    async def _handle_turn_error(self, context: TurnContext, error: Exception):
+        logger.error(
+            "Unhandled exception during turn processing",
+            exc_info=(type(error), error, error.__traceback__),
+        )
+
+        trace_message = f"Exception caught : {error}"
+        if self._emit_stack_trace:
+            trace_message = "".join(
+                format_exception(type(error), error, error.__traceback__)
+            )
+
+        await context.send_activity(MessageFactory.text("Sorry, something went wrong."))
+        await context.send_trace_activity(
+            "OnTurnError Trace",
+            trace_message,
+            "https://www.botframework.com/schemas/error",
+            "TurnError",
+        )
 
     async def process_request(
         self, request: HttpRequestProtocol, agent: Agent

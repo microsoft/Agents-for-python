@@ -313,3 +313,21 @@ async def on_error(context: TurnContext, error: Exception):
 |Streaming Agent|Streams OpenAI responses|[azure-ai-streaming](https://github.com/microsoft/Agents/blob/main/samples/python/azureai-streaming/README.md)|
 |Copilot Studio Client|Console app to consume a Copilot Studio Agent|[copilotstudio-client](https://github.com/microsoft/Agents/blob/main/samples/python/copilotstudio-client/README.md)|
 |Cards Agent|Agent that uses rich cards to enhance conversation design |[cards](https://github.com/microsoft/Agents/blob/main/samples/python/cards/README.md)|
+
+## Default turn error handling
+
+The HTTP adapter logs the original exception through Python logging and sends
+`Sorry, something went wrong.` to the user. Configure logging to collect server
+diagnostics; traceback output is no longer printed directly to stdout.
+
+Pass `emit_stack_trace=True` to `CloudAdapter` during development to include
+traceback frames in diagnostic trace activities. The default is `False`; this
+setting does not affect server logging or the generic user response. Traces still
+contain exception messages, so disabling stacks is not complete redaction. Normal
+connector delivery filters traces outside the emulator channel, but `expectReplies`
+responses can buffer them on other channels.
+
+Assign an async `(context, error)` callback to `adapter.on_turn_error` to replace
+the adapter default, including its logging and responses. The stack option does
+not modify custom handlers. `@app.error` handles application errors in registration
+order after application logging; a successful handler prevents adapter fallback.
