@@ -1,6 +1,6 @@
 # Tooling only; never included in SDK runtime dependencies.
 packaging==25.0
-PyYAML==6.0.2
+PyYAML==6.0.3
 mypy==1.15.0
 pytest==8.3.5
 pytest-asyncio==0.26.0
